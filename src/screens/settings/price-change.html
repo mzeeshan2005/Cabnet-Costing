@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <!-- Required meta tags-->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="au theme template">
+    <meta name="author" content="Hau Nguyen">
+    <meta name="keywords" content="au theme template">
+
+    <!-- Title Page-->
+    <title>Price Update</title>
+
+    <!-- Fontfaces CSS-->
+    <link href="../../css/font-face.css" rel="stylesheet" media="all">
+    <!--    <link href="../vendor/font-awesome-4.7/css/font-awesome.min.css" rel="stylesheet" media="all">-->
+    <link href="../../vendor/font-awesome-5/css/fontawesome-all.min.css" rel="stylesheet" media="all">
+
+    <link rel="stylesheet" href="../../../node_modules/bootstrap/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="../../../node_modules/@fortawesome/fontawesome/styles.css"/>
+
+    <link href="../../vendor/mdi-font/css/material-design-iconic-font.min.css" rel="stylesheet" media="all">
+
+    <!-- Bootstrap CSS-->
+    <!--    <link href="../vendor/bootstrap-4.1/bootstrap.min.css" rel="stylesheet" media="all">-->
+
+    <!-- Vendor CSS-->
+    <link href="../../vendor/animsition/animsition.min.css" rel="stylesheet" media="all">
+    <link href="../../vendor/bootstrap-progressbar/bootstrap-progressbar-3.3.4.min.css" rel="stylesheet" media="all">
+    <link href="../../vendor/wow/animate.css" rel="stylesheet" media="all">
+    <link href="../../vendor/css-hamburgers/hamburgers.min.css" rel="stylesheet" media="all">
+    <link href="../../vendor/slick/slick.css" rel="stylesheet" media="all">
+    <link href="../../vendor/select2/select2.min.css" rel="stylesheet" media="all">
+    <link href="../../vendor/perfect-scrollbar/perfect-scrollbar.css" rel="stylesheet" media="all">
+    <!--    <link href="../vendor/datatable/datatable.min.css" rel="stylesheet" media="all">-->
+
+    <!-- Main CSS-->
+    <link href="../../css/theme.css" rel="stylesheet" media="all">
+
+</head>
+
+<body class="animsition" id="body" style="overflow: hidden">
+<div class="page-wrapper">
+    <!-- HEADER DESKTOP-->
+    <header class="header-desktop3 d-none d-lg-block">
+        <div class="section__content section__content--p35">
+            <div class="header3-wrap">
+                <div class="header__logo">
+                    <a href="../../index.html"><h3 class="text-white"><b>CABINET COSTING</b></h3></a>
+                </div>
+                <div class="header__navbar">
+                    <ul class="list-unstyled">
+                        <li>
+                            <a href="../../index.html">
+                                <i class="fa fa-home"></i>
+                                <span class="bot-line"></span>Home</a>
+                        </li>
+                        <li class="has-sub">
+                            <a href="#">
+                                <i class="fas fa-user"></i>
+                                <span class="bot-line"></span>Clients</a>
+                            <ul class="header3-sub-list list-unstyled">
+                                <li>
+                                    <div class="account-dropdown__item">
+                                        <a href="../../screens/new_clients.html">
+                                            <i class="fas fa-plus"></i>New Clients</a>
+                                    </div>
+                                </li>
+                                <li>
+                                    <div class="account-dropdown__item">
+                                        <a href="../../screens/registration.html">
+                                            <i class="zmdi zmdi-eye"></i>Previous Clients</a>
+                                    </div>
+                                </li>
+                            </ul>
+                        </li>
+                        <li>
+                            <a href="../pricing.html">
+                                <i class="fas fa-dollar-sign"></i>
+                                <span class="bot-line"></span>Pricing</a>
+                        </li>
+                        <li id="dpd1" class="has-sub">
+                            <a href="#" onclick="openModal(2)">
+                                <i class="fas fa-wrench"></i>
+                                <span class="bot-line"></span>Tools</a>
+                            <ul id="dpdb1" class="header3-sub-list list-unstyled d-none">
+                                <li>
+                                    <div class="account-dropdown__item">
+                                        <a href="../tools/utility.html">
+                                            <i class="zmdi zmdi-puzzle-piece"></i>Utilities</a>
+                                    </div>
+                                </li>
+                                <li>
+                                    <div class="account-dropdown__item">
+                                        <a href="../tools/type.html">
+                                            <i class="fas fa-cubes"></i>Descriptions</a>
+                                    </div>
+                                </li>
+                                <li style="border-bottom: 2px solid grey">
+                                    <div class="account-dropdown__item">
+                                        <a href="../tools/code.html">
+                                            <i class="fas fa-tags"></i>Codes</a>
+                                    </div>
+                                </li>
+                                <li>
+                                    <div class="account-dropdown__item">
+                                        <a href="../tools/door-panel.html">
+                                            <i class="fas fa-columns"></i>Finishing</a>
+                                    </div>
+                                </li>
+                                <li>
+                                    <div class="account-dropdown__item">
+                                        <a href="../tools/hardware.html">
+                                            <i class="fab fa-elementor"></i>Hardware</a>
+                                    </div>
+                                </li>
+                                <li>
+                                    <div class="account-dropdown__item">
+                                        <a href="../tools/handler.html">
+                                            <i class="fas fa-ellipsis-h"></i>Handler</a>
+                                    </div>
+                                </li>
+                                <li>
+                                    <div class="account-dropdown__item">
+                                        <a href="../tools/adjustable-shelve.html">
+                                            <i class="fas fa-wrench"></i>Adjustable Shelves</a>
+                                    </div>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+                <!-- Settings-->
+                <div class="header__tool">
+                    <div id="dpd" class="header-button-item js-item-menu">
+                        <i class="zmdi zmdi-settings" onclick="openModal(1)"></i>
+                        <div id="dpdb" class="setting-dropdown js-dropdown d-none">
+                            <div class="account-dropdown__body">
+                                <div class="account-dropdown__item">
+                                    <a href="../settings/firm-information.html">
+                                        <i class="zmdi zmdi-account"></i>Firm Information</a>
+                                </div>
+                                <div class="account-dropdown__item">
+                                    <a href="./password-change.html">
+                                        <i class="zmdi zmdi-settings"></i>Update Login Password</a>
+                                </div>
+                                <div class="account-dropdown__item">
+                                    <a href="./password1-change.html">
+                                        <i class="zmdi zmdi-key"></i>Update Primary Password</a>
+                                </div>
+                                <div class="account-dropdown__item">
+                                    <a href="./price-change.html">
+                                        <i class="zmdi zmdi-money-box"></i>Price Update</a>
+                                </div>
+                                <div class="account-dropdown__item">
+                                    <a href="./report.html">
+                                        <i class="fas fa-file-pdf"></i>Create Report</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Account-->
+                    <div class="account-wrap">
+                        <div class="account-item account-item--style2 clearfix js-item-menu">
+                            <div class="image">
+                                <img src="../../images/icon/admin-avatar.jpg" alt="John Doe" />
+                            </div>
+                            <div class="content">
+                                <a class="js-acc-btn" href="#">Admin</a>
+                            </div>
+                            <div class="account-dropdown js-dropdown">
+                                <div class="info clearfix">
+                                    <div class="image">
+                                        <a href="#">
+                                            <img src="../../images/icon/admin-avatar.jpg" alt="John Doe" />
+                                        </a>
+                                    </div>
+                                    <div class="content">
+                                        <h5 class="name">
+                                            <a href="#">Administrator</a>
+                                        </h5>
+                                        <span class="email">CABINET COSTING</span>
+                                    </div>
+                                </div>
+                                <div class="account-dropdown__footer">
+                                    <a href="../login.html">
+                                        <i class="zmdi zmdi-power"></i>Logout</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- END HEADER DESKTOP-->
+    <!-- MOBILE HEADER -->
+    <header class="header-mobile header-mobile-2 d-block d-lg-none">
+        <div class="header-mobile__bar">
+            <div class="container-fluid">
+                <div class="header-mobile-inner">
+                    <a href="../../index.html"><h3 class="text-white"><b>CABINET</b>costing</h3></a>
+                    <button class="hamburger hamburger--slider" type="button">
+                            <span class="hamburger-box">
+                                <span class="hamburger-inner"></span>
+                            </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <nav class="navbar-mobile">
+            <div class="container-fluid">
+                <ul class="navbar-mobile__list list-unstyled">
+                    <li class="has-sub">
+                        <a class="js-arrow" href="#">
+
+                            <i class="fas fa-user"></i>Clients</a>
+                        <ul class="navbar-mobile-sub__list list-unstyled js-sub-list">
+                            <li>
+                                <div class="account-dropdown__item">
+                                    <a href="../../screens/new_clients.html">
+                                        <i class="zmdi zmdi-plus"></i>New Clients</a>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="account-dropdown__item">
+                                    <a href="../../screens/registration.html">
+                                        <i class="fas fa-eye"></i>Previous Clients</a>
+                                </div>
+                            </li>
+                        </ul>
+                    </li>
+                    <li>
+                        <a href="../pricing.html">
+                            <i class="fas fa-dollar-sign"></i>
+                            <span class="bot-line"></span>Pricing</a>
+                    </li>
+
+                    <li class="has-sub">
+                        <a class="js-arrow" href="#">
+
+                            <i class="fas fa-wrench"></i>Tools</a>
+                        <ul class="navbar-mobile-sub__list list-unstyled js-sub-list">
+                            <li>
+                                <div class="account-dropdown__item">
+                                    <a href="./utility.html">
+                                        <i class="zmdi zmdi-puzzle-piece"></i>Utilities</a>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="account-dropdown__item">
+                                    <a href="./type.html">
+                                        <i class="fas fa-cubes"></i>Descriptions</a>
+                                </div>
+                            </li>
+                            <li style="border-bottom: 2px solid grey">
+                                <div class="account-dropdown__item">
+                                    <a href="./code.html">
+                                        <i class="fas fa-tags"></i>Codes</a>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="account-dropdown__item">
+                                    <a href="./door-panel.html">
+                                        <i class="fas fa-columns"></i>Finishing</a>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="account-dropdown__item">
+                                    <a href="./hardware.html">
+                                        <i class="fab fa-elementor"></i>Hardware</a>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="account-dropdown__item">
+                                    <a href="./handler.html">
+                                        <i class="fas fa-ellipsis-h"></i>Handler</a>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="account-dropdown__item">
+                                    <a href="./adjustable-shelve.html">
+                                        <i class="fas fa-wrench"></i>Adjustable Shelves</a>
+                                </div>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+    </header>
+    <div class="sub-header-mobile-2 d-block d-lg-none">
+        <div class="header__tool">
+
+            <div class="header-button-item js-item-menu">
+                <i class="zmdi zmdi-settings"></i>
+                <div class="setting-dropdown js-dropdown">
+                    <div class="account-dropdown__body">
+                        <div class="account-dropdown__item">
+                            <a href="../settings/firm-information.html">
+                                <i class="zmdi zmdi-account"></i>Firm Information</a>
+                        </div>
+                        <div class="account-dropdown__item">
+                            <a href="../settings/password-change.html">
+                                <i class="zmdi zmdi-settings"></i>Password Change</a>
+                        </div>
+                        <div class="account-dropdown__item">
+                            <a href="../settings/price-change.html">
+                                <i class="zmdi zmdi-money-box"></i>Price Change</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="account-wrap">
+                <div class="account-item account-item--style2 clearfix js-item-menu">
+                    <div class="image">
+                        <img src="../../images/icon/admin-avatar.jpg" alt="John Doe" />
+                    </div>
+                    <div class="content">
+                        <a class="js-acc-btn" href="#">Admin</a>
+                    </div>
+                    <div class="account-dropdown js-dropdown">
+                        <div class="info clearfix">
+                            <div class="image">
+                                <a href="#">
+                                    <img src="../../images/icon/admin-avatar.jpg" alt="John Doe" />
+                                </a>
+                            </div>
+                            <div class="content">
+                                <h5 class="name">
+                                    <a href="#">Administrator</a>
+                                </h5>
+                                <span class="email">CABINET COSTING</span>
+                            </div>
+                        </div>
+                        <div class="account-dropdown__footer">
+                            <a href="../login.html">
+                                <i class="zmdi zmdi-power"></i>Logout</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAGE CONTAINER-->
+    <div class="page-container--bgf7">
+
+        <!-- BREADCRUMB-->
+        <section class="au-breadcrumb2">
+
+        </section>
+        <!-- END BREADCRUMB-->
+
+        <!-- MAIN CONTENT-->
+        <div class="main-content">
+            <div class="section__content section__content--p30">
+                <div class="container-fluid" style="display: flex; justify-content: center; ">
+                    <div class="card" style="width: 90%">
+                        <div class="card-header py-1">
+                            <strong>Price Update</strong>
+                        </div>
+                        <div class="card-body py-1">
+                          <form
+                          onsubmit=""
+                          id="form"
+                          class="form-horizontal user-select-none"
+                        >
+                          <fieldset id="fieldset">
+
+                            <div class="row">
+
+                              <div class="col-md-6 col-sm-12 col-lg-6">
+                                <h3 class="my-2">Box Details</h2>
+                                  <div class="mb-1 row form-group">
+                                    <div class="col col-md-7 ">
+                                      <label
+                                        for="client-name"
+                                        style="margin-top: 5px;"
+                                        class="form-control-label"
+                                        >Box Sheet Price / PC</label
+                                      >
+                                    </div>
+                                    <div class="col-12 col-md-5">
+                                      <input
+                                        type="number"
+                                        id="rate-codes"
+                                        step="any"
+                                        placeholder="Enter Unit Rate"
+                                        class="form-control"
+                                        value="0"
+                                        required
+                                      />
+                                    </div>
+                                  </div>
+  
+                                  <div class="mb-1 row form-group">
+                                    <div class="col col-md-7">
+                                      <label for="rate" class="form-control-label" style="margin-top: 5px;"
+                                        >Box Back Sheet Price / PC</label
+                                      >
+                                    </div>
+                                    <div class="col-12 col-md-5">
+                                      <input
+                                        type="number"
+                                        id="back-area-codes"
+                                        placeholder="Enter Unit Rate"
+                                        class="form-control"
+                                        value="0"
+                                        step="any"
+                                        required
+                                      />
+                                    </div>
+                                  </div>
+      
+                                  <div class="mb-1 row form-group">
+                                    <div class="col col-md-7">
+                                      <label for="rate" class="form-control-label" style="margin-top: 5px;"
+                                        >Secondary Top Sheet Price / PC</label
+                                      >
+                                    </div>
+                                    <div class="col-12 col-md-5">
+                                      <input
+                                        type="number"
+                                        id="secondary-top-codes"
+                                        placeholder="Enter Unit Rate"
+                                        class="form-control"
+                                        value="0"
+                                        step="any"
+                                        required
+                                      />
+                                    </div>
+                                  </div>
+      
+                                  <div class="mb-1 row form-group">
+                                    <div class="col col-md-7">
+                                      <label for="rate" class="form-control-label" style="margin-top: 5px;"
+                                        >Edging, Trimming Price / RFT</label
+                                      >
+                                    </div>
+                                    <div class="col-12 col-md-5">
+                                      <input
+                                        type="number"
+                                        id="edging-codes"
+                                        placeholder="Enter Unit Rate"
+                                        class="form-control"
+                                        value="0"
+                                        step="any"
+                                        required
+                                      />
+                                    </div>
+                                  </div>
+      
+                                  <div class="mb-1 row form-group">
+                                    <div class="col col-md-7">
+                                      <label for="rate" class="form-control-label" style="margin-top: 5px;"
+                                        >Screws Price / PC</label
+                                      >
+                                    </div>
+                                    <div class="col-12 col-md-5">
+                                      <input
+                                        type="number"
+                                        id="screws-codes"
+                                        placeholder="Enter Unit Rate"
+                                        class="form-control"
+                                        value="0"
+                                        step="any"
+                                        required
+                                      />
+                                    </div>
+                                  </div>
+      
+                                  <h3 class="my-2">Finishings</h2>
+      
+                                  <div class="mb-1 row form-group">
+                                    <div class="col col-md-7">
+                                      <label for="rate" class="form-control-label" style="margin-top: 5px;"
+                                        >Front Panel Sheet Price / PC</label
+                                      >
+                                    </div>
+                                    <div class="col-12 col-md-5">
+                                      <input
+                                        type="number"
+                                        id="rate-doors"
+                                        placeholder="Enter Unit Rate"
+                                        class="form-control"
+                                        value="0"
+                                        step="any"
+                                        required
+                                      />
+                                    </div>
+                                  </div>
+      
+                                  <div class="mb-1 row form-group">
+                                    <div class="col col-md-7">
+                                      <label for="rate" class="form-control-label" style="margin-top: 5px;"
+                                        >Edging, Trimming Price / RFT</label
+                                      >
+                                    </div>
+                                    <div class="col-12 col-md-5">
+                                      <input
+                                        type="number"
+                                        id="edging-doors"
+                                        placeholder="Enter Unit Rate"
+                                        class="form-control"
+                                        value="0"
+                                        step="any"
+                                        required
+                                      />
+                                    </div>
+                                  </div>
+      
+                                  
+                              </div>
+  
+                              <div class="col-md-6 col-sm-12 col-lg-6">
+
+                                <h3 class="my-2">Hardwares</h2>
+      
+                                  <div class="mb-1 row form-group">
+                                    <div class="col col-md-7">
+                                      <label for="rate" class="form-control-label" style="margin-top: 5px;"
+                                        >Hinges Price / SET</label
+                                      >
+                                    </div>
+                                    <div class="col-12 col-md-5">
+                                      <input
+                                        type="number"
+                                        id="rate-hardware"
+                                        placeholder="Enter Unit Rate"
+                                        class="form-control"
+                                        value="0"
+                                        step="any"
+                                        required
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <div class="mb-1 row form-group">
+                                    <div class="col col-md-7">
+                                      <label for="rate" class="form-control-label" style="margin-top: 5px;"
+                                        >Slider Price / SET</label
+                                      >
+                                    </div>
+                                    <div class="col-12 col-md-5">
+                                      <input
+                                        type="number"
+                                        id="slider-hardware"
+                                        placeholder="Enter Unit Rate"
+                                        class="form-control"
+                                        value="0"
+                                        step="any"
+                                        required
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <div class="mb-1 row form-group">
+                                    <div class="col col-md-7">
+                                      <label for="rate" class="form-control-label" style="margin-top: 5px;"
+                                        >Lift Up Price / SET</label
+                                      >
+                                    </div>
+                                    <div class="col-12 col-md-5">
+                                      <input
+                                        type="number"
+                                        id="lift-hardware"
+                                        placeholder="Enter Unit Rate"
+                                        class="form-control"
+                                        value="0"
+                                        step="any"
+                                        required
+                                      />
+                                    </div>
+                                  </div>
+
+                                <h3 class="my-2">Handles</h2>
+  
+                                  <div class="mb-1 row form-group">
+                                    <div class="col col-md-7">
+                                      <label for="rate" class="form-control-label" style="margin-top: 5px;"
+                                        >Handles Price / PC / Length</label
+                                      >
+                                    </div>
+                                    <div class="col-12 col-md-5">
+                                      <input
+                                        type="number"
+                                        id="rate-handles"
+                                        placeholder="Enter Unit Rate"
+                                        class="form-control"
+                                        value="0"
+                                        step="any"
+                                        required
+                                      />
+                                    </div>
+                                  </div>
+      
+                                  <h3 class="my-2">Shelves</h2>
+      
+                                  <div class="mb-1 row form-group">
+                                    <div class="col col-md-7">
+                                      <label for="rate" class="form-control-label" style="margin-top: 5px;"
+                                        >Shelves Sheet Price / SFT</label
+                                      >
+                                    </div>
+                                    <div class="col-12 col-md-5">
+                                      <input
+                                        type="number"
+                                        id="rate-shelve"
+                                        placeholder="Enter Unit Rate"
+                                        class="form-control"
+                                        value="0"
+                                        step="any"
+                                        required
+                                      />
+                                    </div>
+                                  </div>
+      
+      
+                                  <div class="mb-1 row form-group">
+                                    <div class="col col-md-7">
+                                      <label for="rate" class="form-control-label" style="margin-top: 5px;"
+                                        >Shelve Pin Price / PC</label
+                                      >
+                                    </div>
+                                    <div class="col-12 col-md-5">
+                                      <input
+                                        type="number"
+                                        id="pin-shelve"
+                                        placeholder="Enter Unit Rate"
+                                        class="form-control"
+                                        value="0"
+                                        step="any"
+                                        required
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <div class="mb-1 row form-group">
+                                    <div class="col col-md-7">
+                                      <label for="rate" class="form-control-label" style="margin-top: 5px;"
+                                        >Edging, Trimming Price / RFT / Length</label
+                                      >
+                                    </div>
+                                    <div class="col-12 col-md-5">
+                                      <input
+                                        type="number"
+                                        id="edging-shelve"
+                                        placeholder="Enter Unit Rate"
+                                        class="form-control"
+                                        value="0"
+                                        step="any"
+                                        required
+                                      />
+                                    </div>
+                                  </div>
+                              </div>
+
+                            </div>
+
+                            
+                            
+
+                            
+
+                          </fieldset>
+                          <div
+                            class="d-flex justify-content-sm-around mt-2"
+                            style="border-top: 1px solid grey; padding-top: 10px"
+                          >
+                            
+                            <button
+                              class="btn btn-warning"
+                              id="clear"
+                              data-toggle="modal"
+                              data-target="#staticModal-3"
+                              onclick="save_func(event, 'update')"
+                            >
+                              Clear
+                            </button>
+
+                            <button
+                              class="btn btn-primary"
+                              id="update"
+                              data-toggle="modal"
+                              data-target="#staticModal"
+                              onclick="save_func(event, 'update')"
+                            >
+                              Update
+                            </button>
+                            
+                          </div>
+                        </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- END MAIN CONTENT-->
+        <div class="modal fade" id="staticModal" tabindex="-1" role="dialog" aria-labelledby="staticModalLabel"
+             aria-hidden="true" data-backdrop="static">
+            <div class="modal-dialog modal-sm" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="staticModalLabel">Enter Password</h5>
+                        <button type="button" class="close" data-dismiss="modal" onclick="document.getElementById('pass').value=''" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row form-group">
+                            <div class="col-10 mr-auto ml-auto">
+                                <input type="password" id="pass" placeholder="Password..." class="form-control"
+                                       required />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal"
+                                id="cancel">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="confirm">Confirm</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal fade" id="staticModal-3" tabindex="-1" role="dialog" aria-labelledby="staticModalLabel"
+             aria-hidden="true" data-backdrop="static">
+            <div class="modal-dialog modal-sm" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="staticModalLabel">Enter Password</h5>
+                        <button type="button" class="close" data-dismiss="modal" onclick="document.getElementById('pass').value=''" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row form-group">
+                            <div class="col-10 mr-auto ml-auto">
+                                <input type="password" id="passs" placeholder="Password..." class="form-control"
+                                       required />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal"
+                                id="cancell">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="confirm3">Confirm</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <button class="d-none" data-toggle="modal" data-target="#staticModal-2" id="show-modal"></button>
+        <div class="modal fade" id="staticModal-2" tabindex="-1" role="dialog" aria-labelledby="staticModalLabel"
+             aria-hidden="true" data-backdrop="static">
+            <div class="modal-dialog modal-sm" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="">Enter Password</h5>
+                        <button type="button" class="close" data-dismiss="modal" onclick="document.getElementById('pass2').value=''" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row form-group">
+                            <div class="col-10 mr-auto ml-auto">
+                                <input type="password" id="pass2" placeholder="Password..." class="form-control"
+                                       required />
+                                <input id="numb" placeholder="Password..." class="d-none"/>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal"
+                                id="cancel2" onclick="document.getElementById('pass2').value = ''">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="confirm2">Confirm</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- END PAGE CONTAINER-->
+    </div>
+
+</div>
+<script>
+  const path1 = require('path')
+  const remote1 = require('electron').remote;
+  const file_manager1 = remote1.require(path1.join(__dirname, '../../scripts/file_manager.js'));
+  function openModal(a) {
+    document.getElementById('show-modal').click();
+    document.getElementById('numb').value = a;
+  }
+
+  document.getElementById('confirm2').addEventListener('click', (event) => {
+    file_manager1
+        .loadFile(path1.join(__dirname, "../../db/.credentials.json"))
+        .then((res) => {
+          if (res[1].pass === document.getElementById("pass2").value) {
+            if(document.getElementById('numb').value === '2')
+            {
+              document.getElementById('dpdb1').classList.remove('d-none')
+              document.getElementById('cancel2').click();
+            }
+            else
+            {
+              document.getElementById('dpdb').classList.remove('d-none')
+              setTimeout(() => {document.getElementById('dpd').classList.add('show-dropdown')}, 300)
+              document.getElementById('cancel2').click();
+            }
+          }
+          else {
+            alert("Invalid Password!")
+          }
+        })
+  })
+
+  document.getElementById('dpdb').addEventListener('mouseleave', (event) => {
+    document.getElementById('dpdb').classList.add('d-none')
+  })
+  document.getElementById('dpdb1').addEventListener('mouseleave', (event) => {
+    document.getElementById('dpdb1').classList.add('d-none')
+  })
+  document.getElementById('dpd1').addEventListener('mouseleave', (event) => {
+    document.getElementById('dpdb1').classList.add('d-none')
+  })
+</script>
+<script>
+  window.jQuery = window.$ = require('jquery');
+</script>
+<script src="../../../node_modules/bootstrap/dist/js/bootstrap.bundle.js"></script>
+<script src="../../vendor/bootstrap-4.1/popper.min.js"></script>
+<!--    <script src="vendor/bootstrap-4.1/bootstrap.min.js"></script>-->
+<!-- Vendor JS       -->
+<script src="../../vendor/slick/slick.min.js">
+</script>
+<script src="../../vendor/wow/wow.min.js"></script>
+<script src="../../vendor/animsition/animsition.min.js"></script>
+<script src="../../vendor/bootstrap-progressbar/bootstrap-progressbar.min.js">
+</script>
+<script src="../../vendor/counter-up/jquery.waypoints.min.js"></script>
+<script src="../../vendor/counter-up/jquery.counterup.min.js">
+</script>
+<script src="../../vendor/circle-progress/circle-progress.min.js"></script>
+<script src="../../vendor/perfect-scrollbar/perfect-scrollbar.js"></script>
+<script src="../../vendor/chartjs/Chart.bundle.min.js"></script>
+<script src="../../vendor/select2/select2.min.js">
+</script>
+<!--<script src="../vendor/datatable/datatable.min.js"></script>-->
+<script src="../../scripts/price_change.js"></script>
+
+<!-- Main JS-->
+<script src="../../js/main.js"></script>
+</body>
+
+</html>
+<!-- end document-->

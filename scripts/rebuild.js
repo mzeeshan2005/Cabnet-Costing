@@ -82,10 +82,8 @@ function quoteCmdArg(arg) {
 }
 
 function runOnWindowsCmd(command, args, options) {
-  const cmdArgs = ["/d", "/s", "/c", `"${String(command).replace(/"/g, '""')}"`].concat(
-    (args || []).map(quoteCmdArg)
-  );
-  const res = spawnSync("cmd.exe", cmdArgs, {
+  const cmdLine = [`"${String(command).replace(/"/g, '""')}"`].concat((args || []).map(quoteCmdArg)).join(" ");
+  const res = spawnSync("cmd.exe", ["/d", "/s", "/c", cmdLine], {
     stdio: "inherit",
     ...options,
   });

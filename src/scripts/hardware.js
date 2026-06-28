@@ -228,47 +228,10 @@ function populateTable() {
   document.getElementById("delete-selected-1").disabled = true;
   document.getElementById("update").disabled = true;
   document.getElementById("save").disabled = true;
-  file_manager
-    .loadFile(path.join(__dirname, "../../db/.hardwares.json"))
-    .then((res) => {
-      const id = document.getElementById("id");
-      if (res.length === 0 && listData.length === 0) {
-        id.innerHTML = "1";
-      } else if (listData.length === 0) {
-        id.innerHTML = Number(res[res.length - 1].id) + 1;
-      } else if (res.length === 0) {
-        id.innerHTML = Number(listData[listData.length - 1].id) + 1;
-      } else {
-        id.innerHTML = Number(listData[listData.length - 1].id) + 1;
-      }
-      const data1 = res.concat(listData);
-      if (data1.length === 0) {
-        document.getElementById("client-table").innerHTML = `
-          <tr class="tr-shadow" style="border-bottom: 2px solid grey">
-            <td style="border: 1px solid black" colspan="5">No Data Added.</td>
-          </tr>`;
-        document.getElementById("checkbox-all-box").style.display = "none";
-      } else {
-        document.getElementById("checkbox-all-box").style.display = "block";
-        data1.forEach((data, index) => {
-          document.getElementById("client-table").innerHTML += `
-          <tr class="tr-shadow" style="border-bottom: 2px solid grey">
-            <td style="border: 1px solid black">
-              <label class="au-checkbox">
-                <input type="checkbox" id="${data.id}" onchange="toggle(event)">
-                <span class="au-checkmark" style="border: 1px solid green"></span>
-              </label>
-            </td>
-            <td style="border: 1px solid black">${data.id}</td>
-            <td style="border: 1px solid black">${data.title}</td>
-            <td style="border: 1px solid black">${data.code}</td>
-            <td style="border: 1px solid black">${data.rate}</td>
-            <td style="border: 1px solid black">${data.slider}</td>
-            <td style="border: 1px solid black">${data.lift}</td>
-          </tr>`;
-        });
-      }
-    });
+  file_manager.nextId(".hardwares.json").then((nextId) => {
+    document.getElementById("id").innerHTML = String(nextId);
+  });
+  refreshHardwaresTable();
   file_manager
     .loadFile(path.join(__dirname, "../../db/.utilities.json"))
     .then((res) => {
@@ -334,6 +297,102 @@ function populateTable() {
   //       select.add(option);
   //     });
   //   });
+}
+
+function renderHardwaresTable(rows) {
+  const tb = document.getElementById("client-table");
+  if (!rows || rows.length === 0) {
+    tb.innerHTML = `
+      <tr class="tr-shadow" style="border-bottom: 2px solid grey">
+        <td style="border: 1px solid black" colspan="5">No Data Added.</td>
+      </tr>`;
+    document.getElementById("checkbox-all-box").style.display = "none";
+    return;
+  }
+
+  document.getElementById("checkbox-all-box").style.display = "block";
+  tb.innerHTML = rows
+    .map(
+      (data) => `
+        <tr class="tr-shadow" style="border-bottom: 2px solid grey">
+          <td style="border: 1px solid black">
+            <label class="au-checkbox">
+              <input type="checkbox" id="${data.id}" onchange="toggle(event)">
+              <span class="au-checkmark" style="border: 1px solid green"></span>
+            </label>
+          </td>
+          <td style="border: 1px solid black">${data.id}</td>
+          <td style="border: 1px solid black">${data.title}</td>
+          <td style="border: 1px solid black">${data.code}</td>
+          <td style="border: 1px solid black">${data.rate}</td>
+          <td style="border: 1px solid black">${data.slider}</td>
+          <td style="border: 1px solid black">${data.lift}</td>
+        </tr>`
+    )
+    .join("");
+}
+
+function currentHardwareQuery() {
+  const el = document.getElementById("search");
+  return el && el.value != null ? String(el.value) : "";
+}
+
+function currentHardwareFilters() {
+  return {
+    utility_id: document.getElementById("select") ? document.getElementById("select").value : "",
+    type_id: document.getElementById("select-1") ? document.getElementById("select-1").value : "",
+    code_id: document.getElementById("select-2") ? document.getElementById("select-2").value : "",
+  };
+}
+
+function listDataHardwaresFiltered(query, utility_id, type_id, code_id) {
+  let out = listData.slice();
+  if (utility_id) out = out.filter((r) => r && String(r.utility_id) === String(utility_id));
+  if (type_id) out = out.filter((r) => r && String(r.type_id) === String(type_id));
+  if (code_id) out = out.filter((r) => r && String(r.code_id) === String(code_id));
+
+  if (query) {
+    const q = String(query).toLowerCase();
+    out = out.filter((r) => {
+      const id = r && r.id != null ? String(r.id) : "";
+      const title = r && r.title != null ? String(r.title).toLowerCase() : "";
+      const code = r && r.code != null ? String(r.code).toLowerCase() : "";
+      return id.indexOf(query) !== -1 || title.indexOf(q) !== -1 || code.indexOf(q) !== -1;
+    });
+  }
+  return out;
+}
+
+function mergeById(a, b) {
+  const map = {};
+  for (const r of a || []) {
+    if (r && r.id != null) map[String(r.id)] = r;
+  }
+  for (const r of b || []) {
+    if (r && r.id != null) map[String(r.id)] = r;
+  }
+  return Object.keys(map)
+    .sort((x, y) => Number(x) - Number(y))
+    .map((k) => map[k]);
+}
+
+function refreshHardwaresTable() {
+  const query = currentHardwareQuery();
+  const f = currentHardwareFilters();
+  return file_manager
+    .searchHardwares(query, f.utility_id, f.type_id, f.code_id, 800)
+    .then((rows) => {
+      const merged = mergeById(rows || [], listDataHardwaresFiltered(query, f.utility_id, f.type_id, f.code_id));
+      renderHardwaresTable(merged);
+    });
+}
+
+let hardwareSearchTimer = null;
+function scheduleRefreshHardwaresTable() {
+  if (hardwareSearchTimer) clearTimeout(hardwareSearchTimer);
+  hardwareSearchTimer = setTimeout(() => {
+    refreshHardwaresTable();
+  }, 150);
 }
 
 function del() {
@@ -770,232 +829,50 @@ document.getElementById("selectCod").addEventListener("click", (event) => {
   );
 });
 function filter(query) {
-  file_manager
-    .loadFile(path.join(__dirname, "../../db/.hardwares.json"))
-    .then((res) => {
-      const result = [];
-      const data1 = res.concat(listData);
-      data1.forEach((data) => {
-        if (
-          data.id.includes(query) ||
-          data.title.toLowerCase().includes(query.toLowerCase()) ||
-          data.code.toLowerCase().includes(query.toLowerCase())
-        ) {
-          result.push(data);
-        }
-      });
-      document.getElementById("client-table").innerHTML = "";
-      result.forEach((data, index) => {
-        document.getElementById("client-table").innerHTML += `
-          <tr class="tr-shadow" style="border-bottom: 2px solid grey">
-            <td style="border: 1px solid black">
-              <label class="au-checkbox">
-                <input type="checkbox" id="${data.id}" onchange="toggle(event)">
-                <span class="au-checkmark" style="border: 1px solid green"></span>
-              </label>
-            </td>
-            <td style="border: 1px solid black">${data.id}</td>
-            <td style="border: 1px solid black">${data.title}</td>
-            <td style="border: 1px solid black">${data.code}</td>
-            <td style="border: 1px solid black">${data.rate}</td>
-            <td style="border: 1px solid black">${data.slider}</td>
-            <td style="border: 1px solid black">${data.lift}</td>
-          </tr>`;
-      });
-    });
+  if (document.getElementById("search")) {
+    document.getElementById("search").value = query != null ? String(query) : "";
+  }
+  scheduleRefreshHardwaresTable();
 }
 
 
 function filter_by_dropdown(query, query1, query2) {
-  file_manager
-      .loadFile(path.join(__dirname, "../../db/.hardwares.json"))
-      .then((res) => {
-        let result = [];
-        let result1 = [];
-        let result2 = [];
-        const data1 = res.concat(listData);
-        if(query !== "")
-        {
-          data1.forEach((data) => {
-            if (data.code_id === query) {
-              result.push(data);
-            }
-          });
-        }
-        else {
-          result = data1
-        }
-        if(query1!== "")
-        {
-          result.forEach((data) => {
-            if (data.type_id === query1) {
-              result1.push(data);
-            }
-          });
-        }
-        else {
-          result1 = result
-        }
-        if(query2!=="")
-        {
-          result1.forEach((data) => {
-            if (data.utility_id === query2) {
-              result2.push(data);
-            }
-          });
-        }
-        else {
-          result2 = result1
-        }
-        document.getElementById("client-table").innerHTML = "";
-        result2.forEach((data, index) => {
-          document.getElementById("client-table").innerHTML += `
-          <tr class="tr-shadow" style="border-bottom: 2px solid grey">
-            <td style="border: 1px solid black">
-              <label class="au-checkbox">
-                <input type="checkbox" id="${data.id}" onchange="toggle(event)">
-                <span class="au-checkmark" style="border: 1px solid green"></span>
-              </label>
-            </td>
-            <td style="border: 1px solid black">${data.id}</td>
-            <td style="border: 1px solid black">${data.title}</td>
-            <td style="border: 1px solid black">${data.code}</td>
-            <td style="border: 1px solid black">${data.rate}</td>
-            <td style="border: 1px solid black">${data.slider}</td>
-            <td style="border: 1px solid black">${data.lift}</td>
-          </tr>`;
-        });
-      });
+  if (document.getElementById("select-2") && query != null) {
+    document.getElementById("select-2").value = String(query);
+  }
+  if (document.getElementById("select-1") && query1 != null) {
+    document.getElementById("select-1").value = String(query1);
+  }
+  if (document.getElementById("select") && query2 != null) {
+    document.getElementById("select").value = String(query2);
+  }
+  scheduleRefreshHardwaresTable();
 }
 
 function filter_by_dropdown_1(query, query1, query2) {
-  file_manager
-      .loadFile(path.join(__dirname, "../../db/.hardwares.json"))
-      .then((res) => {
-        let result = [];
-        let result1 = [];
-        let result2 = [];
-        const data1 = res.concat(listData);
-        if(query!=="")
-        {
-          data1.forEach((data) => {
-            if (data.code_id === query) {
-              result.push(data);
-            }
-          });
-
-        }
-        else {
-          result = data1
-        }
-        if(query1!=="")
-        {
-          result.forEach((data) => {
-            if (data.utility_id === query1) {
-              result1.push(data);
-            }
-          });
-
-        }
-        else {
-          result1 = result
-        }
-        if(query2!=="")
-        {
-          result1.forEach((data) => {
-            if (data.type_id === query2) {
-              result2.push(data);
-            }
-          });
-        }
-        else {
-          result2 = result1
-        }
-
-        document.getElementById("client-table").innerHTML = "";
-        result2.forEach((data, index) => {
-          document.getElementById("client-table").innerHTML += `
-          <tr class="tr-shadow" style="border-bottom: 2px solid grey">
-            <td style="border: 1px solid black">
-              <label class="au-checkbox">
-                <input type="checkbox" id="${data.id}" onchange="toggle(event)">
-                <span class="au-checkmark" style="border: 1px solid green"></span>
-              </label>
-            </td>
-            <td style="border: 1px solid black">${data.id}</td>
-            <td style="border: 1px solid black">${data.title}</td>
-            <td style="border: 1px solid black">${data.code}</td>
-            <td style="border: 1px solid black">${data.rate}</td>
-            <td style="border: 1px solid black">${data.slider}</td>
-            <td style="border: 1px solid black">${data.lift}</td>
-          </tr>`;
-        });
-      });
+  if (document.getElementById("select-2") && query != null) {
+    document.getElementById("select-2").value = String(query);
+  }
+  if (document.getElementById("select") && query1 != null) {
+    document.getElementById("select").value = String(query1);
+  }
+  if (document.getElementById("select-1") && query2 != null) {
+    document.getElementById("select-1").value = String(query2);
+  }
+  scheduleRefreshHardwaresTable();
 }
 
 function filter_by_dropdown_2(query, query1, query2) {
-  file_manager
-      .loadFile(path.join(__dirname, "../../db/.hardwares.json"))
-      .then((res) => {
-        let result = [];
-        let result1 = [];
-        let result2 = [];
-        const data1 = res.concat(listData);
-        if(query!=="")
-        {
-          data1.forEach((data) => {
-            if (data.utility_id ===query) {
-              result.push(data);
-            }
-          });
-
-        }
-        else {
-          result = data1
-        }
-        if (query1!=="")
-        {
-          result.forEach((data) => {
-            if (data.type_id === query1) {
-              result1.push(data);
-            }
-          });
-
-        }
-        else {
-          result1 = result
-        }
-        if(query2!=="")
-        {
-          result1.forEach((data) => {
-            if (data.code_id === query2) {
-              result2.push(data);
-            }
-          });
-        }
-        else {
-          result2 = result1
-        }
-
-        document.getElementById("client-table").innerHTML = "";
-        result2.forEach((data, index) => {
-          document.getElementById("client-table").innerHTML += `
-          <tr class="tr-shadow" style="border-bottom: 2px solid grey">
-            <td style="border: 1px solid black">
-              <label class="au-checkbox">
-                <input type="checkbox" id="${data.id}" onchange="toggle(event)">
-                <span class="au-checkmark" style="border: 1px solid green"></span>
-              </label>
-            </td>
-            <td style="border: 1px solid black">${data.id}</td>
-            <td style="border: 1px solid black">${data.title}</td>
-            <td style="border: 1px solid black">${data.code}</td>
-            <td style="border: 1px solid black">${data.rate}</td>
-            <td style="border: 1px solid black">${data.slider}</td>
-            <td style="border: 1px solid black">${data.lift}</td>
-          </tr>`;
-        });
-      });
+  if (document.getElementById("select") && query != null) {
+    document.getElementById("select").value = String(query);
+  }
+  if (document.getElementById("select-1") && query1 != null) {
+    document.getElementById("select-1").value = String(query1);
+  }
+  if (document.getElementById("select-2") && query2 != null) {
+    document.getElementById("select-2").value = String(query2);
+  }
+  scheduleRefreshHardwaresTable();
 }
 
 
@@ -1125,20 +1002,6 @@ function filter_by_dropdown_2(query, query1, query2) {
 //     });
 // }
 
-document.getElementById("search").addEventListener("keypress", (event) => {
-  filter(event.target.value);
-});
-
-document.getElementById("search").addEventListener("keydown", (event) => {
-  console.log(event.target.value);
-  if (event.target.value !== "") {
-    filter(event.target.value);
-  } else {
-    populateTable();
-  }
-});
-
-document.getElementById("search").addEventListener("keyup", (event) => {
-  console.log(event.target.value);
-  filter(event.target.value);
+document.getElementById("search").addEventListener("input", (event) => {
+  scheduleRefreshHardwaresTable();
 });

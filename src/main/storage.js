@@ -161,6 +161,67 @@ function initSchema(database) {
       rate_key TEXT PRIMARY KEY,
       rate_value TEXT NOT NULL
     );
+
+    CREATE INDEX IF NOT EXISTS idx_codes_title ON codes(title);
+    CREATE INDEX IF NOT EXISTS idx_codes_utility_id ON codes(utility_id);
+    CREATE INDEX IF NOT EXISTS idx_codes_type_id ON codes(type_id);
+
+    CREATE TABLE IF NOT EXISTS doors (
+      id INTEGER PRIMARY KEY,
+      title TEXT NOT NULL,
+      rate REAL NOT NULL,
+      edging REAL NOT NULL,
+      utility_id INTEGER,
+      type_id INTEGER,
+      code_id INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS idx_doors_title ON doors(title);
+    CREATE INDEX IF NOT EXISTS idx_doors_utility_id ON doors(utility_id);
+    CREATE INDEX IF NOT EXISTS idx_doors_type_id ON doors(type_id);
+    CREATE INDEX IF NOT EXISTS idx_doors_code_id ON doors(code_id);
+
+    CREATE TABLE IF NOT EXISTS hardwares (
+      id INTEGER PRIMARY KEY,
+      title TEXT NOT NULL,
+      rate REAL NOT NULL,
+      slider REAL NOT NULL,
+      lift REAL NOT NULL,
+      utility_id INTEGER,
+      type_id INTEGER,
+      code_id INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS idx_hardwares_title ON hardwares(title);
+    CREATE INDEX IF NOT EXISTS idx_hardwares_utility_id ON hardwares(utility_id);
+    CREATE INDEX IF NOT EXISTS idx_hardwares_type_id ON hardwares(type_id);
+    CREATE INDEX IF NOT EXISTS idx_hardwares_code_id ON hardwares(code_id);
+
+    CREATE TABLE IF NOT EXISTS handlers (
+      id INTEGER PRIMARY KEY,
+      title TEXT NOT NULL,
+      rate REAL NOT NULL,
+      utility_id INTEGER,
+      type_id INTEGER,
+      code_id INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS idx_handlers_title ON handlers(title);
+    CREATE INDEX IF NOT EXISTS idx_handlers_utility_id ON handlers(utility_id);
+    CREATE INDEX IF NOT EXISTS idx_handlers_type_id ON handlers(type_id);
+    CREATE INDEX IF NOT EXISTS idx_handlers_code_id ON handlers(code_id);
+
+    CREATE TABLE IF NOT EXISTS shelves (
+      id INTEGER PRIMARY KEY,
+      title TEXT NOT NULL,
+      rate REAL NOT NULL,
+      pin REAL NOT NULL,
+      edging REAL NOT NULL,
+      utility_id INTEGER,
+      type_id INTEGER,
+      code_id INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS idx_shelves_title ON shelves(title);
+    CREATE INDEX IF NOT EXISTS idx_shelves_utility_id ON shelves(utility_id);
+    CREATE INDEX IF NOT EXISTS idx_shelves_type_id ON shelves(type_id);
+    CREATE INDEX IF NOT EXISTS idx_shelves_code_id ON shelves(code_id);
   `);
 }
 
@@ -202,7 +263,12 @@ function ensureMigratedForFile(database, filePath) {
   const base = normalizeDbBasename(filePath);
   if (!SQLITE_TARGET_BASENAMES.has(base)) return;
 
-  const metaKey = `migrated:${base}`;
+  const structuredV2 =
+    base === ".doors.json" ||
+    base === ".hardwares.json" ||
+    base === ".handlers.json" ||
+    base === ".shelves.json";
+  const metaKey = structuredV2 ? `migrated2:${base}` : `migrated:${base}`;
   if (getMeta(database, metaKey) === "1") return;
 
   const resolvedPath = fs.existsSync(filePath) ? filePath : `${filePath}.bak`;
@@ -221,6 +287,10 @@ function ensureMigratedForFile(database, filePath) {
     else if (base === ".types.json") migrateTypes(database, json);
     else if (base === ".codes.json") migrateCodes(database, json);
     else if (base === ".rates.json") migrateRates(database, json);
+    else if (base === ".doors.json") migrateDoors(database, json);
+    else if (base === ".hardwares.json") migrateHardwares(database, json);
+    else if (base === ".handlers.json") migrateHandlers(database, json);
+    else if (base === ".shelves.json") migrateShelves(database, json);
     else migrateGenericJson(database, base, json);
   });
 
@@ -413,6 +483,116 @@ function migrateRates(database, json) {
   }
 }
 
+function migrateDoors(database, json) {
+  const insert = database.prepare(`
+    INSERT INTO doors (id, title, rate, edging, utility_id, type_id, code_id)
+    VALUES (@id, @title, @rate, @edging, @utility_id, @type_id, @code_id)
+    ON CONFLICT(id) DO UPDATE SET
+      title=excluded.title,
+      rate=excluded.rate,
+      edging=excluded.edging,
+      utility_id=excluded.utility_id,
+      type_id=excluded.type_id,
+      code_id=excluded.code_id
+  `);
+
+  if (!Array.isArray(json)) return;
+  for (const d of json) {
+    insert.run({
+      id: d && d.id != null ? Number(d.id) : null,
+      title: d && d.title != null ? String(d.title) : "",
+      rate: d && d.rate != null ? Number(d.rate) : 0,
+      edging: d && d.edging != null ? Number(d.edging) : 0,
+      utility_id: d && d.utility_id != null ? Number(d.utility_id) : null,
+      type_id: d && d.type_id != null ? Number(d.type_id) : null,
+      code_id: d && d.code_id != null ? Number(d.code_id) : null,
+    });
+  }
+}
+
+function migrateHardwares(database, json) {
+  const insert = database.prepare(`
+    INSERT INTO hardwares (id, title, rate, slider, lift, utility_id, type_id, code_id)
+    VALUES (@id, @title, @rate, @slider, @lift, @utility_id, @type_id, @code_id)
+    ON CONFLICT(id) DO UPDATE SET
+      title=excluded.title,
+      rate=excluded.rate,
+      slider=excluded.slider,
+      lift=excluded.lift,
+      utility_id=excluded.utility_id,
+      type_id=excluded.type_id,
+      code_id=excluded.code_id
+  `);
+
+  if (!Array.isArray(json)) return;
+  for (const h of json) {
+    insert.run({
+      id: h && h.id != null ? Number(h.id) : null,
+      title: h && h.title != null ? String(h.title) : "",
+      rate: h && h.rate != null ? Number(h.rate) : 0,
+      slider: h && h.slider != null ? Number(h.slider) : 0,
+      lift: h && h.lift != null ? Number(h.lift) : 0,
+      utility_id: h && h.utility_id != null ? Number(h.utility_id) : null,
+      type_id: h && h.type_id != null ? Number(h.type_id) : null,
+      code_id: h && h.code_id != null ? Number(h.code_id) : null,
+    });
+  }
+}
+
+function migrateHandlers(database, json) {
+  const insert = database.prepare(`
+    INSERT INTO handlers (id, title, rate, utility_id, type_id, code_id)
+    VALUES (@id, @title, @rate, @utility_id, @type_id, @code_id)
+    ON CONFLICT(id) DO UPDATE SET
+      title=excluded.title,
+      rate=excluded.rate,
+      utility_id=excluded.utility_id,
+      type_id=excluded.type_id,
+      code_id=excluded.code_id
+  `);
+
+  if (!Array.isArray(json)) return;
+  for (const h of json) {
+    insert.run({
+      id: h && h.id != null ? Number(h.id) : null,
+      title: h && h.title != null ? String(h.title) : "",
+      rate: h && h.rate != null ? Number(h.rate) : 0,
+      utility_id: h && h.utility_id != null ? Number(h.utility_id) : null,
+      type_id: h && h.type_id != null ? Number(h.type_id) : null,
+      code_id: h && h.code_id != null ? Number(h.code_id) : null,
+    });
+  }
+}
+
+function migrateShelves(database, json) {
+  const insert = database.prepare(`
+    INSERT INTO shelves (id, title, rate, pin, edging, utility_id, type_id, code_id)
+    VALUES (@id, @title, @rate, @pin, @edging, @utility_id, @type_id, @code_id)
+    ON CONFLICT(id) DO UPDATE SET
+      title=excluded.title,
+      rate=excluded.rate,
+      pin=excluded.pin,
+      edging=excluded.edging,
+      utility_id=excluded.utility_id,
+      type_id=excluded.type_id,
+      code_id=excluded.code_id
+  `);
+
+  if (!Array.isArray(json)) return;
+  for (const s of json) {
+    insert.run({
+      id: s && s.id != null ? Number(s.id) : null,
+      title: s && s.title != null ? String(s.title) : "",
+      rate: s && s.rate != null ? Number(s.rate) : 0,
+      pin: s && s.pin != null ? Number(s.pin) : 0,
+      edging: s && s.edging != null ? Number(s.edging) : 0,
+      utility_id: s && s.utility_id != null ? Number(s.utility_id) : null,
+      type_id: s && s.type_id != null ? Number(s.type_id) : null,
+      code_id: s && s.code_id != null ? Number(s.code_id) : null,
+    });
+  }
+}
+
 function loadFromSqlite(database, base) {
   if (base === ".credentials.json") {
     const row = database.prepare("SELECT password, primary_password FROM credentials WHERE id = 1").get();
@@ -496,6 +676,119 @@ function loadFromSqlite(database, base) {
     return obj;
   }
 
+  if (base === ".doors.json") {
+    const rows = database
+      .prepare(
+        `SELECT d.id, d.title, d.rate, d.edging,
+                d.utility_id, u.title AS utility,
+                d.type_id, t.title AS type,
+                d.code_id, c.title AS code
+         FROM doors d
+         LEFT JOIN utilities u ON u.id = d.utility_id
+         LEFT JOIN types t ON t.id = d.type_id
+         LEFT JOIN codes c ON c.id = d.code_id
+         ORDER BY d.id`
+      )
+      .all();
+    return rows.map((r) => ({
+      id: String(r.id),
+      title: r.title != null ? r.title : "",
+      rate: String(r.rate),
+      edging: String(r.edging),
+      utility_id: r.utility_id != null ? String(r.utility_id) : "",
+      utility: r.utility != null ? r.utility : "",
+      type_id: r.type_id != null ? String(r.type_id) : "",
+      type: r.type != null ? r.type : "",
+      code_id: r.code_id != null ? String(r.code_id) : "",
+      code: r.code != null ? r.code : "",
+    }));
+  }
+
+  if (base === ".hardwares.json") {
+    const rows = database
+      .prepare(
+        `SELECT h.id, h.title, h.rate, h.slider, h.lift,
+                h.utility_id, u.title AS utility,
+                h.type_id, t.title AS type,
+                h.code_id, c.title AS code
+         FROM hardwares h
+         LEFT JOIN utilities u ON u.id = h.utility_id
+         LEFT JOIN types t ON t.id = h.type_id
+         LEFT JOIN codes c ON c.id = h.code_id
+         ORDER BY h.id`
+      )
+      .all();
+    return rows.map((r) => ({
+      id: String(r.id),
+      title: r.title != null ? r.title : "",
+      rate: String(r.rate),
+      slider: String(r.slider),
+      lift: String(r.lift),
+      utility_id: r.utility_id != null ? String(r.utility_id) : "",
+      utility: r.utility != null ? r.utility : "",
+      type_id: r.type_id != null ? String(r.type_id) : "",
+      type: r.type != null ? r.type : "",
+      code_id: r.code_id != null ? String(r.code_id) : "",
+      code: r.code != null ? r.code : "",
+    }));
+  }
+
+  if (base === ".handlers.json") {
+    const rows = database
+      .prepare(
+        `SELECT h.id, h.title, h.rate,
+                h.utility_id, u.title AS utility,
+                h.type_id, t.title AS type,
+                h.code_id, c.title AS code
+         FROM handlers h
+         LEFT JOIN utilities u ON u.id = h.utility_id
+         LEFT JOIN types t ON t.id = h.type_id
+         LEFT JOIN codes c ON c.id = h.code_id
+         ORDER BY h.id`
+      )
+      .all();
+    return rows.map((r) => ({
+      id: String(r.id),
+      title: r.title != null ? r.title : "",
+      rate: String(r.rate),
+      utility_id: r.utility_id != null ? String(r.utility_id) : "",
+      utility: r.utility != null ? r.utility : "",
+      type_id: r.type_id != null ? String(r.type_id) : "",
+      type: r.type != null ? r.type : "",
+      code_id: r.code_id != null ? String(r.code_id) : "",
+      code: r.code != null ? r.code : "",
+    }));
+  }
+
+  if (base === ".shelves.json") {
+    const rows = database
+      .prepare(
+        `SELECT s.id, s.title, s.rate, s.pin, s.edging,
+                s.utility_id, u.title AS utility,
+                s.type_id, t.title AS type,
+                s.code_id, c.title AS code
+         FROM shelves s
+         LEFT JOIN utilities u ON u.id = s.utility_id
+         LEFT JOIN types t ON t.id = s.type_id
+         LEFT JOIN codes c ON c.id = s.code_id
+         ORDER BY s.id`
+      )
+      .all();
+    return rows.map((r) => ({
+      id: String(r.id),
+      title: r.title != null ? r.title : "",
+      rate: String(r.rate),
+      pin: String(r.pin),
+      edging: String(r.edging),
+      utility_id: r.utility_id != null ? String(r.utility_id) : "",
+      utility: r.utility != null ? r.utility : "",
+      type_id: r.type_id != null ? String(r.type_id) : "",
+      type: r.type != null ? r.type : "",
+      code_id: r.code_id != null ? String(r.code_id) : "",
+      code: r.code != null ? r.code : "",
+    }));
+  }
+
   const generic = database.prepare("SELECT payload_json FROM json_store WHERE key = ?").get(base);
   if (generic && generic.payload_json != null) {
     return JSON.parse(generic.payload_json);
@@ -505,6 +798,19 @@ function loadFromSqlite(database, base) {
 }
 
 function writeToSqlite(database, base, data) {
+  function deleteMissingById(table, idColumn, incomingIds) {
+    if (!incomingIds || incomingIds.size === 0) {
+      database.exec(`DELETE FROM ${table}`);
+      return;
+    }
+    const rows = database.prepare(`SELECT ${idColumn} AS id FROM ${table}`).all();
+    const del = database.prepare(`DELETE FROM ${table} WHERE ${idColumn} = ?`);
+    for (const r of rows) {
+      const id = r && r.id != null ? String(r.id) : null;
+      if (id && !incomingIds.has(id)) del.run(r.id);
+    }
+  }
+
   if (base === ".credentials.json") {
     migrateCredentials(database, data);
     return "success";
@@ -512,7 +818,17 @@ function writeToSqlite(database, base, data) {
 
   if (base === ".clients.json") {
     const tx = database.transaction(() => {
-      database.exec("DELETE FROM clients");
+      if (!Array.isArray(data)) {
+        return;
+      }
+
+      const incomingIds = new Set();
+      for (const c of data) {
+        const id = c && c.id != null ? String(c.id) : null;
+        if (id) incomingIds.add(id);
+      }
+
+      deleteMissingById("clients", "id", incomingIds);
       migrateClients(database, data);
     });
     tx();
@@ -530,7 +846,17 @@ function writeToSqlite(database, base, data) {
 
   if (base === ".types.json") {
     const tx = database.transaction(() => {
-      database.exec("DELETE FROM types");
+      if (!Array.isArray(data)) {
+        return;
+      }
+
+      const incomingIds = new Set();
+      for (const t of data) {
+        const id = t && t.id != null ? String(t.id) : null;
+        if (id) incomingIds.add(id);
+      }
+
+      deleteMissingById("types", "id", incomingIds);
       migrateTypes(database, data);
     });
     tx();
@@ -539,7 +865,17 @@ function writeToSqlite(database, base, data) {
 
   if (base === ".codes.json") {
     const tx = database.transaction(() => {
-      database.exec("DELETE FROM codes");
+      if (!Array.isArray(data)) {
+        return;
+      }
+
+      const incomingIds = new Set();
+      for (const c of data) {
+        const id = c && c.id != null ? String(c.id) : null;
+        if (id) incomingIds.add(id);
+      }
+
+      deleteMissingById("codes", "id", incomingIds);
       migrateCodes(database, data);
     });
     tx();
@@ -548,8 +884,99 @@ function writeToSqlite(database, base, data) {
 
   if (base === ".rates.json") {
     const tx = database.transaction(() => {
-      database.exec("DELETE FROM global_rates");
+      if (!data || typeof data !== "object" || Array.isArray(data)) {
+        return;
+      }
+
+      const incomingKeys = new Set(Object.keys(data).map((k) => String(k)));
+      if (incomingKeys.size === 0) {
+        database.exec("DELETE FROM global_rates");
+      } else {
+        const rows = database.prepare("SELECT rate_key AS id FROM global_rates").all();
+        const del = database.prepare("DELETE FROM global_rates WHERE rate_key = ?");
+        for (const r of rows) {
+          const k = r && r.id != null ? String(r.id) : null;
+          if (k && !incomingKeys.has(k)) del.run(r.id);
+        }
+      }
+
       migrateRates(database, data);
+    });
+    tx();
+    return "success";
+  }
+
+  if (base === ".doors.json") {
+    const tx = database.transaction(() => {
+      if (!Array.isArray(data)) {
+        return;
+      }
+
+      const incomingIds = new Set();
+      for (const r of data) {
+        const id = r && r.id != null ? String(r.id) : null;
+        if (id) incomingIds.add(id);
+      }
+
+      deleteMissingById("doors", "id", incomingIds);
+      migrateDoors(database, data);
+    });
+    tx();
+    return "success";
+  }
+
+  if (base === ".hardwares.json") {
+    const tx = database.transaction(() => {
+      if (!Array.isArray(data)) {
+        return;
+      }
+
+      const incomingIds = new Set();
+      for (const r of data) {
+        const id = r && r.id != null ? String(r.id) : null;
+        if (id) incomingIds.add(id);
+      }
+
+      deleteMissingById("hardwares", "id", incomingIds);
+      migrateHardwares(database, data);
+    });
+    tx();
+    return "success";
+  }
+
+  if (base === ".handlers.json") {
+    const tx = database.transaction(() => {
+      if (!Array.isArray(data)) {
+        return;
+      }
+
+      const incomingIds = new Set();
+      for (const r of data) {
+        const id = r && r.id != null ? String(r.id) : null;
+        if (id) incomingIds.add(id);
+      }
+
+      deleteMissingById("handlers", "id", incomingIds);
+      migrateHandlers(database, data);
+    });
+    tx();
+    return "success";
+  }
+
+  if (base === ".shelves.json") {
+    const tx = database.transaction(() => {
+      if (!Array.isArray(data)) {
+        return;
+      }
+
+      const incomingIds = new Set();
+      for (const r of data) {
+        const id = r && r.id != null ? String(r.id) : null;
+        if (id) incomingIds.add(id);
+      }
+
+      deleteMissingById("shelves", "id", incomingIds);
+      migrateShelves(database, data);
     });
     tx();
     return "success";
@@ -629,8 +1056,510 @@ function migrateAllLegacyFiles() {
   }
 }
 
+function searchCodes(opts) {
+  const query = opts && opts.query != null ? String(opts.query) : "";
+  const utilityIdRaw = opts && opts.utility_id != null ? String(opts.utility_id) : "";
+  const typeIdRaw = opts && opts.type_id != null ? String(opts.type_id) : "";
+  const limitRaw = opts && opts.limit != null ? Number(opts.limit) : 300;
+  const limit = limitRaw && limitRaw > 0 ? Math.min(limitRaw, 2000) : 300;
+
+  const database = getDb();
+  if (!database) {
+    const dbDir = path.join(__dirname, "../db");
+    const fallbackPath = path.join(dbDir, ".codes.json");
+    let rows = safeReadJsonFile(fallbackPath) || [];
+    if (!Array.isArray(rows)) rows = [];
+
+    if (utilityIdRaw) {
+      rows = rows.filter((r) => r && String(r.utility_id) === utilityIdRaw);
+    }
+    if (typeIdRaw) {
+      rows = rows.filter((r) => r && String(r.type_id) === typeIdRaw);
+    }
+    if (query) {
+      const q = query.toLowerCase();
+      rows = rows.filter((r) => {
+        const id = r && r.id != null ? String(r.id) : "";
+        const title = r && r.title != null ? String(r.title).toLowerCase() : "";
+        return id.indexOf(query) !== -1 || title.indexOf(q) !== -1;
+      });
+    }
+    return rows.slice(0, limit);
+  }
+
+  const where = [];
+  const params = [];
+
+  if (utilityIdRaw) {
+    const u = Number(utilityIdRaw);
+    if (!Number.isNaN(u)) {
+      where.push("c.utility_id = ?");
+      params.push(u);
+    }
+  }
+
+  if (typeIdRaw) {
+    const t = Number(typeIdRaw);
+    if (!Number.isNaN(t)) {
+      where.push("c.type_id = ?");
+      params.push(t);
+    }
+  }
+
+  if (query) {
+    const like = `%${query}%`;
+    where.push("(CAST(c.id AS TEXT) LIKE ? OR c.title LIKE ? COLLATE NOCASE)");
+    params.push(like, like);
+  }
+
+  let sql = `
+    SELECT
+      c.id, c.title, c.rate, c.back_area, c.secondary_top, c.edging, c.screws,
+      c.utility_id, u.title AS utility,
+      c.type_id, t.title AS type
+    FROM codes c
+    LEFT JOIN utilities u ON u.id = c.utility_id
+    LEFT JOIN types t ON t.id = c.type_id
+  `;
+  if (where.length) sql += ` WHERE ${where.join(" AND ")} `;
+  sql += " ORDER BY c.id LIMIT ? ";
+  params.push(limit);
+
+  return database
+    .prepare(sql)
+    .all(...params)
+    .map((r) => ({
+      id: String(r.id),
+      title: r.title != null ? r.title : "",
+      rate: String(r.rate),
+      back_area: String(r.back_area),
+      secondary_top: String(r.secondary_top),
+      edging: String(r.edging),
+      screws: String(r.screws),
+      utility_id: r.utility_id != null ? String(r.utility_id) : "",
+      utility: r.utility != null ? r.utility : "",
+      type_id: r.type_id != null ? String(r.type_id) : "",
+      type: r.type != null ? r.type : "",
+    }));
+}
+
+function searchDoors(opts) {
+  const query = opts && opts.query != null ? String(opts.query) : "";
+  const utilityIdRaw = opts && opts.utility_id != null ? String(opts.utility_id) : "";
+  const typeIdRaw = opts && opts.type_id != null ? String(opts.type_id) : "";
+  const codeIdRaw = opts && opts.code_id != null ? String(opts.code_id) : "";
+  const limitRaw = opts && opts.limit != null ? Number(opts.limit) : 300;
+  const limit = limitRaw && limitRaw > 0 ? Math.min(limitRaw, 2000) : 300;
+
+  const database = getDb();
+  if (!database) {
+    const dbDir = path.join(__dirname, "../db");
+    const fallbackPath = path.join(dbDir, ".doors.json");
+    let rows = safeReadJsonFile(fallbackPath) || [];
+    if (!Array.isArray(rows)) rows = [];
+
+    if (utilityIdRaw) rows = rows.filter((r) => r && String(r.utility_id) === utilityIdRaw);
+    if (typeIdRaw) rows = rows.filter((r) => r && String(r.type_id) === typeIdRaw);
+    if (codeIdRaw) rows = rows.filter((r) => r && String(r.code_id) === codeIdRaw);
+    if (query) {
+      const q = query.toLowerCase();
+      rows = rows.filter((r) => {
+        const id = r && r.id != null ? String(r.id) : "";
+        const title = r && r.title != null ? String(r.title).toLowerCase() : "";
+        const code = r && r.code != null ? String(r.code).toLowerCase() : "";
+        return id.indexOf(query) !== -1 || title.indexOf(q) !== -1 || code.indexOf(q) !== -1;
+      });
+    }
+    return rows.slice(0, limit);
+  }
+
+  const where = [];
+  const params = [];
+
+  if (utilityIdRaw) {
+    const u = Number(utilityIdRaw);
+    if (!Number.isNaN(u)) {
+      where.push("d.utility_id = ?");
+      params.push(u);
+    }
+  }
+  if (typeIdRaw) {
+    const t = Number(typeIdRaw);
+    if (!Number.isNaN(t)) {
+      where.push("d.type_id = ?");
+      params.push(t);
+    }
+  }
+  if (codeIdRaw) {
+    const c = Number(codeIdRaw);
+    if (!Number.isNaN(c)) {
+      where.push("d.code_id = ?");
+      params.push(c);
+    }
+  }
+
+  if (query) {
+    const like = `%${query}%`;
+    where.push("(CAST(d.id AS TEXT) LIKE ? OR d.title LIKE ? COLLATE NOCASE OR c.title LIKE ? COLLATE NOCASE)");
+    params.push(like, like, like);
+  }
+
+  let sql = `
+    SELECT
+      d.id, d.title, d.rate, d.edging,
+      d.utility_id, u.title AS utility,
+      d.type_id, t.title AS type,
+      d.code_id, c.title AS code
+    FROM doors d
+    LEFT JOIN utilities u ON u.id = d.utility_id
+    LEFT JOIN types t ON t.id = d.type_id
+    LEFT JOIN codes c ON c.id = d.code_id
+  `;
+  if (where.length) sql += ` WHERE ${where.join(" AND ")} `;
+  sql += " ORDER BY d.id LIMIT ? ";
+  params.push(limit);
+
+  return database
+    .prepare(sql)
+    .all(...params)
+    .map((r) => ({
+      id: String(r.id),
+      title: r.title != null ? r.title : "",
+      code: r.code != null ? r.code : "",
+      rate: String(r.rate),
+      edging: String(r.edging),
+      utility_id: r.utility_id != null ? String(r.utility_id) : "",
+      utility: r.utility != null ? r.utility : "",
+      type_id: r.type_id != null ? String(r.type_id) : "",
+      type: r.type != null ? r.type : "",
+      code_id: r.code_id != null ? String(r.code_id) : "",
+    }));
+}
+
+function searchHardwares(opts) {
+  const query = opts && opts.query != null ? String(opts.query) : "";
+  const utilityIdRaw = opts && opts.utility_id != null ? String(opts.utility_id) : "";
+  const typeIdRaw = opts && opts.type_id != null ? String(opts.type_id) : "";
+  const codeIdRaw = opts && opts.code_id != null ? String(opts.code_id) : "";
+  const limitRaw = opts && opts.limit != null ? Number(opts.limit) : 300;
+  const limit = limitRaw && limitRaw > 0 ? Math.min(limitRaw, 2000) : 300;
+
+  const database = getDb();
+  if (!database) {
+    const dbDir = path.join(__dirname, "../db");
+    const fallbackPath = path.join(dbDir, ".hardwares.json");
+    let rows = safeReadJsonFile(fallbackPath) || [];
+    if (!Array.isArray(rows)) rows = [];
+
+    if (utilityIdRaw) rows = rows.filter((r) => r && String(r.utility_id) === utilityIdRaw);
+    if (typeIdRaw) rows = rows.filter((r) => r && String(r.type_id) === typeIdRaw);
+    if (codeIdRaw) rows = rows.filter((r) => r && String(r.code_id) === codeIdRaw);
+    if (query) {
+      const q = query.toLowerCase();
+      rows = rows.filter((r) => {
+        const id = r && r.id != null ? String(r.id) : "";
+        const title = r && r.title != null ? String(r.title).toLowerCase() : "";
+        const code = r && r.code != null ? String(r.code).toLowerCase() : "";
+        return id.indexOf(query) !== -1 || title.indexOf(q) !== -1 || code.indexOf(q) !== -1;
+      });
+    }
+    return rows.slice(0, limit);
+  }
+
+  const where = [];
+  const params = [];
+
+  if (utilityIdRaw) {
+    const u = Number(utilityIdRaw);
+    if (!Number.isNaN(u)) {
+      where.push("h.utility_id = ?");
+      params.push(u);
+    }
+  }
+  if (typeIdRaw) {
+    const t = Number(typeIdRaw);
+    if (!Number.isNaN(t)) {
+      where.push("h.type_id = ?");
+      params.push(t);
+    }
+  }
+  if (codeIdRaw) {
+    const c = Number(codeIdRaw);
+    if (!Number.isNaN(c)) {
+      where.push("h.code_id = ?");
+      params.push(c);
+    }
+  }
+
+  if (query) {
+    const like = `%${query}%`;
+    where.push("(CAST(h.id AS TEXT) LIKE ? OR h.title LIKE ? COLLATE NOCASE OR c.title LIKE ? COLLATE NOCASE)");
+    params.push(like, like, like);
+  }
+
+  let sql = `
+    SELECT
+      h.id, h.title, h.rate, h.slider, h.lift,
+      h.utility_id, u.title AS utility,
+      h.type_id, t.title AS type,
+      h.code_id, c.title AS code
+    FROM hardwares h
+    LEFT JOIN utilities u ON u.id = h.utility_id
+    LEFT JOIN types t ON t.id = h.type_id
+    LEFT JOIN codes c ON c.id = h.code_id
+  `;
+  if (where.length) sql += ` WHERE ${where.join(" AND ")} `;
+  sql += " ORDER BY h.id LIMIT ? ";
+  params.push(limit);
+
+  return database
+    .prepare(sql)
+    .all(...params)
+    .map((r) => ({
+      id: String(r.id),
+      title: r.title != null ? r.title : "",
+      code: r.code != null ? r.code : "",
+      rate: String(r.rate),
+      slider: String(r.slider),
+      lift: String(r.lift),
+      utility_id: r.utility_id != null ? String(r.utility_id) : "",
+      utility: r.utility != null ? r.utility : "",
+      type_id: r.type_id != null ? String(r.type_id) : "",
+      type: r.type != null ? r.type : "",
+      code_id: r.code_id != null ? String(r.code_id) : "",
+    }));
+}
+
+function searchHandlers(opts) {
+  const query = opts && opts.query != null ? String(opts.query) : "";
+  const utilityIdRaw = opts && opts.utility_id != null ? String(opts.utility_id) : "";
+  const typeIdRaw = opts && opts.type_id != null ? String(opts.type_id) : "";
+  const codeIdRaw = opts && opts.code_id != null ? String(opts.code_id) : "";
+  const limitRaw = opts && opts.limit != null ? Number(opts.limit) : 300;
+  const limit = limitRaw && limitRaw > 0 ? Math.min(limitRaw, 2000) : 300;
+
+  const database = getDb();
+  if (!database) {
+    const dbDir = path.join(__dirname, "../db");
+    const fallbackPath = path.join(dbDir, ".handlers.json");
+    let rows = safeReadJsonFile(fallbackPath) || [];
+    if (!Array.isArray(rows)) rows = [];
+
+    if (utilityIdRaw) rows = rows.filter((r) => r && String(r.utility_id) === utilityIdRaw);
+    if (typeIdRaw) rows = rows.filter((r) => r && String(r.type_id) === typeIdRaw);
+    if (codeIdRaw) rows = rows.filter((r) => r && String(r.code_id) === codeIdRaw);
+    if (query) {
+      const q = query.toLowerCase();
+      rows = rows.filter((r) => {
+        const id = r && r.id != null ? String(r.id) : "";
+        const title = r && r.title != null ? String(r.title).toLowerCase() : "";
+        const code = r && r.code != null ? String(r.code).toLowerCase() : "";
+        return id.indexOf(query) !== -1 || title.indexOf(q) !== -1 || code.indexOf(q) !== -1;
+      });
+    }
+    return rows.slice(0, limit);
+  }
+
+  const where = [];
+  const params = [];
+
+  if (utilityIdRaw) {
+    const u = Number(utilityIdRaw);
+    if (!Number.isNaN(u)) {
+      where.push("h.utility_id = ?");
+      params.push(u);
+    }
+  }
+  if (typeIdRaw) {
+    const t = Number(typeIdRaw);
+    if (!Number.isNaN(t)) {
+      where.push("h.type_id = ?");
+      params.push(t);
+    }
+  }
+  if (codeIdRaw) {
+    const c = Number(codeIdRaw);
+    if (!Number.isNaN(c)) {
+      where.push("h.code_id = ?");
+      params.push(c);
+    }
+  }
+
+  if (query) {
+    const like = `%${query}%`;
+    where.push("(CAST(h.id AS TEXT) LIKE ? OR h.title LIKE ? COLLATE NOCASE OR c.title LIKE ? COLLATE NOCASE)");
+    params.push(like, like, like);
+  }
+
+  let sql = `
+    SELECT
+      h.id, h.title, h.rate,
+      h.utility_id, u.title AS utility,
+      h.type_id, t.title AS type,
+      h.code_id, c.title AS code
+    FROM handlers h
+    LEFT JOIN utilities u ON u.id = h.utility_id
+    LEFT JOIN types t ON t.id = h.type_id
+    LEFT JOIN codes c ON c.id = h.code_id
+  `;
+  if (where.length) sql += ` WHERE ${where.join(" AND ")} `;
+  sql += " ORDER BY h.id LIMIT ? ";
+  params.push(limit);
+
+  return database
+    .prepare(sql)
+    .all(...params)
+    .map((r) => ({
+      id: String(r.id),
+      title: r.title != null ? r.title : "",
+      code: r.code != null ? r.code : "",
+      rate: String(r.rate),
+      utility_id: r.utility_id != null ? String(r.utility_id) : "",
+      utility: r.utility != null ? r.utility : "",
+      type_id: r.type_id != null ? String(r.type_id) : "",
+      type: r.type != null ? r.type : "",
+      code_id: r.code_id != null ? String(r.code_id) : "",
+    }));
+}
+
+function searchShelves(opts) {
+  const query = opts && opts.query != null ? String(opts.query) : "";
+  const utilityIdRaw = opts && opts.utility_id != null ? String(opts.utility_id) : "";
+  const typeIdRaw = opts && opts.type_id != null ? String(opts.type_id) : "";
+  const codeIdRaw = opts && opts.code_id != null ? String(opts.code_id) : "";
+  const limitRaw = opts && opts.limit != null ? Number(opts.limit) : 300;
+  const limit = limitRaw && limitRaw > 0 ? Math.min(limitRaw, 2000) : 300;
+
+  const database = getDb();
+  if (!database) {
+    const dbDir = path.join(__dirname, "../db");
+    const fallbackPath = path.join(dbDir, ".shelves.json");
+    let rows = safeReadJsonFile(fallbackPath) || [];
+    if (!Array.isArray(rows)) rows = [];
+
+    if (utilityIdRaw) rows = rows.filter((r) => r && String(r.utility_id) === utilityIdRaw);
+    if (typeIdRaw) rows = rows.filter((r) => r && String(r.type_id) === typeIdRaw);
+    if (codeIdRaw) rows = rows.filter((r) => r && String(r.code_id) === codeIdRaw);
+    if (query) {
+      const q = query.toLowerCase();
+      rows = rows.filter((r) => {
+        const id = r && r.id != null ? String(r.id) : "";
+        const title = r && r.title != null ? String(r.title).toLowerCase() : "";
+        const code = r && r.code != null ? String(r.code).toLowerCase() : "";
+        return id.indexOf(query) !== -1 || title.indexOf(q) !== -1 || code.indexOf(q) !== -1;
+      });
+    }
+    return rows.slice(0, limit);
+  }
+
+  const where = [];
+  const params = [];
+
+  if (utilityIdRaw) {
+    const u = Number(utilityIdRaw);
+    if (!Number.isNaN(u)) {
+      where.push("s.utility_id = ?");
+      params.push(u);
+    }
+  }
+  if (typeIdRaw) {
+    const t = Number(typeIdRaw);
+    if (!Number.isNaN(t)) {
+      where.push("s.type_id = ?");
+      params.push(t);
+    }
+  }
+  if (codeIdRaw) {
+    const c = Number(codeIdRaw);
+    if (!Number.isNaN(c)) {
+      where.push("s.code_id = ?");
+      params.push(c);
+    }
+  }
+
+  if (query) {
+    const like = `%${query}%`;
+    where.push("(CAST(s.id AS TEXT) LIKE ? OR s.title LIKE ? COLLATE NOCASE OR c.title LIKE ? COLLATE NOCASE)");
+    params.push(like, like, like);
+  }
+
+  let sql = `
+    SELECT
+      s.id, s.title, s.rate, s.pin, s.edging,
+      s.utility_id, u.title AS utility,
+      s.type_id, t.title AS type,
+      s.code_id, c.title AS code
+    FROM shelves s
+    LEFT JOIN utilities u ON u.id = s.utility_id
+    LEFT JOIN types t ON t.id = s.type_id
+    LEFT JOIN codes c ON c.id = s.code_id
+  `;
+  if (where.length) sql += ` WHERE ${where.join(" AND ")} `;
+  sql += " ORDER BY s.id LIMIT ? ";
+  params.push(limit);
+
+  return database
+    .prepare(sql)
+    .all(...params)
+    .map((r) => ({
+      id: String(r.id),
+      title: r.title != null ? r.title : "",
+      code: r.code != null ? r.code : "",
+      rate: String(r.rate),
+      pin: String(r.pin),
+      edging: String(r.edging),
+      utility_id: r.utility_id != null ? String(r.utility_id) : "",
+      utility: r.utility != null ? r.utility : "",
+      type_id: r.type_id != null ? String(r.type_id) : "",
+      type: r.type != null ? r.type : "",
+      code_id: r.code_id != null ? String(r.code_id) : "",
+    }));
+}
+
+function nextIdFor(opts) {
+  const base = opts && opts.base != null ? String(opts.base) : "";
+
+  const tableByBase = {
+    ".codes.json": "codes",
+    ".doors.json": "doors",
+    ".hardwares.json": "hardwares",
+    ".handlers.json": "handlers",
+    ".shelves.json": "shelves",
+    ".clients.json": "clients",
+    ".utilities.json": "utilities",
+    ".types.json": "types",
+  };
+
+  const table = tableByBase[base];
+  if (!table) return 1;
+
+  const database = getDb();
+  if (database) {
+    const row = database.prepare(`SELECT MAX(id) AS max_id FROM ${table}`).get();
+    const maxId = row && row.max_id != null ? Number(row.max_id) : 0;
+    return maxId + 1;
+  }
+
+  const dbDir = path.join(__dirname, "../db");
+  const filePath = path.join(dbDir, base);
+  let rows = safeReadJsonFile(filePath) || [];
+  if (!Array.isArray(rows)) rows = [];
+  let maxId = 0;
+  for (const r of rows) {
+    const id = r && r.id != null ? Number(r.id) : 0;
+    if (id > maxId) maxId = id;
+  }
+  return maxId + 1;
+}
+
 module.exports = {
   load,
   write,
   migrateAllLegacyFiles,
+  searchCodes,
+  searchDoors,
+  searchHardwares,
+  searchHandlers,
+  searchShelves,
+  nextIdFor,
 };

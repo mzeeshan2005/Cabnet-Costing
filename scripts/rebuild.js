@@ -3,6 +3,24 @@ const os = require("os");
 const path = require("path");
 const { spawnSync } = require("child_process");
 
+process.on("uncaughtException", (err) => {
+  try {
+    console.error("Uncaught exception in rebuild.js");
+    console.error(err && err.stack ? err.stack : err);
+  } finally {
+    process.exit(1);
+  }
+});
+
+process.on("unhandledRejection", (err) => {
+  try {
+    console.error("Unhandled rejection in rebuild.js");
+    console.error(err && err.stack ? err.stack : err);
+  } finally {
+    process.exit(1);
+  }
+});
+
 function isWindows() {
   return process.platform === "win32";
 }
@@ -56,6 +74,35 @@ function collectNativeBinaries(projectDir) {
   return out;
 }
 
+function quoteCmdArg(arg) {
+  const s = String(arg);
+  if (s.length === 0) return '""';
+  return `"${s.replace(/"/g, '""')}"`;
+}
+
+function runOnWindowsCmd(command, args, options) {
+  const cmdLine = [`"${command}"`].concat(args.map(quoteCmdArg)).join(" ");
+  const res = spawnSync("cmd.exe", ["/d", "/s", "/c", `"${cmdLine}"`], {
+    stdio: "inherit",
+    ...options,
+  });
+  return res;
+}
+
+function run(command, args, options) {
+  console.log(`> ${command} ${args.join(" ")}`);
+  const res =
+    isWindows() && (String(command).endsWith(".cmd") || String(command).endsWith(".bat"))
+      ? runOnWindowsCmd(command, args, options)
+      : spawnSync(command, args, { stdio: "inherit", ...options });
+
+  if (res.error) {
+    console.error(res.error);
+    process.exit(1);
+  }
+  if (res.status !== 0) process.exit(res.status || 1);
+}
+
 function run() {
   const realCwd = process.cwd();
   const realPkg = require(path.join(realCwd, "package.json"));
@@ -82,29 +129,22 @@ function run() {
     },
   });
 
-  const env = {
+  const baseEnv = {
     ...process.env,
     GYP_DEFINES: "openssl_fips=",
+  };
+  const installEnv = {
+    ...baseEnv,
     npm_config_ignore_scripts: "true",
   };
 
-  const install = spawnSync(npmCommand(), ["install", "--ignore-scripts"], {
-    cwd: workDir,
-    stdio: "inherit",
-    env,
-  });
-  if (install.status !== 0) process.exit(install.status || 1);
+  run(npmCommand(), ["install", "--ignore-scripts"], { cwd: workDir, env: installEnv });
 
   const rebuildBin = electronRebuildCommand(path.join(workDir, "node_modules", ".bin"));
-  const result = spawnSync(rebuildBin, ["-f", "-w", "better-sqlite3", "-v", "4.2.12"], {
+  run(rebuildBin, ["-f", "-w", "better-sqlite3", "-v", "4.2.12"], {
     cwd: workDir,
-    stdio: "inherit",
-    env,
+    env: baseEnv,
   });
-
-  if (result.status !== 0) {
-    process.exit(result.status || 1);
-  }
 
   const nativeFiles = collectNativeBinaries(workDir);
   if (nativeFiles.length === 0) {

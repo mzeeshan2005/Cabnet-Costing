@@ -1,6 +1,24 @@
 const path = require("path");
 const { spawnSync } = require("child_process");
 
+process.on("uncaughtException", (err) => {
+  try {
+    console.error("Uncaught exception in pack-win.js");
+    console.error(err && err.stack ? err.stack : err);
+  } finally {
+    process.exit(1);
+  }
+});
+
+process.on("unhandledRejection", (err) => {
+  try {
+    console.error("Unhandled rejection in pack-win.js");
+    console.error(err && err.stack ? err.stack : err);
+  } finally {
+    process.exit(1);
+  }
+});
+
 function isWindows() {
   return process.platform === "win32";
 }
@@ -11,8 +29,30 @@ function bin(name) {
   return path.join(binDir, name);
 }
 
+function quoteCmdArg(arg) {
+  const s = String(arg);
+  if (s.length === 0) return '""';
+  return `"${s.replace(/"/g, '""')}"`;
+}
+
+function runOnWindowsCmd(command, args) {
+  const cmdLine = [`"${command}"`].concat(args.map(quoteCmdArg)).join(" ");
+  const res = spawnSync("cmd.exe", ["/d", "/s", "/c", `"${cmdLine}"`], {
+    stdio: "inherit",
+  });
+  return res;
+}
+
 function run(command, args) {
-  const res = spawnSync(command, args, { stdio: "inherit" });
+  console.log(`> ${command} ${args.join(" ")}`);
+  const res =
+    isWindows() && (String(command).endsWith(".cmd") || String(command).endsWith(".bat"))
+      ? runOnWindowsCmd(command, args)
+      : spawnSync(command, args, { stdio: "inherit" });
+  if (res.error) {
+    console.error(res.error);
+    process.exit(1);
+  }
   if (res.status !== 0) process.exit(res.status || 1);
 }
 
@@ -21,6 +61,8 @@ if (!isWindows()) {
   console.error("Run this command on Windows: npm run pack:win");
   process.exit(1);
 }
+
+console.log(`pack-win.js: node=${process.version} cwd=${process.cwd()}`);
 
 run(process.execPath, ["scripts/rebuild.js"]);
 
@@ -31,7 +73,7 @@ run(bin("electron-packager"), [
   "--arch=x64",
   "--overwrite",
   "--out=dist",
-  "--prune=true",
+  "--prune=false",
   "--asar=false",
   "--ignore=^/dist($|/)",
   "--ignore=^/CabinetCosting-win32-x64($|/)",

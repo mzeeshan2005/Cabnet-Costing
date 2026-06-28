@@ -139,7 +139,10 @@ function rebuildNativeModulesForElectron() {
     npm_config_ignore_scripts: "true",
   };
 
-  runCmd(npmCommand(), ["install", "--ignore-scripts"], { cwd: workDir, env: installEnv });
+  runCmd(npmCommand(), ["install", "--ignore-scripts", "--no-audit", "--no-fund", "--verbose"], {
+    cwd: workDir,
+    env: installEnv,
+  });
 
   const rebuildBin = electronRebuildCommand(path.join(workDir, "node_modules", ".bin"));
   runCmd(rebuildBin, ["-f", "-w", "better-sqlite3", "-v", "4.2.12"], {

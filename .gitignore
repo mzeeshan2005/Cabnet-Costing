@@ -1,3 +1,6 @@
 node_modules
 CabinetCosting-win32-x64
 CabinetCosting-win32-x64.zip
+*.db
+*.db-wal
+*.db-shm

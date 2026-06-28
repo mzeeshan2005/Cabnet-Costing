@@ -1,28 +1,64 @@
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("path");
+const storage = require(path.join(__dirname, "src/main/storage.js"));
 
-app.on("ready", () => {
-  let win = new BrowserWindow({
+const windows = new Set();
+
+function createWindow(loadPath) {
+  const win = new BrowserWindow({
     zoomToPageWidth: true,
     show: false,
     autoHideMenuBar: true,
   });
+  windows.add(win);
+  win.on("closed", () => {
+    windows.delete(win);
+  });
   win.maximize();
   win.show();
-  win.loadURL(`file://${__dirname}/src/screens/login.html`);
+  win.loadURL(`file://${__dirname}/src/${loadPath}`);
+  return win;
+}
+
+function openWindow(file) {
+  return createWindow(file);
+}
+
+exports.openWindow = openWindow;
+
+ipcMain.on("window:open", (event, file) => {
+  console.log("window:open", file);
+  openWindow(file);
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (win) win.close();
 });
 
-exports.openWindow = (file) => {
-  let win = new BrowserWindow({
-    zoomToPageWidth: true,
-    show: false,
-    autoHideMenuBar: true,
-  });
-  win.maximize();
-  win.show();
-  // win.webContents.openDevTools();
-  win.loadURL(`file://${__dirname}/src/${file}`);
-};
+ipcMain.on("store:rpc", (event, message) => {
+  const requestId = message && message.requestId;
+  const action = message && message.action;
+  const filePath = message && message.filePath;
+  const data = message && message.data;
+
+  try {
+    let result = null;
+    if (action === "load") result = storage.load(filePath);
+    else if (action === "write") result = storage.write(filePath, data);
+    else throw new Error("Unknown action");
+
+    event.sender.send("store:rpc:reply", { requestId, ok: true, result });
+  } catch (e) {
+    event.sender.send("store:rpc:reply", {
+      requestId,
+      ok: false,
+      error: e && e.message ? e.message : String(e),
+    });
+  }
+});
+
+app.on("ready", () => {
+  storage.migrateAllLegacyFiles();
+  createWindow("screens/login.html");
+});
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
@@ -32,13 +68,6 @@ app.on("window-all-closed", () => {
 
 app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) {
-    let win = new BrowserWindow({
-      zoomToPageWidth: true,
-      show: false,
-      autoHideMenuBar: true,
-    });
-    win.maximize();
-    win.show();
-    win.loadURL(`file://${__dirname}/src/screens/login.html`);
+    createWindow("screens/login.html");
   }
 });

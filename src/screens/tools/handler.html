@@ -824,8 +824,7 @@
     </div>
     <script>
       const path1 = require('path')
-      const remote1 = require('electron').remote;
-      const file_manager1 = remote1.require(path1.join(__dirname, '../../scripts/file_manager.js'));
+      const file_manager1 = require(path1.join(__dirname, '../../scripts/file_manager.js'));
       function openModal(a) {
         document.getElementById('show-modal').click();
         document.getElementById('numb').value = a;

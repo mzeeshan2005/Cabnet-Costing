@@ -1,10 +1,6 @@
-const remote = require("electron").remote;
 const path = require("path");
 const {faUserCheck} = require("@fortawesome/fontawesome-free-solid");
-const main = remote.require(path.join(__dirname, "../../index.js"));
-const file_manager = remote.require(
-  path.join(__dirname, "../scripts/file_manager.js")
-);
+const file_manager = require(path.join(__dirname, "../scripts/file_manager.js"));
 
 let opt = '';
 

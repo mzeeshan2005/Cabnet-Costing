@@ -20,7 +20,7 @@ jobs:
       - name: Setup Node (Electron 4 compatible)
         uses: actions/setup-node@v3
         with:
-          node-version: 10.24.1
+          node-version: 18.20.4
 
       - name: Install dependencies (skip install scripts)
         run: npm ci --ignore-scripts
@@ -39,4 +39,3 @@ jobs:
           name: CabinetCosting-win32-x64
           path: CabinetCosting-win32-x64.zip
           if-no-files-found: error
-

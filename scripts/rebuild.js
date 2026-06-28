@@ -89,7 +89,7 @@ function runOnWindowsCmd(command, args, options) {
   return res;
 }
 
-function run(command, args, options) {
+function runCmd(command, args, options) {
   console.log(`> ${command} ${args.join(" ")}`);
   const res =
     isWindows() && (String(command).endsWith(".cmd") || String(command).endsWith(".bat"))
@@ -103,7 +103,7 @@ function run(command, args, options) {
   if (res.status !== 0) process.exit(res.status || 1);
 }
 
-function run() {
+function rebuildNativeModulesForElectron() {
   const realCwd = process.cwd();
   const realPkg = require(path.join(realCwd, "package.json"));
 
@@ -138,10 +138,10 @@ function run() {
     npm_config_ignore_scripts: "true",
   };
 
-  run(npmCommand(), ["install", "--ignore-scripts"], { cwd: workDir, env: installEnv });
+  runCmd(npmCommand(), ["install", "--ignore-scripts"], { cwd: workDir, env: installEnv });
 
   const rebuildBin = electronRebuildCommand(path.join(workDir, "node_modules", ".bin"));
-  run(rebuildBin, ["-f", "-w", "better-sqlite3", "-v", "4.2.12"], {
+  runCmd(rebuildBin, ["-f", "-w", "better-sqlite3", "-v", "4.2.12"], {
     cwd: workDir,
     env: baseEnv,
   });
@@ -159,4 +159,4 @@ function run() {
   }
 }
 
-run();
+rebuildNativeModulesForElectron();

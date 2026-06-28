@@ -1,0 +1,42 @@
+name: Build Windows Portable
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-win:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Enable long paths
+        run: git config --system core.longpaths true
+
+      - name: Setup Node (Electron 4 compatible)
+        uses: actions/setup-node@v3
+        with:
+          node-version: 10.24.1
+
+      - name: Install dependencies (skip install scripts)
+        run: npm ci --ignore-scripts
+
+      - name: Package portable build
+        run: npm run pack:win
+
+      - name: Zip artifact
+        run: |
+          if (!(Test-Path "dist\CabinetCosting-win32-x64")) { throw "Missing dist\CabinetCosting-win32-x64" }
+          Compress-Archive -Path "dist\CabinetCosting-win32-x64\*" -DestinationPath "CabinetCosting-win32-x64.zip" -Force
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CabinetCosting-win32-x64
+          path: CabinetCosting-win32-x64.zip
+          if-no-files-found: error
+

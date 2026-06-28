@@ -6,6 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "rebuild": "node scripts/rebuild.js",
+    "pack:win": "node scripts/pack-win.js",
     "start": "GDK_BACKEND=x11 ELECTRON_DISABLE_SANDBOX=1 electron index.js --no-sandbox"
   },
   "author": "Faizan Ali",

@@ -3,6 +3,19 @@ const os = require("os");
 const path = require("path");
 const { spawnSync } = require("child_process");
 
+function isWindows() {
+  return process.platform === "win32";
+}
+
+function npmCommand() {
+  return isWindows() ? "npm.cmd" : "npm";
+}
+
+function electronRebuildCommand(binDir) {
+  const base = path.join(binDir, "electron-rebuild");
+  return isWindows() ? `${base}.cmd` : base;
+}
+
 function makeTempDir() {
   const prefix = path.join(os.tmpdir(), "cabinet_costing_native_");
   return fs.mkdtempSync(prefix);
@@ -75,14 +88,14 @@ function run() {
     npm_config_ignore_scripts: "true",
   };
 
-  const install = spawnSync("npm", ["install", "--ignore-scripts"], {
+  const install = spawnSync(npmCommand(), ["install", "--ignore-scripts"], {
     cwd: workDir,
     stdio: "inherit",
     env,
   });
   if (install.status !== 0) process.exit(install.status || 1);
 
-  const rebuildBin = path.join(workDir, "node_modules", ".bin", "electron-rebuild");
+  const rebuildBin = electronRebuildCommand(path.join(workDir, "node_modules", ".bin"));
   const result = spawnSync(rebuildBin, ["-f", "-w", "better-sqlite3", "-v", "4.2.12"], {
     cwd: workDir,
     stdio: "inherit",

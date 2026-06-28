@@ -28,6 +28,25 @@ const SQLITE_TARGET_BASENAMES = new Set([
   "terms.json",
 ]);
 
+function ensureDir(dirPath) {
+  try {
+    fs.mkdirSync(dirPath, { recursive: true });
+  } catch (e) {
+    return;
+  }
+}
+
+function getDbPath() {
+  if (app && app.isPackaged) {
+    const exeDir = path.dirname(process.execPath);
+    const dataDir = path.join(exeDir, "data");
+    ensureDir(dataDir);
+    return path.join(dataDir, "cabinet_costing.db");
+  }
+
+  return path.join(app.getPath("userData"), "cabinet_costing.db");
+}
+
 function getDb() {
   if (db) return db;
   if (dbUnavailable) return null;
@@ -42,7 +61,7 @@ function getDb() {
     }
   }
 
-  const dbPath = path.join(app.getPath("userData"), "cabinet_costing.db");
+  const dbPath = getDbPath();
   try {
     db = new Database(dbPath);
   } catch (e) {

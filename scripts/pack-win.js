@@ -32,13 +32,15 @@ function bin(name) {
 function quoteCmdArg(arg) {
   const s = String(arg);
   if (s.length === 0) return '""';
+  if (!/[ \t&|<>()^"]/.test(s)) return s;
   return `"${s.replace(/"/g, '""')}"`;
 }
 
 function runOnWindowsCmd(command, args) {
-  const argsPart = args && args.length ? " " + args.map(quoteCmdArg).join(" ") : "";
-  const cmdLine = `""${String(command).replace(/"/g, '""')}"${argsPart}"`;
-  const res = spawnSync("cmd.exe", ["/d", "/s", "/c", cmdLine], {
+  const cmdArgs = ["/d", "/s", "/c", `"${String(command).replace(/"/g, '""')}"`].concat(
+    (args || []).map(quoteCmdArg)
+  );
+  const res = spawnSync("cmd.exe", cmdArgs, {
     stdio: "inherit",
   });
   return res;

@@ -380,14 +380,14 @@
 
         <!-- MAIN CONTENT-->
         <div class="main-content">
-            <div class="section__content section__content--p30" style="padding-left: 10px; padding-right: 10px">
-                <div class="container-fluid" style="display: flex; justify-content: center; ">
+            <div class="section__content section__content--p30" style="padding-left: 2px; padding-right: 2px">
+                <div class="container-fluid" style="display: flex; justify-content: center; padding-left: 0px; padding-right: 0px">
                     <div class="card" style="width: 1300px" >
                         <div class="card-header d-flex justify-content-lg-between px-2" style="padding-bottom: 0px; padding-top: 5px">
                             <strong>Pricing</strong>
                             <i class="zmdi zmdi-close " style="color: red; font-size: 32px; font-weight: bold; cursor: pointer" onclick="location.href='../index.html'"></i>
                         </div>
-                        <div class="card-body" style="padding: 10px; padding-bottom: 0px" >
+                        <div class="card-body" style="padding: 6px; padding-bottom: 0px" >
                             <form id="form-pricing" class="form-horizontal" style="font-size: 14px">
                                 <div class="row" style="height: 40px; font-size: smaller">
                                     <div class="form-group px-5">
@@ -697,7 +697,7 @@
                                     </div>
                                 </div>
                             
-                                <div class="row" style="margin-left: -2px; font-size: smaller; color: black; margin-right: 0px; margin-bottom: -10px">
+                                <div class="row" style="margin-left: -6px; font-size: smaller; color: black; margin-right: -6px; margin-bottom: -10px">
                                     <div class="form-group px-1">
                                         <label for="elevation-input"  class="form-control-label ">Title&ensp;&ensp;<i data-toggle="tooltip"
                                                                                                                           data-placement="top"
@@ -707,7 +707,7 @@
                                         </label>
                                         <div class="input-group">
                                             <input placeholder="Select" required onkeypress="save_dropdown(event, 'elevations', 'elevation-input')" onkeydown="update_dropdown_del(event, 'elevations', 'elevation-input')"
-                                                   class="form-control p-1" list="elevations" id="elevation-input" style="font-weight: normal; font-size: small; width: 115px; color: black"/>
+                                                   class="form-control p-1" list="elevations" id="elevation-input" style="font-weight: normal; font-size: small; width: 105px; color: black"/>
                                         </div>
                                         <datalist id="elevations" >
 
@@ -715,13 +715,13 @@
                                     </div>
                                     <div class="form-group px-1">
                                         <label for="utility" class="form-control-label" >Utility</label>
-                                        <select name="carcass" id="utility" class="form-control p-0" required onchange="utility_change(event)"  style="font-size: small; width: 110px; color: black">
+                                        <select name="carcass" id="utility" class="form-control p-0" required onchange="utility_change(event)"  style="font-size: small; width: 105px; color: black">
 
                                         </select>
                                     </div>
                                     <div class="form-group px-1">
                                         <label for="type" class="form-control-label">Description</label>
-                                        <select name="carcass" id="type" required class="form-control p-0" onchange="type_change(event)" style="font-size: small; width: 150px; color: black">
+                                        <select name="carcass" id="type" required class="form-control p-0" onchange="type_change(event)" style="font-size: small; width: 140px; color: black">
 
                                         </select>
                                     </div>
@@ -739,7 +739,7 @@
                                     </div>
                                     <div class="form-group px-1">
                                         <label for="door-panel" class="form-control-label ">Finishing</label>
-                                        <select name="carcass"  id="door-panel" class="form-control p-0" style="font-size: small; width: 120px; color: black">
+                                        <select name="carcass"  id="door-panel" class="form-control p-0" style="font-size: small; width: 115px; color: black">
 
                                         </select>
                                     </div>
@@ -757,7 +757,7 @@
                                     </div>
                                     <div class="form-group px-1">
                                         <label for="shelves" class="form-control-label ">Adj. Shelves</label>
-                                        <select name="carcass" id="shelves" class="form-control p-0" style="font-size: small; width: 90px; color: black">
+                                        <select name="carcass" id="shelves" class="form-control p-0" style="font-size: small; width: 85px; color: black">
 
                                         </select>
                                     </div>
@@ -771,13 +771,26 @@
                                     <div class="form-group px-1" >
                                         <label for="additional" class="form-control-label ">Additional</label>
                                         <input type="number" step="any" name="custom" value="0" id="additional" class="form-control p-0" style="padding-left: 5px; font-size: 12.7px; width: 60px; color: black; text-align: center; background-color: gainsboro;">
-                                         
+                                    </div>
+                                    <div class="form-group px-0" style="display: flex; flex-direction: column; align-items: center; padding-top: 2px">
+                                        <label for="apply-profit-margin" class="form-control-label" style="white-space: nowrap">PM(<span id="profit-margin-label">0</span>%)</label>
+                                        <label class="au-checkbox" style="margin-bottom: 0px; width: 26px; height: 26px">
+                                            <input type="checkbox" id="apply-profit-margin" checked style="border: 1px solid green"/>
+                                            <span class="au-checkmark" id="apply-profit-margin-box" style="border: 1px solid green; width: 26px; height: 26px"></span>
+                                        </label>
                                     </div>
                                     <style>
                                         input[type=number]::-webkit-inner-spin-button,
                                         input[type=number]::-webkit-outer-spin-button {
                                             -webkit-appearance: none;
                                             margin: 0;
+                                        }
+
+                                        #apply-profit-margin-box:after {
+                                            left: 7px;
+                                            top: 1px;
+                                            width: 10px;
+                                            height: 16px;
                                         }
                                     </style>
                                     <div class="form-group px-1" style="display: flex; flex-direction: column">
@@ -857,8 +870,8 @@
                                         <div class="row" style="font-size: small">
                                             <div class="form-group col mx-1">
                                                 <div class="row">
-                                                    <label for="gross-amount" class="pr-1 form-control-label ">Gross Amount</label>
-                                                    <input type="number" id="gross-amount" readonly class="form-control " style="width: 80%">
+                                                    <label for="gross-amount" class="pr-1 form-control-label" style="white-space: nowrap">Gross Amount</label>
+                                                    <input type="number" id="gross-amount" readonly class="form-control" style="width: 80%">
                                                 </div>
                                             </div>
                                             <div class="form-group col mx-1">

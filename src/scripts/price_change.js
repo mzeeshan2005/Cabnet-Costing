@@ -6,6 +6,16 @@ function save_func(event) {
   event.preventDefault();
 }
 
+function readProfitMarginPercentageFromInput() {
+  const marginEl = document.getElementById('profit-margin-percentage');
+  const marginRaw = marginEl ? String(marginEl.value) : "";
+  const marginPct = marginRaw !== "" ? parseFloat(marginRaw) : 0;
+  return isNaN(marginPct) ? 0 : marginPct;
+}
+
+function persistProfitMarginPercentage(pct) {
+  return file_manager.setSystemConfig({ profit_margin_percentage: pct });
+}
 
 $(document).ready(() => {
   file_manager
@@ -26,6 +36,26 @@ $(document).ready(() => {
         document.getElementById('pin-shelve').value = res.pin_shelve;
         document.getElementById('edging-shelve').value = res.edging_shelve;
       });
+
+  file_manager.getSystemConfig().then((cfg) => {
+    const pct = cfg && cfg.profit_margin_percentage != null ? Number(cfg.profit_margin_percentage) : 0;
+    const el = document.getElementById('profit-margin-percentage');
+    if (el) el.value = isNaN(pct) ? 0 : pct;
+  });
+
+  const marginEl = document.getElementById('profit-margin-percentage');
+  if (marginEl) {
+    let persistTimer = null;
+    const schedulePersist = () => {
+      if (persistTimer) clearTimeout(persistTimer);
+      persistTimer = setTimeout(() => {
+        const pct = readProfitMarginPercentageFromInput();
+        persistProfitMarginPercentage(pct);
+      }, 300);
+    };
+    marginEl.addEventListener('input', schedulePersist);
+    marginEl.addEventListener('change', schedulePersist);
+  }
 });
 
 document.getElementById('cancel').addEventListener('click', (event) => {
@@ -69,13 +99,19 @@ document.getElementById("confirm").addEventListener("click", (event) => {
           prices.rate_shelve = document.getElementById('rate-shelve').value;
           prices.pin_shelve = document.getElementById('pin-shelve').value;
           prices.edging_shelve = document.getElementById('edging-shelve').value;
-            file_manager
-                .writeFile(path.join(__dirname, `../../db/.rates.json`), prices)
-                .then((res) => {
-                  alert("Prices Updates Sucessfully!");
-                  document.getElementById("cancel").click();
-                  document.getElementById("pass").value = "";
-                });
+
+          const marginPct = readProfitMarginPercentageFromInput();
+
+          file_manager
+              .writeFile(path.join(__dirname, `../../db/.rates.json`), prices)
+              .then((res) => {
+                return persistProfitMarginPercentage(marginPct).then(() => res);
+              })
+              .then((res) => {
+                alert("Prices Updates Sucessfully!");
+                document.getElementById("cancel").click();
+                document.getElementById("pass").value = "";
+              });
         } else {
           alert("Password Not Matched!");
           document.getElementById("cancel").click();
@@ -122,6 +158,11 @@ document.getElementById("confirm3").addEventListener("click", (event) => {
           document.getElementById('edging-shelve').value = res.edging_shelve;
             file_manager
                 .writeFile(path.join(__dirname, `../../db/.rates.json`), res)
+                .then((result) => {
+                  const el = document.getElementById('profit-margin-percentage');
+                  if (el) el.value = 0;
+                  return file_manager.setSystemConfig({ profit_margin_percentage: 0 }).then(() => result);
+                })
                 .then((res) => {
                   alert("Prices Reset To \"0\" Sucessfully!");
                   document.getElementById("cancell").click();

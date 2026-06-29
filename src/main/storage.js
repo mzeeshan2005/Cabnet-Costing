@@ -162,6 +162,16 @@ function initSchema(database) {
       rate_value TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS system_config (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      master_excel_path TEXT,
+      profit_margin_percentage REAL DEFAULT 0.0
+    );
+
+    INSERT INTO system_config (id, master_excel_path, profit_margin_percentage)
+    VALUES (1, NULL, 0.0)
+    ON CONFLICT(id) DO NOTHING;
+
     CREATE INDEX IF NOT EXISTS idx_codes_title ON codes(title);
     CREATE INDEX IF NOT EXISTS idx_codes_utility_id ON codes(utility_id);
     CREATE INDEX IF NOT EXISTS idx_codes_type_id ON codes(type_id);
@@ -234,6 +244,69 @@ function setMeta(database, key, value) {
   database
     .prepare("INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value")
     .run(key, value);
+}
+
+function getSystemConfig() {
+  const database = getDb();
+  if (!database) {
+    try {
+      const dbDir = path.join(__dirname, "../db");
+      const ratesPath = path.join(dbDir, ".rates.json");
+      const rates = safeReadJsonFile(ratesPath) || {};
+      const pctRaw = rates && rates.profit_margin_percentage != null ? Number(rates.profit_margin_percentage) : 0;
+      return {
+        master_excel_path: "",
+        profit_margin_percentage: isNaN(pctRaw) ? 0 : pctRaw,
+      };
+    } catch (e) {
+      return {
+        master_excel_path: "",
+        profit_margin_percentage: 0,
+      };
+    }
+  }
+
+  const row = database.prepare("SELECT master_excel_path, profit_margin_percentage FROM system_config WHERE id = 1").get();
+  return {
+    master_excel_path: row && row.master_excel_path != null ? String(row.master_excel_path) : "",
+    profit_margin_percentage: row && row.profit_margin_percentage != null ? Number(row.profit_margin_percentage) : 0,
+  };
+}
+
+function setSystemConfig(data) {
+  const database = getDb();
+  if (!database) {
+    try {
+      const dbDir = path.join(__dirname, "../db");
+      const ratesPath = path.join(dbDir, ".rates.json");
+      const currentRates = safeReadJsonFile(ratesPath) || {};
+      const nextRates = currentRates && typeof currentRates === "object" ? currentRates : {};
+
+      if (data && data.profit_margin_percentage != null) {
+        const pct = Number(data.profit_margin_percentage);
+        nextRates.profit_margin_percentage = isNaN(pct) ? 0 : pct;
+      }
+
+      fs.writeFileSync(ratesPath, JSON.stringify(nextRates));
+      return getSystemConfig();
+    } catch (e) {
+      return "success";
+    }
+  }
+
+  const current = getSystemConfig();
+  const masterExcelPath =
+    data && data.master_excel_path != null ? String(data.master_excel_path) : current.master_excel_path;
+  const profitMargin =
+    data && data.profit_margin_percentage != null ? Number(data.profit_margin_percentage) : current.profit_margin_percentage;
+
+  database
+    .prepare(
+      "INSERT INTO system_config (id, master_excel_path, profit_margin_percentage) VALUES (1, ?, ?) ON CONFLICT(id) DO UPDATE SET master_excel_path=excluded.master_excel_path, profit_margin_percentage=excluded.profit_margin_percentage"
+    )
+    .run(masterExcelPath, profitMargin);
+
+  return getSystemConfig();
 }
 
 function safeReadJsonFile(filePath) {
@@ -1562,4 +1635,6 @@ module.exports = {
   searchHandlers,
   searchShelves,
   nextIdFor,
+  getSystemConfig,
+  setSystemConfig,
 };

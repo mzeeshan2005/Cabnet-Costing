@@ -14,6 +14,72 @@ let shelve = 0
 let check_list = []
 let check_list2 = []
 let custom_val = 0.0
+let profitMarginPercentage = 0;
+let baseGrossAmount = 0;
+
+function isProfitMarginApplied() {
+  const el = document.getElementById('apply-profit-margin');
+  return el ? !!el.checked : true;
+}
+
+function getProfitMarginFactor() {
+  const pct = profitMarginPercentage != null ? Number(profitMarginPercentage) : 0;
+  if (!isProfitMarginApplied()) return 1;
+  if (!pct || isNaN(pct)) return 1;
+  return 1 + (pct / 100);
+}
+
+function recomputeQuotationPricesFromBase() {
+  const factor = getProfitMarginFactor();
+  for (let idx = 0; idx < items.length; idx++) {
+    const it = items[idx];
+    if (!it) continue;
+
+    const qty = it.qty != null ? Number(it.qty) : 0;
+    const qtyNum = !isNaN(qty) ? qty : 0;
+
+    let base = it.raw_base_cost != null ? Number(it.raw_base_cost) : null;
+    if (base == null || isNaN(base)) {
+      base = it.unit != null ? Number(it.unit) : 0;
+    }
+    const baseNum = !isNaN(base) ? base : 0;
+    it.raw_base_cost = baseNum;
+
+    const unit = baseNum * factor;
+    const unitNum = !isNaN(unit) ? Number(unit.toFixed(2)) : 0;
+    it.unit = unitNum;
+    it.total = Math.round(unitNum * qtyNum);
+  }
+}
+
+function setProfitMarginLabel() {
+  const lbl = document.getElementById('profit-margin-label');
+  if (!lbl) return;
+  lbl.textContent = String(profitMarginPercentage != null ? profitMarginPercentage : 0);
+}
+
+function refreshGrossAmount() {
+  const grossEl = document.getElementById('gross-amount');
+  if (!grossEl) return;
+
+  const base = baseGrossAmount != null ? Number(baseGrossAmount) : 0;
+  grossEl.value = Math.round(!isNaN(base) ? base : 0);
+  setProfitMarginLabel();
+}
+
+file_manager
+  .getSystemConfig()
+  .then((cfg) => {
+    const pct = cfg && cfg.profit_margin_percentage != null ? Number(cfg.profit_margin_percentage) : 0;
+    profitMarginPercentage = isNaN(pct) ? 0 : pct;
+    setProfitMarginLabel();
+    refreshGrossAmount();
+    discount_and_tax();
+  })
+  .catch(() => {
+    profitMarginPercentage = 0;
+    setProfitMarginLabel();
+  });
 
 
 function toggle(event){
@@ -1258,6 +1324,8 @@ function discount_and_tax(){
 }
 
 function populate_table() {
+  recomputeQuotationPricesFromBase();
+  baseGrossAmount = 0;
   document.getElementById('gross-amount').value = 0;
   const table = document.getElementById('table-body-div')
   table.innerHTML = ""
@@ -1285,15 +1353,16 @@ function populate_table() {
             <td class="p-1" style="width: 100px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; color: black; border-right: 1px solid black; border-bottom: 1px solid black;">${j.handler_text}</td>
             <td class="p-1" style="width: 120px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; color: black; border-right: 1px solid black; border-bottom: 1px solid black;">${j.hardware_text}</td>
             <td class="p-1" style="width: 105px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; color: black; border-right: 1px solid black; border-bottom: 1px solid black;">${j.shelves_text}</td>
-            <td class="p-1" style="width: 85px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; color: black; border-right: 1px solid black; border-bottom: 1px solid black;">${Intl.NumberFormat('en-US').format(j.unit)}</td>
-            <td class="p-1" style="width: 70px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; color: black; border-bottom: 1px solid black; ">${Intl.NumberFormat('en-US').format(j.total)}</td>
+            <td class="p-1" style="width: 85px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; color: black; border-right: 1px solid black; border-bottom: 1px solid black;">${Intl.NumberFormat('en-US').format(j && j.unit != null ? j.unit : 0)}</td>
+            <td class="p-1" style="width: 70px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; color: black; border-bottom: 1px solid black; ">${Intl.NumberFormat('en-US').format(j && j.total != null ? j.total : 0)}</td>
           </tr>`;
-        document.getElementById('gross-amount').value = Math.round(document.getElementById('gross-amount').value) + Math.round(j.total);
+        baseGrossAmount += Math.round(j && j.total != null ? Number(j.total) : 0);
         count +=1
       });
-      discount_and_tax()
     }
   })
+  refreshGrossAmount();
+  discount_and_tax();
 }
 
 document.getElementById('form-pricing').addEventListener('submit', (event) => {
@@ -1327,6 +1396,7 @@ document.getElementById('form-pricing').addEventListener('submit', (event) => {
     "shelves_text": document.getElementById('shelves').options[document.getElementById('shelves').selectedIndex].text === "Select" ? "" : document.getElementById('shelves').options[document.getElementById('shelves').selectedIndex].text,
     "is_shelve": document.getElementById('is_shelve').value,
     "additional": document.getElementById('additional').value,
+    "raw_base_cost": parseFloat(document.getElementById('unit').value),
     "unit": parseFloat(document.getElementById('unit').value),
     "total": Math.round(parseFloat(document.getElementById('total').innerHTML), 0),
     "code_rate": document.getElementById('code-new-rate').value,
@@ -1430,7 +1500,8 @@ document.getElementById('is_shelve').addEventListener('change', (event) => {
             file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
           .then(rates => {
             res.forEach(i => {
-              if(i.id === document.getElementById("shelve").value)
+              const selectedShelveId = document.getElementById("shelves").value;
+              if(selectedShelveId && i.id === selectedShelveId)
               {
                 try{
                   shelve = parseFloat(i.rate)
@@ -1637,6 +1708,14 @@ document.getElementById('discount').addEventListener('keyup', (event) => {
     discount_and_tax();
 })
 
+document.getElementById('apply-profit-margin').addEventListener('change', (event) => {
+  if (items && items.length > 0) {
+    document.getElementById('save').disabled = false;
+    document.getElementById('print').classList.add('d-none')
+  }
+  populate_table();
+})
+
 document.getElementById('confirm').addEventListener('click', (event) => {
   event.preventDefault();
   file_manager
@@ -1679,6 +1758,8 @@ document.getElementById('confirm').addEventListener('click', (event) => {
                           "tax": document.getElementById('tax').value,
                           "calculated_tax": document.getElementById('calculated-tax').value,
                           "net": document.getElementById('net').value,
+                          "profit_margin_percentage": profitMarginPercentage,
+                          "profit_margin_applied": isProfitMarginApplied(),
                           "category": document.getElementById('category-input').value,
                         }
                         old_pricing[ind] = pricing
@@ -1726,6 +1807,8 @@ document.getElementById('confirm').addEventListener('click', (event) => {
                     "tax": document.getElementById('tax').value,
                     "calculated_tax": document.getElementById('calculated-tax').value,
                     "net": document.getElementById('net').value,
+                    "profit_margin_percentage": profitMarginPercentage,
+                    "profit_margin_applied": isProfitMarginApplied(),
                     "category": document.getElementById('category-input').value,
                   }
                   // if(indd === -1)
@@ -1892,6 +1975,16 @@ document.getElementById('confirm-1').addEventListener('click', (event) => {
             document.getElementById('sales-input').value = i["pinfo"].sales_rp;
             document.getElementById('carcass-input').value = i["pinfo"].carcass;
             document.getElementById('is_quotation').checked = i["pinfo"].is_quotation;
+
+            if (i["pinfo"].profit_margin_percentage != null) {
+              const pct = Number(i["pinfo"].profit_margin_percentage);
+              profitMarginPercentage = isNaN(pct) ? profitMarginPercentage : pct;
+              setProfitMarginLabel();
+            }
+            if (i["pinfo"].profit_margin_applied != null) {
+              document.getElementById('apply-profit-margin').checked = !!i["pinfo"].profit_margin_applied;
+            }
+
             document.getElementById('gross-amount').value = i["pinfo"].gross_amount;
             document.getElementById('discount').value = i["pinfo"].discount;
             document.getElementById('tax').value = i["pinfo"].tax;
@@ -1915,6 +2008,10 @@ document.getElementById('confirm-1').addEventListener('click', (event) => {
               if(pricing[i].length>0 && i !== "pinfo")
               {
                 pricing[i].forEach(j => {
+                  if (j && j.raw_base_cost == null) {
+                    const unitRaw = j.unit != null ? Number(j.unit) : 0;
+                    j.raw_base_cost = !isNaN(unitRaw) ? unitRaw : 0;
+                  }
                   items.push(j)
                 });
               }

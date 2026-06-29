@@ -49,6 +49,8 @@ ipcMain.on("store:rpc", (event, message) => {
     else if (action === "handlers:search") result = storage.searchHandlers(data);
     else if (action === "shelves:search") result = storage.searchShelves(data);
     else if (action === "nextId") result = storage.nextIdFor(data);
+    else if (action === "config:get") result = storage.getSystemConfig();
+    else if (action === "config:set") result = storage.setSystemConfig(data);
     else throw new Error("Unknown action");
 
     event.sender.send("store:rpc:reply", { requestId, ok: true, result });

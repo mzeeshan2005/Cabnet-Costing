@@ -118,3 +118,18 @@ exports.nextId = async (base) => {
   const payload = { base: base != null ? String(base) : "" };
   return rpc("nextId", "", payload);
 };
+
+exports.getSystemConfig = async () => {
+  return rpc("config:get", "", {});
+};
+
+exports.setSystemConfig = async (data) => {
+  const payload = data && typeof data === "object" ? data : {};
+  return rpc("config:set", "", payload);
+};
+
+exports.getProfitMarginPercentage = async () => {
+  const cfg = await exports.getSystemConfig();
+  const pct = cfg && cfg.profit_margin_percentage != null ? Number(cfg.profit_margin_percentage) : 0;
+  return isNaN(pct) ? 0 : pct;
+};

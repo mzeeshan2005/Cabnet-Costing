@@ -47,7 +47,8 @@ function quoteCmdArg(arg) {
 }
 
 function runOnWindowsCmd(command, args, options) {
-  const res = spawnSync("cmd.exe", ["/d", "/s", "/c", "call", String(command)].concat(args || []), {
+  const fullCommand = [String(command)].concat(args || []).map(quoteCmdArg).join(" ");
+  const res = spawnSync("cmd.exe", ["/d", "/s", "/c", fullCommand], {
     stdio: "inherit",
     ...options,
   });
@@ -73,7 +74,7 @@ function packagerCommand() {
 
   const npxCmd = isWindows() ? "npx.cmd" : "npx";
   if (isWindows()) {
-    return { cmd: npxCmd, baseArgs: ["-p", "@electron/packager@^19.0.0", "electron-packager"] };
+    return { cmd: npxCmd, baseArgs: ["electron-packager"] };
   }
   return { cmd: npxCmd, baseArgs: ["--yes", "-p", "@electron/packager@^19.0.0", "electron-packager"] };
 }
@@ -96,7 +97,7 @@ function rmDirRecursive(dirPath) {
   fs.rmdirSync(dirPath);
 }
 
-function shouldIgnore(relPath) {
+module.exports.shouldIgnore = function shouldIgnore(relPath) {
   const p = relPath.replace(/\\/g, "/");
   if (!p) return false;
   if (p === "dist" || p.indexOf("dist/") === 0) return true;
@@ -143,11 +144,7 @@ if (isWindows()) {
     "--out=dist",
     "--prune=false",
     "--asar=false",
-    "--ignore=^/dist($|/)",
-    "--ignore=^/CabinetCosting-win32-x64($|/)",
-    "--ignore=\\.db$",
-    "--ignore=\\.db-wal$",
-    "--ignore=\\.db-shm$",
+    "--ignore=" + path.basename(__filename),
   ]));
   process.exit(0);
 }
@@ -183,11 +180,7 @@ run(packager.cmd, packager.baseArgs.concat([
   "--out=dist",
   "--prune=false",
   "--asar=false",
-  "--ignore=^/dist($|/)",
-  "--ignore=^/CabinetCosting-win32-x64($|/)",
-  "--ignore=\\.db$",
-  "--ignore=\\.db-wal$",
-  "--ignore=\\.db-shm$",
+  "--ignore=" + path.basename(__filename),
 ]));
 
 try {

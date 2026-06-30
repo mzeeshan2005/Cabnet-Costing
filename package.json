@@ -8,28 +8,30 @@
     "rebuild": "node scripts/rebuild.js",
     "pack:win": "node scripts/pack-win.js",
     "start": "electron index.js --no-sandbox",
-    "start:linux": "env -u WAYLAND_DISPLAY -u XDG_SESSION_TYPE GDK_BACKEND=x11 ELECTRON_DISABLE_SANDBOX=1 electron index.js --no-sandbox"
+    "start:linux": "env -u WAYLAND_DISPLAY -u XDG_SESSION_TYPE GDK_BACKEND=x11 ELECTRON_DISABLE_SANDBOX=1 ./node_modules/.bin/electron index.js --no-sandbox > electron_output.log 2>&1"
   },
   "author": "Faizan Ali",
   "license": "ISC",
+  "engines": {
+    "node": "24.x",
+    "npm": "10.x"
+  },
+  "packageManager": "npm@10.x",
   "devDependencies": {
-    "electron": "4.2.12",
-    "electron-rebuild": "1.8.8",
-    "electron-packager": "^10.1.2"
+    "electron": "^40.0.0",
+    "@electron/rebuild": "^4.0.0",
+    "@electron/packager": "^19.0.0"
   },
   "dependencies": {
     "@fortawesome/fontawesome": "^1.1.8",
     "@fortawesome/fontawesome-free-solid": "^5.0.13",
     "bootstrap": "^4.3.1",
     "bootstrap-input-spinner": "^1.11.4",
-    "better-sqlite3": "6.0.1",
-    "easy-pdf-merge": "^0.2.6",
-    "electron-json-storage": "^4.1.6",
+    "better-sqlite3": "^12.0.0",
     "html2pdf.js": "^0.10.1",
     "jquery": "^3.4.1",
     "jspdf": "^2.5.1",
     "moment": "^2.29.4",
-    "pdf-creator-node": "2.3.5",
     "popper.js": "^1.15.0",
     "tablesort": "5.1.0",
     "xlsx": "0.16.9"

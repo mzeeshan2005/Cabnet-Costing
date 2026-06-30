@@ -59,6 +59,10 @@ function getDbPath() {
 }
 
 function getDb() {
+  if (process.env.CABINET_COSTING_DISABLE_SQLITE === "1") {
+    dbUnavailable = true;
+    return null;
+  }
   if (db) return db;
   if (dbUnavailable) return null;
 

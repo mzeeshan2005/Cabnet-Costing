@@ -543,7 +543,7 @@ function importCodesFromText(text) {
 
 let excelImport = null;
 if (file_manager && typeof file_manager.bindExcelImportControls === "function") {
-  excelImport = file_manager.bindExcelImportControls({ preferredSheetName: "Codes", afterTextSet: previewImportCodes });
+  excelImport = file_manager.bindExcelImportControls({ preferredSheetName: "Codes", afterTextSet: previewImportCodes, fileNameDisplayId: "import-file-name" });
 }
 
 if (document.getElementById("import-open")) {
@@ -807,6 +807,7 @@ function openDepImport(mode) {
       sheetSelectId: "dep-import-sheet",
       textAreaId: "dep-import-text",
       preferredSheetName: preferred,
+      fileNameDisplayId: "dep-import-file-name",
     });
   }
   if (window.$) window.$("#depImportModal").modal("show");

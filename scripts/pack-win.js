@@ -73,9 +73,9 @@ function packagerCommand() {
 
   const npxCmd = isWindows() ? "npx.cmd" : "npx";
   if (isWindows()) {
-    return { cmd: npxCmd, baseArgs: ["-p", "electron-packager@10.1.2", "electron-packager"] };
+    return { cmd: npxCmd, baseArgs: ["-p", "@electron/packager@^19.0.0", "electron-packager"] };
   }
-  return { cmd: npxCmd, baseArgs: ["--yes", "-p", "@electron/packager@18.3.0", "electron-packager"] };
+  return { cmd: npxCmd, baseArgs: ["--yes", "-p", "@electron/packager@^19.0.0", "electron-packager"] };
 }
 
 function ensureDir(dirPath) {
@@ -153,7 +153,7 @@ if (isWindows()) {
 }
 
 console.log("Non-Windows host detected. Attempting cross-pack for win32-x64 using prebuilt native modules.");
-console.log("This requires that better-sqlite3/integer prebuilt binaries exist for Electron 4.2.12 win32-x64.");
+console.log("This requires that better-sqlite3/integer prebuilt binaries exist for Electron ^40.0.0 win32-x64.");
 
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "cabinet_costing_winpack_"));
 const stageDir = path.join(tempRoot, "app");
@@ -165,7 +165,7 @@ const installEnv = {
   npm_config_platform: "win32",
   npm_config_arch: "x64",
   npm_config_runtime: "electron",
-  npm_config_target: "4.2.12",
+  npm_config_target: "^40.0.0",
   npm_config_disturl: "https://electronjs.org/headers",
   npm_config_build_from_source: "false",
 };
@@ -178,7 +178,7 @@ run(packager.cmd, packager.baseArgs.concat([
   "CabinetCosting",
   "--platform=win32",
   "--arch=x64",
-  "--electron-version=4.2.12",
+  "--electron-version=^40.0.0",
   "--overwrite",
   "--out=dist",
   "--prune=false",

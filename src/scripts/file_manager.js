@@ -1,4 +1,5 @@
 const { ipcRenderer } = require("electron");
+const path = require("path");
 
 let nextRequestId = 1;
 const pending = {};
@@ -17,6 +18,7 @@ ipcRenderer.on("store:rpc:reply", (event, message) => {
 });
 
 function rpc(action, filePath, data) {
+  console.log("RPC call:", { action, filePath, data });
   const requestId = String(nextRequestId++);
   return new Promise((resolve, reject) => {
     pending[requestId] = { resolve, reject };
@@ -181,23 +183,39 @@ exports.buildHeaderIndex = (headerRow) => {
 };
 
 exports.listExcelSheets = async (filePath) => {
+  console.log("listExcelSheets called with:", filePath);
   const XLSX = require("xlsx");
   const p = filePath != null ? String(filePath) : "";
-  if (!p) return [];
+  if (!p) {
+    console.log("listExcelSheets: No file path provided.");
+    return [];
+  }
   const wb = XLSX.readFile(p);
-  return wb && Array.isArray(wb.SheetNames) ? wb.SheetNames : [];
+  const sheetNames = wb && Array.isArray(wb.SheetNames) ? wb.SheetNames : [];
+  console.log("listExcelSheets returned:", sheetNames);
+  return sheetNames;
 };
 
 exports.readExcelSheetAsTabularText = async (filePath, sheetName) => {
+  console.log("readExcelSheetAsTabularText called with:", { filePath, sheetName });
   const XLSX = require("xlsx");
   const p = filePath != null ? String(filePath) : "";
-  if (!p) return "";
+  if (!p) {
+    console.log("readExcelSheetAsTabularText: No file path provided.");
+    return "";
+  }
   const wb = XLSX.readFile(p);
   const names = wb && Array.isArray(wb.SheetNames) ? wb.SheetNames : [];
   const target = sheetName != null && String(sheetName).trim() ? String(sheetName).trim() : names.length ? names[0] : "";
-  if (!target) return "";
+  if (!target) {
+    console.log("readExcelSheetAsTabularText: No target sheet found.");
+    return "";
+  }
   const ws = wb.Sheets ? wb.Sheets[target] : null;
-  if (!ws) return "";
+  if (!ws) {
+    console.log("readExcelSheetAsTabularText: Worksheet not found.");
+    return "";
+  }
 
   const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" }) || [];
   const outLines = [];
@@ -211,7 +229,9 @@ exports.readExcelSheetAsTabularText = async (filePath, sheetName) => {
     if (parts.length === 0) continue;
     outLines.push(parts.join("\t"));
   }
-  return outLines.join("\n");
+  const result = outLines.join("\n");
+  console.log("readExcelSheetAsTabularText returned text length:", result.length);
+  return result;
 };
 
 exports.bindExcelImportControls = (opts) => {
@@ -220,6 +240,7 @@ exports.bindExcelImportControls = (opts) => {
   const fileInputId = opts && opts.fileInputId != null ? String(opts.fileInputId) : "import-file";
   const sheetSelectId = opts && opts.sheetSelectId != null ? String(opts.sheetSelectId) : "import-sheet";
   const textAreaId = opts && opts.textAreaId != null ? String(opts.textAreaId) : "import-text";
+  const fileNameDisplayId = opts && opts.fileNameDisplayId != null ? String(opts.fileNameDisplayId) : "";
   const preferredSheetName =
     opts && opts.preferredSheetName != null && String(opts.preferredSheetName).trim() ? String(opts.preferredSheetName).trim() : "";
   const afterTextSet = opts && typeof opts.afterTextSet === "function" ? opts.afterTextSet : null;
@@ -228,6 +249,7 @@ exports.bindExcelImportControls = (opts) => {
   const fileEl = document.getElementById(fileInputId);
   const sheetEl = document.getElementById(sheetSelectId);
   const textEl = document.getElementById(textAreaId);
+  const fileNameDisplayEl = fileNameDisplayId ? document.getElementById(fileNameDisplayId) : null;
 
   if (!fileEl || !sheetEl || !textEl) return { reset: () => {}, isBound: false };
 
@@ -279,20 +301,24 @@ exports.bindExcelImportControls = (opts) => {
     });
   }
 
-  function getFilePathFromInput() {
-    const f = fileEl && fileEl.files && fileEl.files.length ? fileEl.files[0] : null;
-    const p = f && f.path != null ? String(f.path) : "";
-    return p;
+  async function openExcelFileDialog() {
+    const result = await ipcRenderer.invoke("dialog:openExcelFile");
+    return result && result.filePaths && result.filePaths.length > 0 ? result.filePaths[0] : "";
   }
 
   clearSheets();
 
-  fileEl.addEventListener("change", () => {
-    currentPath = getFilePathFromInput();
+  fileEl.addEventListener("click", async (e) => {
+    e.preventDefault(); // Prevent the native file dialog from opening
+    currentPath = await openExcelFileDialog();
     if (!currentPath) {
       clearSheets();
+      fileEl.value = ""; // Clear the input field if no file was selected
+      if (fileNameDisplayEl) fileNameDisplayEl.textContent = "";
       return;
     }
+    if (fileNameDisplayEl) fileNameDisplayEl.textContent = path.basename(currentPath);
+
     exports
       .listExcelSheets(currentPath)
       .then((names) => {

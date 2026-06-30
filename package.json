@@ -7,6 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "rebuild": "node scripts/rebuild.js",
     "pack:win": "node scripts/pack-win.js",
+    "build:win": "electron-builder --win --x64",
     "start": "electron index.js --no-sandbox",
     "start:linux": "env -u WAYLAND_DISPLAY -u XDG_SESSION_TYPE GDK_BACKEND=x11 ELECTRON_DISABLE_SANDBOX=1 ./node_modules/.bin/electron index.js --no-sandbox > electron_output.log 2>&1"
   },
@@ -18,16 +19,35 @@
   },
   "packageManager": "npm@10.x",
   "devDependencies": {
-    "electron": "^40.0.0",
+    "@electron/packager": "^19.0.0",
     "@electron/rebuild": "^4.0.0",
-    "@electron/packager": "^19.0.0"
+    "electron": "^40.0.0",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.cabinetcosting.app",
+    "productName": "CabinetCosting",
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "asar": true
   },
   "dependencies": {
     "@fortawesome/fontawesome": "^1.1.8",
     "@fortawesome/fontawesome-free-solid": "^5.0.13",
+    "better-sqlite3": "^12.0.0",
     "bootstrap": "^4.3.1",
     "bootstrap-input-spinner": "^1.11.4",
-    "better-sqlite3": "^12.0.0",
     "html2pdf.js": "^0.10.1",
     "jquery": "^3.4.1",
     "jspdf": "^2.5.1",

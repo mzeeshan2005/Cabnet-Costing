@@ -1,7 +1,7 @@
 MESA-INTEL: warning: Ivy Bridge Vulkan support is incomplete
-[523507:0630/174244.179419:ERROR:dbus/object_proxy.cc:573] Failed to call method: org.freedesktop.systemd1.Manager.StartTransientUnit: object_path= /org/freedesktop/systemd1: org.freedesktop.systemd1.UnitExists: Unit app-org.chromium.Chromium-523507.scope was already loaded or has a fragment file.
+[745698:0630/202547.523135:ERROR:dbus/object_proxy.cc:573] Failed to call method: org.freedesktop.systemd1.Manager.StartTransientUnit: object_path= /org/freedesktop/systemd1: org.freedesktop.systemd1.UnitExists: Unit app-org.chromium.Chromium-745698.scope was already loaded or has a fragment file.
 window:open index.html
-[523536:0630/174250.269385:ERROR:ui/gl/gl_surface_presentation_helper.cc:260] GetVSyncParametersIfAvailable() failed for 1 times!
-[523536:0630/174255.293432:ERROR:ui/gl/gl_surface_presentation_helper.cc:260] GetVSyncParametersIfAvailable() failed for 2 times!
-[523536:0630/174255.297173:ERROR:ui/gl/gl_surface_presentation_helper.cc:260] GetVSyncParametersIfAvailable() failed for 3 times!
-[523507:0630/174310.818856:ERROR:content/browser/browser_main_loop.cc:290] GLib-GObject: ../../../gobject/gsignal.c:2685: instance '0x329c01418e90' has no handler with id '4718'
+[745762:0630/202559.243361:ERROR:ui/gl/gl_surface_presentation_helper.cc:260] GetVSyncParametersIfAvailable() failed for 1 times!
+[745762:0630/202604.472116:ERROR:ui/gl/gl_surface_presentation_helper.cc:260] GetVSyncParametersIfAvailable() failed for 2 times!
+[745762:0630/202604.476425:ERROR:ui/gl/gl_surface_presentation_helper.cc:260] GetVSyncParametersIfAvailable() failed for 3 times!
+[745698:0630/202610.202697:ERROR:content/browser/browser_main_loop.cc:290] GLib-GObject: ../../../gobject/gsignal.c:2685: instance '0x2124001f3590' has no handler with id '4669'

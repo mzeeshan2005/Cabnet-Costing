@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const { app } = require("electron");
+const crypto = require("crypto");
 
 let Database;
 let db;
@@ -28,6 +29,16 @@ const SQLITE_TARGET_BASENAMES = new Set([
   "terms.json",
 ]);
 
+const TOOLS_SYNC_BASENAMES = new Set([
+  ".utilities.json",
+  ".types.json",
+  ".codes.json",
+  ".doors.json",
+  ".hardwares.json",
+  ".handlers.json",
+  ".shelves.json",
+]);
+
 function ensureDir(dirPath) {
   try {
     fs.mkdirSync(dirPath, { recursive: true });
@@ -48,6 +59,10 @@ function getDbPath() {
 }
 
 function getDb() {
+  if (process.env.CABINET_COSTING_DISABLE_SQLITE === "1") {
+    dbUnavailable = true;
+    return null;
+  }
   if (db) return db;
   if (dbUnavailable) return null;
 
@@ -77,6 +92,282 @@ function getDb() {
 
   initSchema(db);
   return db;
+}
+
+function getDefaultToolsExcelPath() {
+  if (app && app.isPackaged) {
+    const exeDir = path.dirname(process.execPath);
+    const dataDir = path.join(exeDir, "data");
+    ensureDir(dataDir);
+    return path.join(dataDir, "Tools_Data.xlsx");
+  }
+  return path.join(app.getPath("userData"), "Tools_Data.xlsx");
+}
+
+function exportToolsExcel(outPath) {
+  let XLSX;
+  try {
+    XLSX = require("xlsx");
+  } catch (e) {
+    throw new Error("Excel sync requires 'xlsx' dependency.");
+  }
+
+  const cfg = getSystemConfig() || {};
+  const targetPath =
+    outPath != null && String(outPath).trim()
+      ? String(outPath).trim()
+      : cfg.master_excel_path != null && String(cfg.master_excel_path).trim()
+        ? String(cfg.master_excel_path).trim()
+        : getDefaultToolsExcelPath();
+
+  ensureDir(path.dirname(targetPath));
+
+  const database = getDb();
+
+  let utilities = [];
+  let types = [];
+  let codes = [];
+  let doors = [];
+  let hardwares = [];
+  let handlers = [];
+  let shelves = [];
+
+  if (database) {
+    utilities = database.prepare("SELECT id, title FROM utilities ORDER BY id").all();
+    types = database
+      .prepare(
+        "SELECT t.id, t.title, t.utility_id, u.title AS utility FROM types t LEFT JOIN utilities u ON u.id = t.utility_id ORDER BY t.id"
+      )
+      .all();
+    codes = database
+      .prepare(
+        "SELECT c.id, c.title, c.utility_id, u.title AS utility, c.type_id, t.title AS type, c.rate, c.back_area, c.secondary_top, c.edging, c.screws FROM codes c LEFT JOIN utilities u ON u.id = c.utility_id LEFT JOIN types t ON t.id = c.type_id ORDER BY c.id"
+      )
+      .all();
+    doors = database
+      .prepare(
+        "SELECT d.id, d.title, d.utility_id, u.title AS utility, d.type_id, t.title AS type, d.code_id, c.title AS code, d.rate, d.edging FROM doors d LEFT JOIN utilities u ON u.id = d.utility_id LEFT JOIN types t ON t.id = d.type_id LEFT JOIN codes c ON c.id = d.code_id ORDER BY d.id"
+      )
+      .all();
+    hardwares = database
+      .prepare(
+        "SELECT h.id, h.title, h.utility_id, u.title AS utility, h.type_id, t.title AS type, h.code_id, c.title AS code, h.rate, h.slider, h.lift FROM hardwares h LEFT JOIN utilities u ON u.id = h.utility_id LEFT JOIN types t ON t.id = h.type_id LEFT JOIN codes c ON c.id = h.code_id ORDER BY h.id"
+      )
+      .all();
+    handlers = database
+      .prepare(
+        "SELECT h.id, h.title, h.utility_id, u.title AS utility, h.type_id, t.title AS type, h.code_id, c.title AS code, h.rate FROM handlers h LEFT JOIN utilities u ON u.id = h.utility_id LEFT JOIN types t ON t.id = h.type_id LEFT JOIN codes c ON c.id = h.code_id ORDER BY h.id"
+      )
+      .all();
+    shelves = database
+      .prepare(
+        "SELECT s.id, s.title, s.utility_id, u.title AS utility, s.type_id, t.title AS type, s.code_id, c.title AS code, s.rate, s.pin, s.edging FROM shelves s LEFT JOIN utilities u ON u.id = s.utility_id LEFT JOIN types t ON t.id = s.type_id LEFT JOIN codes c ON c.id = s.code_id ORDER BY s.id"
+      )
+      .all();
+  } else {
+    const dbDir = path.join(__dirname, "../db");
+    utilities = safeReadJsonFile(path.join(dbDir, ".utilities.json")) || [];
+    types = safeReadJsonFile(path.join(dbDir, ".types.json")) || [];
+    codes = safeReadJsonFile(path.join(dbDir, ".codes.json")) || [];
+    doors = safeReadJsonFile(path.join(dbDir, ".doors.json")) || [];
+    hardwares = safeReadJsonFile(path.join(dbDir, ".hardwares.json")) || [];
+    handlers = safeReadJsonFile(path.join(dbDir, ".handlers.json")) || [];
+    shelves = safeReadJsonFile(path.join(dbDir, ".shelves.json")) || [];
+  }
+
+  function toStr(v) {
+    return v != null ? String(v) : "";
+  }
+  function toNumStr(v) {
+    if (v == null) return "0";
+    const n = Number(v);
+    return isNaN(n) ? "0" : String(n);
+  }
+
+  const wb = XLSX.utils.book_new();
+
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.json_to_sheet(
+      (utilities || []).map((r) => ({ id: toStr(r.id), title: toStr(r.title) })),
+      { header: ["id", "title"], skipHeader: false }
+    ),
+    "Utilities"
+  );
+
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.json_to_sheet(
+      (types || []).map((r) => ({
+        id: toStr(r.id),
+        title: toStr(r.title),
+        utility_id: toStr(r.utility_id),
+        utility: toStr(r.utility),
+      })),
+      { header: ["id", "title", "utility_id", "utility"], skipHeader: false }
+    ),
+    "Descriptions"
+  );
+
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.json_to_sheet(
+      (codes || []).map((r) => ({
+        id: toStr(r.id),
+        title: toStr(r.title),
+        utility_id: toStr(r.utility_id),
+        utility: toStr(r.utility),
+        type_id: toStr(r.type_id),
+        type: toStr(r.type),
+        rate: toNumStr(r.rate),
+        back_area: toNumStr(r.back_area),
+        secondary_top: toNumStr(r.secondary_top),
+        edging: toNumStr(r.edging),
+        screws: toNumStr(r.screws),
+      })),
+      { header: ["id", "title", "utility_id", "utility", "type_id", "type", "rate", "back_area", "secondary_top", "edging", "screws"], skipHeader: false }
+    ),
+    "Codes"
+  );
+
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.json_to_sheet(
+      (doors || []).map((r) => ({
+        id: toStr(r.id),
+        title: toStr(r.title),
+        utility_id: toStr(r.utility_id),
+        utility: toStr(r.utility),
+        type_id: toStr(r.type_id),
+        type: toStr(r.type),
+        code_id: toStr(r.code_id),
+        code: toStr(r.code),
+        rate: toNumStr(r.rate),
+        edging: toNumStr(r.edging),
+      })),
+      { header: ["id", "title", "utility_id", "utility", "type_id", "type", "code_id", "code", "rate", "edging"], skipHeader: false }
+    ),
+    "Finishing"
+  );
+
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.json_to_sheet(
+      (hardwares || []).map((r) => ({
+        id: toStr(r.id),
+        title: toStr(r.title),
+        utility_id: toStr(r.utility_id),
+        utility: toStr(r.utility),
+        type_id: toStr(r.type_id),
+        type: toStr(r.type),
+        code_id: toStr(r.code_id),
+        code: toStr(r.code),
+        rate: toNumStr(r.rate),
+        slider: toNumStr(r.slider),
+        lift: toNumStr(r.lift),
+      })),
+      { header: ["id", "title", "utility_id", "utility", "type_id", "type", "code_id", "code", "rate", "slider", "lift"], skipHeader: false }
+    ),
+    "Hardware"
+  );
+
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.json_to_sheet(
+      (handlers || []).map((r) => ({
+        id: toStr(r.id),
+        title: toStr(r.title),
+        utility_id: toStr(r.utility_id),
+        utility: toStr(r.utility),
+        type_id: toStr(r.type_id),
+        type: toStr(r.type),
+        code_id: toStr(r.code_id),
+        code: toStr(r.code),
+        rate: toNumStr(r.rate),
+      })),
+      { header: ["id", "title", "utility_id", "utility", "type_id", "type", "code_id", "code", "rate"], skipHeader: false }
+    ),
+    "Handles"
+  );
+
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.json_to_sheet(
+      (shelves || []).map((r) => ({
+        id: toStr(r.id),
+        title: toStr(r.title),
+        utility_id: toStr(r.utility_id),
+        utility: toStr(r.utility),
+        type_id: toStr(r.type_id),
+        type: toStr(r.type),
+        code_id: toStr(r.code_id),
+        code: toStr(r.code),
+        rate: toNumStr(r.rate),
+        pin: toNumStr(r.pin),
+        edging: toNumStr(r.edging),
+      })),
+      { header: ["id", "title", "utility_id", "utility", "type_id", "type", "code_id", "code", "rate", "pin", "edging"], skipHeader: false }
+    ),
+    "Adjustable Shelves"
+  );
+
+  XLSX.writeFile(wb, targetPath);
+  return targetPath;
+}
+
+let toolsExcelSyncTimer = null;
+let toolsExcelSyncPending = false;
+let toolsExcelLastSignature = "";
+const toolsExcelHashByBase = {};
+
+function hashJsonPayload(data) {
+  try {
+    const raw = JSON.stringify(data);
+    return crypto.createHash("sha1").update(raw).digest("hex");
+  } catch (e) {
+    return "";
+  }
+}
+
+function scheduleToolsExcelSync(base, data) {
+  if (!TOOLS_SYNC_BASENAMES.has(base)) return;
+
+  const currentHash = hashJsonPayload(data);
+  if (currentHash && toolsExcelHashByBase[base] === currentHash) {
+    return;
+  }
+  toolsExcelHashByBase[base] = currentHash;
+
+  toolsExcelSyncPending = true;
+  if (toolsExcelSyncTimer) clearTimeout(toolsExcelSyncTimer);
+
+  toolsExcelSyncTimer = setTimeout(() => {
+    toolsExcelSyncTimer = null;
+    if (!toolsExcelSyncPending) return;
+
+    const keys = Object.keys(toolsExcelHashByBase).sort();
+    const parts = [];
+    for (let i = 0; i < keys.length; i++) {
+      const k = keys[i];
+      const h = toolsExcelHashByBase[k] != null ? String(toolsExcelHashByBase[k]) : "";
+      parts.push(k + ":" + h);
+    }
+    const signature = parts.join("|");
+
+    if (signature && signature === toolsExcelLastSignature) {
+      toolsExcelSyncPending = false;
+      return;
+    }
+
+    try {
+      exportToolsExcel();
+      toolsExcelLastSignature = signature;
+    } catch (e) {
+      console.error("Tools Excel sync failed:", e && e.message ? e.message : e);
+    } finally {
+      toolsExcelSyncPending = false;
+    }
+  }, 1500);
 }
 
 function initSchema(database) {
@@ -1111,10 +1402,12 @@ function write(filePath, data) {
   const database = getDb();
   if (!database) {
     fs.writeFileSync(filePath, JSON.stringify(data));
+    scheduleToolsExcelSync(base, data);
     return "success";
   }
   ensureMigratedForFile(database, filePath);
   const res = writeToSqlite(database, base, data);
+  if (res === "success" || res == null) scheduleToolsExcelSync(base, data);
   return res || "success";
 }
 
@@ -1637,4 +1930,5 @@ module.exports = {
   nextIdFor,
   getSystemConfig,
   setSystemConfig,
+  exportToolsExcel,
 };

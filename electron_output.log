@@ -1,0 +1,14 @@
+MESA-INTEL: warning: Ivy Bridge Vulkan support is incomplete
+[762103:0630/203300.573339:ERROR:dbus/object_proxy.cc:573] Failed to call method: org.freedesktop.systemd1.Manager.StartTransientUnit: object_path= /org/freedesktop/systemd1: org.freedesktop.systemd1.UnitExists: Unit app-org.chromium.Chromium-762103.scope was already loaded or has a fragment file.
+window:open index.html
+[762188:0630/203306.959315:ERROR:ui/gl/gl_surface_presentation_helper.cc:260] GetVSyncParametersIfAvailable() failed for 1 times!
+[762103:0630/203459.639555:ERROR:content/browser/network_service_instance_impl.cc:610] Network service crashed or was terminated, restarting service.
+[762103:0630/203459.721293:ERROR:content/common/zygote/zygote_communication_linux.cc:293] Failed to send GetTerminationStatus message to zygote
+[762103:0630/203459.729139:ERROR:content/browser/gpu/gpu_process_host.cc:998] GPU process launch failed: error_code=1002
+[762103:0630/203459.732129:ERROR:content/browser/gpu/gpu_process_host.cc:998] GPU process launch failed: error_code=1002
+[762103:0630/203459.733667:ERROR:content/browser/gpu/gpu_process_host.cc:998] GPU process launch failed: error_code=1002
+[762103:0630/203459.736227:ERROR:content/browser/gpu/gpu_process_host.cc:998] GPU process launch failed: error_code=1002
+[762103:0630/203459.738741:ERROR:content/browser/gpu/gpu_process_host.cc:998] GPU process launch failed: error_code=1002
+[762103:0630/203459.741263:ERROR:content/browser/gpu/gpu_process_host.cc:998] GPU process launch failed: error_code=1002
+[762103:0630/203459.741315:FATAL:content/browser/gpu/gpu_data_manager_impl_private.cc:415] GPU process isn't usable. Goodbye.
+/home/ackerman/Documents/VisualWork/Work/Buiznesss/Muneeb Project/app/node_modules/electron/dist/electron exited with signal SIGTRAP

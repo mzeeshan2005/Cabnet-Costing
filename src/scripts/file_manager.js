@@ -1,4 +1,5 @@
 const { ipcRenderer } = require("electron");
+const path = require("path");
 
 let nextRequestId = 1;
 const pending = {};
@@ -17,6 +18,7 @@ ipcRenderer.on("store:rpc:reply", (event, message) => {
 });
 
 function rpc(action, filePath, data) {
+  console.log("RPC call:", { action, filePath, data });
   const requestId = String(nextRequestId++);
   return new Promise((resolve, reject) => {
     pending[requestId] = { resolve, reject };
@@ -128,8 +130,219 @@ exports.setSystemConfig = async (data) => {
   return rpc("config:set", "", payload);
 };
 
+exports.exportToolsExcel = async (outPath) => {
+  const payload = { outPath: outPath != null ? String(outPath) : "" };
+  return rpc("tools:excel:export", "", payload);
+};
+
 exports.getProfitMarginPercentage = async () => {
   const cfg = await exports.getSystemConfig();
   const pct = cfg && cfg.profit_margin_percentage != null ? Number(cfg.profit_margin_percentage) : 0;
   return isNaN(pct) ? 0 : pct;
+};
+
+exports.parseTabularText = (text) => {
+  const raw = text != null ? String(text) : "";
+  const normalized = raw.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const lines = normalized.split("\n");
+  const rows = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = String(lines[i] != null ? lines[i] : "").trim();
+    if (!line) continue;
+
+    const delimiter = line.indexOf("\t") !== -1 ? "\t" : line.indexOf(",") !== -1 ? "," : "\t";
+    const parts = line.split(delimiter);
+    const row = [];
+    for (let j = 0; j < parts.length; j++) {
+      let cell = String(parts[j] != null ? parts[j] : "").trim();
+      if (cell.length >= 2 && cell[0] === '"' && cell[cell.length - 1] === '"') {
+        cell = cell.slice(1, -1);
+      }
+      row.push(cell);
+    }
+    if (row.length > 0) rows.push(row);
+  }
+
+  return rows;
+};
+
+exports.normalizeHeader = (h) => {
+  const s = h != null ? String(h).trim().toLowerCase() : "";
+  return s.replace(/[\s\-]+/g, "_").replace(/[^a-z0-9_]/g, "");
+};
+
+exports.buildHeaderIndex = (headerRow) => {
+  const map = {};
+  if (!headerRow || !headerRow.length) return map;
+  for (let i = 0; i < headerRow.length; i++) {
+    const key = exports.normalizeHeader(headerRow[i]);
+    if (key && map[key] == null) map[key] = i;
+  }
+  return map;
+};
+
+exports.listExcelSheets = async (filePath) => {
+  console.log("listExcelSheets called with:", filePath);
+  const XLSX = require("xlsx");
+  const p = filePath != null ? String(filePath) : "";
+  if (!p) {
+    console.log("listExcelSheets: No file path provided.");
+    return [];
+  }
+  const wb = XLSX.readFile(p);
+  const sheetNames = wb && Array.isArray(wb.SheetNames) ? wb.SheetNames : [];
+  console.log("listExcelSheets returned:", sheetNames);
+  return sheetNames;
+};
+
+exports.readExcelSheetAsTabularText = async (filePath, sheetName) => {
+  console.log("readExcelSheetAsTabularText called with:", { filePath, sheetName });
+  const XLSX = require("xlsx");
+  const p = filePath != null ? String(filePath) : "";
+  if (!p) {
+    console.log("readExcelSheetAsTabularText: No file path provided.");
+    return "";
+  }
+  const wb = XLSX.readFile(p);
+  const names = wb && Array.isArray(wb.SheetNames) ? wb.SheetNames : [];
+  const target = sheetName != null && String(sheetName).trim() ? String(sheetName).trim() : names.length ? names[0] : "";
+  if (!target) {
+    console.log("readExcelSheetAsTabularText: No target sheet found.");
+    return "";
+  }
+  const ws = wb.Sheets ? wb.Sheets[target] : null;
+  if (!ws) {
+    console.log("readExcelSheetAsTabularText: Worksheet not found.");
+    return "";
+  }
+
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" }) || [];
+  const outLines = [];
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i] || [];
+    const parts = [];
+    for (let j = 0; j < row.length; j++) {
+      const v = row[j] != null ? String(row[j]) : "";
+      parts.push(v);
+    }
+    if (parts.length === 0) continue;
+    outLines.push(parts.join("\t"));
+  }
+  const result = outLines.join("\n");
+  console.log("readExcelSheetAsTabularText returned text length:", result.length);
+  return result;
+};
+
+exports.bindExcelImportControls = (opts) => {
+  if (typeof document === "undefined") return { reset: () => {}, isBound: false };
+
+  const fileInputId = opts && opts.fileInputId != null ? String(opts.fileInputId) : "import-file";
+  const sheetSelectId = opts && opts.sheetSelectId != null ? String(opts.sheetSelectId) : "import-sheet";
+  const textAreaId = opts && opts.textAreaId != null ? String(opts.textAreaId) : "import-text";
+  const fileNameDisplayId = opts && opts.fileNameDisplayId != null ? String(opts.fileNameDisplayId) : "";
+  const preferredSheetName =
+    opts && opts.preferredSheetName != null && String(opts.preferredSheetName).trim() ? String(opts.preferredSheetName).trim() : "";
+  const afterTextSet = opts && typeof opts.afterTextSet === "function" ? opts.afterTextSet : null;
+  const onError = opts && typeof opts.onError === "function" ? opts.onError : null;
+
+  const fileEl = document.getElementById(fileInputId);
+  const sheetEl = document.getElementById(sheetSelectId);
+  const textEl = document.getElementById(textAreaId);
+  const fileNameDisplayEl = fileNameDisplayId ? document.getElementById(fileNameDisplayId) : null;
+
+  if (!fileEl || !sheetEl || !textEl) return { reset: () => {}, isBound: false };
+
+  let currentPath = "";
+
+  function reportError(err) {
+    const msg = err && err.message ? err.message : String(err);
+    if (onError) onError(msg);
+    else alert(msg);
+  }
+
+  function clearSheets() {
+    sheetEl.innerHTML = "";
+    sheetEl.disabled = true;
+  }
+
+  function setSheets(names) {
+    sheetEl.innerHTML = "";
+    const list = Array.isArray(names) ? names : [];
+    for (let i = 0; i < list.length; i++) {
+      const name = list[i] != null ? String(list[i]) : "";
+      if (!name) continue;
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = name;
+      sheetEl.appendChild(opt);
+    }
+    sheetEl.disabled = sheetEl.options.length === 0;
+  }
+
+  function pickInitialSheet() {
+    if (!sheetEl || sheetEl.options.length === 0) return "";
+    if (preferredSheetName) {
+      for (let i = 0; i < sheetEl.options.length; i++) {
+        const v = sheetEl.options[i] && sheetEl.options[i].value != null ? String(sheetEl.options[i].value) : "";
+        if (v === preferredSheetName) return v;
+      }
+    }
+    return sheetEl.options[0].value;
+  }
+
+  function loadSheet(name) {
+    if (!currentPath) return Promise.resolve("");
+    const sheetName = name != null ? String(name) : "";
+    return exports.readExcelSheetAsTabularText(currentPath, sheetName).then((text) => {
+      textEl.value = text;
+      if (afterTextSet) afterTextSet();
+      return text;
+    });
+  }
+
+  async function openExcelFileDialog() {
+    const result = await ipcRenderer.invoke("dialog:openExcelFile");
+    return result && result.filePaths && result.filePaths.length > 0 ? result.filePaths[0] : "";
+  }
+
+  clearSheets();
+
+  fileEl.addEventListener("click", async (e) => {
+    e.preventDefault(); // Prevent the native file dialog from opening
+    currentPath = await openExcelFileDialog();
+    if (!currentPath) {
+      clearSheets();
+      fileEl.value = ""; // Clear the input field if no file was selected
+      if (fileNameDisplayEl) fileNameDisplayEl.textContent = "";
+      return;
+    }
+    if (fileNameDisplayEl) fileNameDisplayEl.textContent = path.basename(currentPath);
+
+    exports
+      .listExcelSheets(currentPath)
+      .then((names) => {
+        setSheets(names);
+        if (sheetEl.options.length > 0) {
+          sheetEl.value = pickInitialSheet();
+          return loadSheet(sheetEl.value);
+        }
+      })
+      .catch(reportError);
+  });
+
+  sheetEl.addEventListener("change", () => {
+    loadSheet(sheetEl.value).catch(reportError);
+  });
+
+  return {
+    reset: () => {
+      currentPath = "";
+      if (fileEl) fileEl.value = "";
+      clearSheets();
+      if (textEl) textEl.value = "";
+      if (afterTextSet) afterTextSet();
+    },
+    isBound: true,
+  };
 };

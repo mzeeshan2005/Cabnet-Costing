@@ -239,6 +239,303 @@ function populateTable() {
     });
 }
 
+function isProbablyHeaderRow(row) {
+  if (!row || row.length === 0) return false;
+  for (let i = 0; i < row.length; i++) {
+    const v = row[i] != null ? String(row[i]).trim().toLowerCase() : "";
+    if (v === "id" || v === "title" || v === "name" || v === "type" || v === "description") return true;
+  }
+  return false;
+}
+
+function toTitleValue(v) {
+  return v != null ? String(v).trim() : "";
+}
+
+function toIdString(v) {
+  const s = v != null ? String(v).trim() : "";
+  if (!s) return "";
+  const n = Number(s);
+  if (isNaN(n)) return "";
+  return String(Math.floor(n));
+}
+
+function previewImportTypes() {
+  const text = document.getElementById("import-text") ? document.getElementById("import-text").value : "";
+  const rows = file_manager.parseTabularText(text);
+  const usable = rows.length > 0 && isProbablyHeaderRow(rows[0]) ? rows.slice(1) : rows;
+  const count = usable.filter((r) => r && r.length > 0 && toTitleValue(r.length >= 2 ? r[1] : r[0])).length;
+  const el = document.getElementById("import-result");
+  if (el) el.textContent = count ? (String(count) + " row(s) ready to import") : "";
+}
+
+function importTypesFromText(text) {
+  const rows = file_manager.parseTabularText(text);
+  const headerIndex = rows.length > 0 && isProbablyHeaderRow(rows[0]) ? file_manager.buildHeaderIndex(rows[0]) : null;
+  const usable = headerIndex ? rows.slice(1) : rows;
+
+  const selectedUtilityId = document.getElementById("select") ? String(document.getElementById("select").value) : "";
+
+  return Promise.all([
+    file_manager.loadFile(path.join(__dirname, "../../db/.types.json")),
+    file_manager.loadFile(path.join(__dirname, "../../db/.utilities.json")),
+  ]).then((results) => {
+    const existing = Array.isArray(results[0]) ? results[0] : [];
+    const utilities = Array.isArray(results[1]) ? results[1] : [];
+
+    let maxId = 0;
+    const seen = {};
+
+    existing.forEach((t) => {
+      const idNum = t && t.id != null && !isNaN(Number(t.id)) ? Number(t.id) : 0;
+      if (idNum > maxId) maxId = idNum;
+      const util = t && t.utility_id != null ? String(t.utility_id) : "";
+      const title = t && t.title != null ? String(t.title).trim().toLowerCase() : "";
+      if (util && title) seen[util + "::" + title] = true;
+    });
+    listData.forEach((t) => {
+      const idNum = t && t.id != null && !isNaN(Number(t.id)) ? Number(t.id) : 0;
+      if (idNum > maxId) maxId = idNum;
+      const util = t && t.utility_id != null ? String(t.utility_id) : "";
+      const title = t && t.title != null ? String(t.title).trim().toLowerCase() : "";
+      if (util && title) seen[util + "::" + title] = true;
+    });
+
+    let added = 0;
+    let skipped = 0;
+    let invalid = 0;
+
+    usable.forEach((row) => {
+      if (!row || row.length === 0) return;
+      let utilityId = selectedUtilityId;
+      if (headerIndex) {
+        const utilIdIdx = headerIndex.utility_id != null ? headerIndex.utility_id : null;
+        const utilIdx = headerIndex.utility != null ? headerIndex.utility : null;
+        if (utilIdIdx != null && row[utilIdIdx] != null && String(row[utilIdIdx]).trim()) {
+          utilityId = String(row[utilIdIdx]).trim();
+        } else if (utilIdx != null && row[utilIdx] != null && String(row[utilIdx]).trim()) {
+          const utilName = String(row[utilIdx]).trim().toLowerCase();
+          const match = utilities.find((u) => u && u.title != null && String(u.title).trim().toLowerCase() === utilName);
+          utilityId = match && match.id != null ? String(match.id) : "";
+        }
+      }
+      if (!utilityId) {
+        invalid += 1;
+        return;
+      }
+
+      let title = "";
+      if (headerIndex) {
+        const titleIdx = headerIndex.title != null ? headerIndex.title : headerIndex.name != null ? headerIndex.name : headerIndex.description != null ? headerIndex.description : null;
+        title = titleIdx != null ? toTitleValue(row[titleIdx]) : "";
+      }
+      if (!title) title = toTitleValue(row.length >= 2 ? row[1] : row[0]);
+      if (!title) return;
+
+      const key = utilityId + "::" + title.toLowerCase();
+      if (seen[key]) {
+        skipped += 1;
+        return;
+      }
+
+      maxId += 1;
+      const id = String(maxId);
+
+      listData.push({ id: id, title: title, utility_id: utilityId, utility: "" });
+      seen[key] = true;
+      added += 1;
+    });
+
+    return { added: added, skipped: skipped, invalid: invalid };
+  });
+}
+
+let excelImport = null;
+if (file_manager && typeof file_manager.bindExcelImportControls === "function") {
+  excelImport = file_manager.bindExcelImportControls({ preferredSheetName: "Descriptions", afterTextSet: previewImportTypes, fileNameDisplayId: "import-file-name" });
+}
+
+let importTextBound = false;
+let importApplyBound = false;
+
+function ensureImportModalBindings() {
+  const textEl = document.getElementById("import-text");
+  if (textEl && !importTextBound) {
+    textEl.addEventListener("input", previewImportTypes);
+    importTextBound = true;
+  }
+
+  const applyEl = document.getElementById("import-apply");
+  if (applyEl && !importApplyBound) {
+    applyEl.addEventListener("click", (event) => {
+      event.preventDefault();
+      const text = document.getElementById("import-text") ? document.getElementById("import-text").value : "";
+      importTypesFromText(text)
+        .then((result) => {
+          populateTable();
+          document.getElementById("save").disabled = listData.length === 0;
+          clearFields();
+          if (window.$) window.$("#importModal").modal("hide");
+          if (result && result.added) alert("Imported " + String(result.added) + " row(s).");
+          else alert("Nothing imported.");
+        })
+        .catch((err) => {
+          alert(err && err.message ? err.message : String(err));
+        });
+    });
+    importApplyBound = true;
+  }
+}
+
+function depIsProbablyHeaderRow(row) {
+  if (!row || row.length === 0) return false;
+  for (let i = 0; i < row.length; i++) {
+    const v = row[i] != null ? String(row[i]).trim().toLowerCase() : "";
+    if (v === "title" || v === "name" || v === "utility" || v === "utility_id") return true;
+  }
+  return false;
+}
+
+function depTitleValue(v) {
+  return v != null ? String(v).trim() : "";
+}
+
+function refreshUtilitySelectAfterDepImport() {
+  const select = document.getElementById("select");
+  if (!select) return Promise.resolve();
+  const prev = select.value != null ? String(select.value) : "";
+  return file_manager.loadFile(path.join(__dirname, "../../db/.utilities.json")).then((res) => {
+    select.innerHTML = "";
+    let option = document.createElement("option");
+    option.text = "Please Select";
+    option.value = "";
+    option.classList.add("d-none");
+    select.add(option);
+    (Array.isArray(res) ? res : []).forEach((data) => {
+      let op = document.createElement("option");
+      op.text = data && data.title != null ? String(data.title) : "";
+      op.value = data && data.id != null ? String(data.id) : "";
+      select.add(op);
+    });
+    select.value = prev;
+  });
+}
+
+function depImportUtilitiesFromText(text) {
+  const rows = file_manager.parseTabularText(text);
+  const headerIndex = rows.length > 0 && depIsProbablyHeaderRow(rows[0]) ? file_manager.buildHeaderIndex(rows[0]) : null;
+  const usable = headerIndex ? rows.slice(1) : rows;
+
+  return file_manager.loadFile(path.join(__dirname, "../../db/.utilities.json")).then((res) => {
+    const existing = Array.isArray(res) ? res : [];
+    let maxId = 0;
+    const seen = {};
+    existing.forEach((u) => {
+      const idNum = u && u.id != null && !isNaN(Number(u.id)) ? Number(u.id) : 0;
+      if (idNum > maxId) maxId = idNum;
+      const title = u && u.title != null ? String(u.title).trim().toLowerCase() : "";
+      if (title) seen[title] = true;
+    });
+
+    let added = 0;
+    let skipped = 0;
+    usable.forEach((row) => {
+      if (!row || row.length === 0) return;
+      let title = "";
+      if (headerIndex) {
+        const idx = headerIndex.title != null ? headerIndex.title : headerIndex.name != null ? headerIndex.name : null;
+        title = idx != null ? depTitleValue(row[idx]) : "";
+      }
+      if (!title) title = depTitleValue(row[0]);
+      if (!title) return;
+      const key = title.toLowerCase();
+      if (seen[key]) {
+        skipped += 1;
+        return;
+      }
+      maxId += 1;
+      existing.push({ id: String(maxId), title: title });
+      seen[key] = true;
+      added += 1;
+    });
+
+    return file_manager
+      .writeFile(path.join(__dirname, "../../db/.utilities.json"), existing)
+      .then(() => ({ added: added, skipped: skipped }));
+  });
+}
+
+let depExcel = null;
+function openDepImportUtilities() {
+  const titleEl = document.getElementById("dep-import-title");
+  if (titleEl) titleEl.textContent = "Import Utilities";
+  const t = document.getElementById("dep-import-text");
+  const r = document.getElementById("dep-import-result");
+  if (t) t.value = "";
+  if (r) r.textContent = "";
+
+  if (file_manager && typeof file_manager.bindExcelImportControls === "function") {
+    depExcel = file_manager.bindExcelImportControls({
+      fileInputId: "dep-import-file",
+      sheetSelectId: "dep-import-sheet",
+      textAreaId: "dep-import-text",
+      preferredSheetName: "Utilities",
+      fileNameDisplayId: "dep-import-file-name",
+    });
+  }
+
+  if (window.$) window.$("#depImportModal").modal("show");
+}
+
+function ensureDepImportBindings() {
+  const applyEl = document.getElementById("dep-import-apply");
+  if (applyEl && !applyEl.__depBound) {
+    applyEl.addEventListener("click", (event) => {
+      event.preventDefault();
+      const text = document.getElementById("dep-import-text") ? document.getElementById("dep-import-text").value : "";
+      depImportUtilitiesFromText(text)
+        .then((result) => {
+          const added = result && result.added != null ? Number(result.added) : 0;
+          return refreshUtilitySelectAfterDepImport().then(() => ({ added: added }));
+        })
+        .then((finalRes) => {
+          if (window.$) window.$("#depImportModal").modal("hide");
+          const added = finalRes && finalRes.added != null ? Number(finalRes.added) : 0;
+          if (added > 0) alert("Imported " + String(added) + " row(s).");
+          else alert("Nothing imported.");
+        })
+        .catch((err) => {
+          alert(err && err.message ? err.message : String(err));
+        });
+    });
+    applyEl.__depBound = true;
+  }
+}
+
+if (document.getElementById("dep-import-utility")) {
+  document.getElementById("dep-import-utility").addEventListener("click", (event) => {
+    event.preventDefault();
+    ensureDepImportBindings();
+    openDepImportUtilities();
+  });
+}
+
+if (document.getElementById("import-open")) {
+  document.getElementById("import-open").addEventListener("click", (event) => {
+    event.preventDefault();
+    ensureImportModalBindings();
+    const t = document.getElementById("import-text");
+    const r = document.getElementById("import-result");
+    if (t) t.value = "";
+    if (r) r.textContent = "";
+    if ((!excelImport || excelImport.isBound === false) && file_manager && typeof file_manager.bindExcelImportControls === "function") {
+      excelImport = file_manager.bindExcelImportControls({ preferredSheetName: "Descriptions", afterTextSet: previewImportTypes });
+    }
+    if (excelImport && excelImport.reset) excelImport.reset();
+    if (window.$) window.$("#importModal").modal("show");
+  });
+}
+
 $(document).ready(() => {
   populateTable();
 });

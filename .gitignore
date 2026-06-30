@@ -4,3 +4,6 @@ CabinetCosting-win32-x64.zip
 *.db
 *.db-wal
 *.db-shm
+build
+dist
+release

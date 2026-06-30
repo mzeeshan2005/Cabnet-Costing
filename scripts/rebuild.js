@@ -82,8 +82,7 @@ function quoteCmdArg(arg) {
 }
 
 function runOnWindowsCmd(command, args, options) {
-  const cmdLine = [`"${String(command).replace(/"/g, '""')}"`].concat((args || []).map(quoteCmdArg)).join(" ");
-  const res = spawnSync("cmd.exe", ["/d", "/s", "/c", cmdLine], {
+  const res = spawnSync("cmd.exe", ["/d", "/s", "/c", "call", String(command)].concat(args || []), {
     stdio: "inherit",
     ...options,
   });
@@ -111,7 +110,7 @@ function rebuildNativeModulesForElectron() {
   const betterSqlite3Version =
     realPkg && realPkg.dependencies && realPkg.dependencies["better-sqlite3"]
       ? realPkg.dependencies["better-sqlite3"]
-      : "6.0.1";
+      : "^12.0.0";
 
   const tempDir = makeTempDir();
   const workDir = path.join(tempDir, "work");
@@ -125,14 +124,18 @@ function rebuildNativeModulesForElectron() {
       "better-sqlite3": betterSqlite3Version,
     },
     devDependencies: {
-      electron: "4.2.12",
-      "@electron/rebuild": "^3.7.2",
+      electron: "^40.0.0",
+      "@electron/rebuild": "^4.0.0",
     },
   });
 
   const baseEnv = {
     ...process.env,
     GYP_DEFINES: "openssl_fips=",
+    npm_config_runtime: "electron",
+    npm_config_target: "40.0.0",
+    npm_config_arch: "x64",
+    npm_config_disturl: "https://electronjs.org/headers",
   };
   const installEnv = {
     ...baseEnv,
@@ -145,7 +148,7 @@ function rebuildNativeModulesForElectron() {
   });
 
   const rebuildBin = electronRebuildCommand(path.join(workDir, "node_modules", ".bin"));
-  runCmd(rebuildBin, ["-f", "-w", "better-sqlite3", "-v", "4.2.12"], {
+  runCmd(rebuildBin, ["-f", "-w", "better-sqlite3", "-v", "40.0.0"], {
     cwd: workDir,
     env: baseEnv,
   });

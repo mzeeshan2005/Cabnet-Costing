@@ -610,3 +610,127 @@ document.getElementById("search").addEventListener("keydown", (event) => {
 document.getElementById("search").addEventListener("keyup", (event) => {
   filter(event.target.value);
 });
+
+function isProbablyHeaderRow(row) {
+  if (!row || row.length === 0) return false;
+  for (let i = 0; i < row.length; i++) {
+    const v = row[i] != null ? String(row[i]).trim().toLowerCase() : "";
+    if (v === "id" || v === "title" || v === "name" || v === "utility") return true;
+  }
+  return false;
+}
+
+function toTitleValue(v) {
+  return v != null ? String(v).trim() : "";
+}
+
+function toIdString(v) {
+  const s = v != null ? String(v).trim() : "";
+  if (!s) return "";
+  const n = Number(s);
+  if (isNaN(n)) return "";
+  return String(Math.floor(n));
+}
+
+function previewImportUtilities() {
+  const text = document.getElementById("import-text") ? document.getElementById("import-text").value : "";
+  const rows = file_manager.parseTabularText(text);
+  const usable = rows.length > 0 && isProbablyHeaderRow(rows[0]) ? rows.slice(1) : rows;
+  const count = usable.filter((r) => r && r.length > 0 && toTitleValue(r.length >= 2 ? r[1] : r[0])).length;
+  const el = document.getElementById("import-result");
+  if (el) el.textContent = count ? (String(count) + " row(s) ready to import") : "";
+}
+
+function importUtilitiesFromText(text) {
+  const rows = file_manager.parseTabularText(text);
+  const usable = rows.length > 0 && isProbablyHeaderRow(rows[0]) ? rows.slice(1) : rows;
+
+  return file_manager.loadFile(path.join(__dirname, "../../db/.utilities.json")).then((res) => {
+    const existing = Array.isArray(res) ? res : [];
+
+    let maxId = 0;
+    const seenTitles = {};
+
+    existing.forEach((u) => {
+      const idNum = u && u.id != null && !isNaN(Number(u.id)) ? Number(u.id) : 0;
+      if (idNum > maxId) maxId = idNum;
+      const t = u && u.title != null ? String(u.title).trim().toLowerCase() : "";
+      if (t) seenTitles[t] = true;
+    });
+    listData.forEach((u) => {
+      const idNum = u && u.id != null && !isNaN(Number(u.id)) ? Number(u.id) : 0;
+      if (idNum > maxId) maxId = idNum;
+      const t = u && u.title != null ? String(u.title).trim().toLowerCase() : "";
+      if (t) seenTitles[t] = true;
+    });
+
+    let added = 0;
+    let skipped = 0;
+
+    usable.forEach((row) => {
+      if (!row || row.length === 0) return;
+
+      const hasLeadingId = row.length >= 2 && toIdString(row[0]);
+      const title = toTitleValue(hasLeadingId ? row[1] : row[0]);
+      if (!title) return;
+
+      const key = title.toLowerCase();
+      if (seenTitles[key]) {
+        skipped += 1;
+        return;
+      }
+
+      maxId += 1;
+      const id = String(maxId);
+
+      listData.push({ id: id, title: title });
+      seenTitles[key] = true;
+      added += 1;
+    });
+
+    return { added: added, skipped: skipped };
+  });
+}
+
+let excelImport = null;
+if (file_manager && typeof file_manager.bindExcelImportControls === "function") {
+  excelImport = file_manager.bindExcelImportControls({ preferredSheetName: "Utilities", afterTextSet: previewImportUtilities });
+}
+
+if (document.getElementById("import-open")) {
+  document.getElementById("import-open").addEventListener("click", (event) => {
+    event.preventDefault();
+    const t = document.getElementById("import-text");
+    const r = document.getElementById("import-result");
+    if (t) t.value = "";
+    if (r) r.textContent = "";
+    if ((!excelImport || excelImport.isBound === false) && file_manager && typeof file_manager.bindExcelImportControls === "function") {
+      excelImport = file_manager.bindExcelImportControls({ preferredSheetName: "Utilities", afterTextSet: previewImportUtilities });
+    }
+    if (excelImport && excelImport.reset) excelImport.reset();
+    if (window.$) window.$("#importModal").modal("show");
+  });
+}
+
+if (document.getElementById("import-text")) {
+  document.getElementById("import-text").addEventListener("input", previewImportUtilities);
+}
+
+if (document.getElementById("import-apply")) {
+  document.getElementById("import-apply").addEventListener("click", (event) => {
+    event.preventDefault();
+    const text = document.getElementById("import-text") ? document.getElementById("import-text").value : "";
+    importUtilitiesFromText(text)
+      .then((result) => {
+        populateTable();
+        document.getElementById("save").disabled = listData.length === 0;
+        clearFields();
+        if (window.$) window.$("#importModal").modal("hide");
+        if (result && result.added) alert("Imported " + String(result.added) + " row(s).");
+        else alert("Nothing imported.");
+      })
+      .catch((err) => {
+        alert(err && err.message ? err.message : String(err));
+      });
+  });
+}

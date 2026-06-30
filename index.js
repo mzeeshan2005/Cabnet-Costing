@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const path = require("path");
 const storage = require(path.join(__dirname, "src/main/storage.js"));
 
@@ -9,6 +9,11 @@ function createWindow(loadPath) {
     zoomToPageWidth: true,
     show: false,
     autoHideMenuBar: true,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
+      sandbox: false,
+    },
   });
   windows.add(win);
   win.on("closed", () => {
@@ -51,6 +56,7 @@ ipcMain.on("store:rpc", (event, message) => {
     else if (action === "nextId") result = storage.nextIdFor(data);
     else if (action === "config:get") result = storage.getSystemConfig();
     else if (action === "config:set") result = storage.setSystemConfig(data);
+    else if (action === "tools:excel:export") result = storage.exportToolsExcel(data && data.outPath ? data.outPath : "");
     else throw new Error("Unknown action");
 
     event.sender.send("store:rpc:reply", { requestId, ok: true, result });
@@ -60,6 +66,21 @@ ipcMain.on("store:rpc", (event, message) => {
       ok: false,
       error: e && e.message ? e.message : String(e),
     });
+  }
+});
+
+ipcMain.handle("dialog:openExcelFile", async (event) => {
+  const { canceled, filePaths } = await dialog.showOpenDialog({
+    properties: ['openFile'],
+    filters: [
+      { name: 'Excel Files', extensions: ['xlsx', 'xls'] },
+      { name: 'All Files', extensions: ['*'] }
+    ]
+  });
+  if (canceled) {
+    return null;
+  } else {
+    return { filePaths };
   }
 });
 

@@ -125,7 +125,7 @@ function rebuildNativeModulesForElectron() {
     },
     devDependencies: {
       electron: "4.2.12",
-      "@electron/rebuild": "^3.7.2",
+      "electron-rebuild": "1.8.8",
     },
   });
 

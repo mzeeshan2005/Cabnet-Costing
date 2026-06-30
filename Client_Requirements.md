@@ -1,116 +1,79 @@
-Markdown  
-\# Cabinet Costing App — AI Coding Agent Implementation Context
+The user is requesting an Excel data integration feature for his application. Based on the audio and video, the person is describing the following:
 
-\#\# 1\. Project Overview & Technical Stack  
-You are assisting in upgrading "Cabinet Costing", a desktop application used by a cabinetry manufacturing business to build quotations and manage catalogs.
+Objective: He wants to be able to copy data directly from an Excel sheet and paste it into his application, rather than entering items one by one, which is time-consuming.
 
-\* **\*\*Environment:\*\*** Node.js \+ Electron v4 (Legacy).  
-\* **\*\*Architecture:\*\*** Single-user local desktop app. The Renderer processes heavily utilize the deprecated Electron \`remote\` module to invoke Node.js backend scripts.  
-\* **\*\*UI Stack:\*\*** HTML5, Bootstrap 4, jQuery. No modern reactive frameworks (no React/Vue).  
-\* **\*\*Database:\*\*** Migrating to \`better-sqlite3\` (Serverless local \`.db\` file).  
-\* **\*\*New Dependencies to Use:\*\*** \`xlsx\` (SheetJS) for Excel parsing.
+Method: He suggests having an "Import" button, for example, "Import from Excel," within the "Tools" for every tool input field while adding it to import from excel sheet.
 
-\---
+Implementation: He wants this import feature to be available for every field or category (e.g., "Utilities," "Descriptions," "Codes").
 
-\#\# 2\. Problem Statement
+Workflow:
 
-The client has reported two major critical business blockers:
+The user would go to a specific section under "Tools".
 
-1\. **\*\*The "Manual Data Entry" Bottleneck:\*\*** The client maintains a complex "Master Data" Excel workbook containing thousands of pricing variables, dimensions, and hardware mappings across multiple sheets (e.g., "Base Unit", "Hardware", "Accessories"). Currently, if the catalog changes, they must manually type every single update into the app's UI. This is highly error-prone and time-consuming.  
-2\. **\*\*The "Broken Multiplier" Pricing Flaw:\*\*** The current pricing engine uses hardcoded quantity multipliers to calculate profit. Due to market inflation, as base material costs rise, these fixed multipliers cause the final quotation prices to inflate exponentially, resulting in unjustifiably high quotes that lose business.
+Select a specific utility or category.
 
-\---
+Click the "Import" button to paste the data copied from Excel.
 
-\#\# 3\. Proposed Solution Architecture
+The application should automatically populate and save the data, including auto-generating IDs if necessary.
 
-\#\#\# 3.1. The "Sheet Link" (Excel Sync Engine)  
-We will implement a Two-Way Synchronization system using the \`xlsx\` library:  
-\* **\*\*Import:\*\*** The app reads the Master Excel file, parses specific sheets natively, and executes a high-speed SQLite transaction to update the local application database.  
-\* **\*\*Export/Sync (Read-Modify-Write):\*\*** When a user edits a price in the app UI, the app writes to SQLite, reads the master Excel workbook into memory, surgically replaces *\*only\** the affected sheet's data, and overwrites the \`.xlsx\` file to preserve the formatting of unedited sheets.
+The goal is to simplify data entry by allowing mass import of data directly from Excel, which he demonstrates as a current manual and time-consuming process.
 
-\#\#\# 3.2. The "Cost \+ Margin" Pricing Engine  
-We will decouple base material costs from the profit calculation:  
-\* Calculate the true, exact **\*\*Base Cost\*\*** of materials and hardware.  
-\* Introduce a global **\*\*Profit Margin Percentage\*\*** (e.g., 20%) defined in the Settings UI.  
-\* Add a **\*\*"Apply Profit Margin" Toggle\*\*** on the Pricing quotation screen. When checked, the final price \= \`Base Cost \+ (Base Cost \* Profit Margin %)\`.
+His primary points are:
 
-\---
+Motivation: Currently, manual data entry is time-consuming. He finds it inefficient to enter items one by one and wants a way to mass-import data.
 
-\#\# 4\. Database Schema Updates (SQLite)
+Proposed Workflow: He suggests adding an "Import" button after every input field to take data from Excel sheet while adding it.
 
-The AI agent must implement or ensure the following schema exists via \`better-sqlite3\`:
+The user would select a specific category.
 
-\`\`\`sql  
-\-- Store the path to the Master Excel file and the new Profit Margin  
-CREATE TABLE IF NOT EXISTS system\_config (  
-    id INTEGER PRIMARY KEY CHECK (id \= 1),  
-    master\_excel\_path TEXT,  
-    profit\_margin\_percentage REAL DEFAULT 0.0  
-);
+They would then click the "Import" button and paste data copied from an Excel sheet.
 
-\-- Catalog Tables (Subset example for mapping Excel sheets)  
-CREATE TABLE IF NOT EXISTS catalog\_carcass (  
-    code TEXT PRIMARY KEY,  
-    description TEXT,  
-    box\_size\_sft REAL DEFAULT 0.0,  
-    back\_press\_sft REAL DEFAULT 0.0,  
-    edging\_rft REAL DEFAULT 0.0  
-);
+The application should then automatically populate the fields and generate IDs.
 
-CREATE TABLE IF NOT EXISTS catalog\_fixed\_items (  
-    code TEXT PRIMARY KEY,  
-    description TEXT,  
-    base\_price REAL DEFAULT 0.0  
-);
+Scope: He emphasizes that this import functionality should be available for every field or category within the "Tools" menu, not just one, because each category holds different data.
 
-## **5\. Implementation Guide & Task Sequence**
+He believes this will allow him to update the application efficiently without needing to change data within multiple separate files, simply by performing a data import.
+---
+His audios :
+"You probably understand it better how to do it. Should it be done from Excel, or how should it be done? I need a 'Data Feeding' option in the 'Tools' menu that is easy to use. I want to pick data from Excel and put it inside this. I don't want to do it one-by-one because doing it one-by-one takes a lot of time. I should be able to copy-paste it, and it should start showing up inside it."
 
-**Agent Instruction:** Please execute the following tasks in order.
+"You need to synchronize the 'Tools' option with it. Create a separate file for 'Tools' and synchronize it with this application, so that when I copy-paste data there, it automatically starts appearing in this application. In the 'Tools' section, whatever options are available—whatever columns or options there are—all of it."
 
-### **Task 1: Build the Excel Parser & Importer (src/scripts/excel\_parser.js)**
+"You can discuss it, but in my opinion, creating an Excel sheet is better. The 'Tools' option should have a separate category for it. And that category should be the same as it is in the application. It should just have a 'Data Feeding' copy-paste option. I pick it from Excel and copy-paste it here."
 
-* Use xlsx to read the Excel file path.  
-* Target specific sheets (e.g., Base Unit, Acessories).  
-* Map row headers (e.g., row\["Box Size \\nin sft"\]) to database parameters.  
-* **Constraint:** Wrap the database insertions in a db.transaction() for performance. Handle empty rows by skipping if \!row\["Code"\].
+"This is indeed a good option. If the 'Import from Excel' option becomes available, then the time here will be less."
 
-### **Task 2: Build the Excel Bidirectional Sync (src/scripts/excel\_sync.js)**
+"If this happens, then that is also fine. I am sending you a video on how we can do it here."
 
-* Implement a function syncDatabaseToExcel(sheetName, sqlQuery).  
-* **Logic Flow:**  
-  1. Fetch master\_excel\_path from system\_config.  
-  2. Read workbook using XLSX.readFile(path, { cellStyles: true, NF: true }).  
-  3. Query SQLite for updated data.  
-  4. Convert to sheet: XLSX.utils.json\_to\_sheet(dbRows).  
-  5. Replace target sheet: workbook.Sheets\[sheetName\] \= newSheet.  
-  6. Write to disk using XLSX.writeFile().  
-* **Constraint:** Catch EBUSY file system errors and return a user-friendly message indicating the file is open in Microsoft Excel.
+"No, the 'Import' option will have to be provided in every field. In every single field, because the data for every single field is different. And I have to pick that from Excel."
 
-### **Task 3: Update Settings UI for Profit Margin (src/screens/settings/price-change.html)**
+"The format can be selected so that it only picks from Excel. So that if there is any data anywhere in any Excel sheet, it should be eligible to import it. So, that 'Import' option will have to be provided for every single field."
 
-* Add a numerical input field for "Global Profit Margin (%)".  
-* Add a file picker button (\<input type="file"\> or Electron dialog) to "Link Master Excel File".  
-* Update the attached jQuery script to save these values into the system\_config table.
+"You will apply the same configuration method in this, that the process to import should be the same, and it should only accept Excel. That the data can only be imported from an Excel sheet."
 
-### **Task 4: Refactor the Pricing Calculation Engine (src/scripts/pricing.js)**
+Videos context :
+The Current Process (Observed in Videos)
+The user demonstrates his current workflow:
 
-* Add a checkbox to the Pricing UI: \<input type="checkbox" id="apply-profit-margin" checked\>.  
-* Modify the calculateLineItemTotal() (or equivalent) function.  
-* **New Math Logic:**  
-  JavaScript  
-  let baseCost \= (materialSft \* boardRate) \+ hardwareCost \+ finishingCost;  
-  let finalPrice \= baseCost;
+He navigates to a "Tools" menu.
 
-  if ($('\#apply-profit-margin').is(':checked')) {  
-      const marginPct \= getGlobalProfitMargin(); // Fetch from config  
-      finalPrice \= baseCost \* (1 \+ (marginPct / 100));  
-  }
+He selects a specific category from the dropdown (e.g., "Utilities" or "Descriptions").
 
-  return finalPrice;
+He mentions that his goal is to import data into these sections directly from an Excel file.
 
-## **6\. Critical Agent Constraints & Rules**
+He highlights that he wants to move away from manually entering data because it is inefficient and time-consuming.
 
-* **No ipcRenderer refactoring unless requested:** The app relies on the deprecated remote module. Continue using const file\_manager \= remote.require(...) to match the existing codebase style unless explicitly instructed to refactor to secure IPC. (check if this point is true or we need to modify this).  
-* **Header Matching:** When querying SQLite to sync *back* to Excel, you MUST use SQL aliases (AS "Column Name") that exactly match the string headers the user's Excel file expects (including stray spaces/newlines if necessary).  
-* **Sanitization:** Excel users frequently leave text in numeric columns. Always wrap numeric imports with parseFloat(row\["Value"\]) || 0\.
+The User's Request (Script Summary)
+"I need an 'Import' option in the 'Tools' menu that is easy to use. I want to pick data from Excel and put it inside this. I don't want to do it one-by-one because it takes a lot of time. I should be able to copy-paste it, and it should start showing up inside."
 
+"The 'Import' option will have to be provided in every single field... because the data for every single field is different. The format should be selected so that it only picks from Excel. If there is any data anywhere in any Excel sheet, it should be eligible to import it. The process to import should be the same, and it should only accept Excel."
+
+Key Requirements:
+
+Uniformity: An "Import" button should be available for all categories under the "Tools" menu (Utilities, Descriptions, Codes, etc.).
+
+Efficiency: The ability to copy and paste data from an Excel file to automatically populate fields.
+
+Automation: The system should automatically generate IDs (1, 2, 3...) when the data is imported.
+
+No Data Fragmentation: He wants to avoid the need to manage data across multiple, separate files. Importing from a central Excel sheet should update the application seamlessly.

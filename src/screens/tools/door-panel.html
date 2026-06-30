@@ -391,8 +391,9 @@
                         <div class="row">
                             <div class="col-lg-5 col-md-5 col-sm-12">
                                 <div class="card">
-                                    <div class="card-header">
+                                    <div class="card-header d-flex justify-content-between align-items-center">
                                         <strong>Add Finishing</strong>
+                                        <button type="button" class="btn btn-sm btn-info" id="import-open">Import</button>
                                     </div>
                                     <div class="card-body card-block">
                                         <form onsubmit="" id="form" class="form-horizontal">
@@ -439,6 +440,7 @@
                                   />
                                 </svg>
                               </div>
+                              <button type="button" class="btn btn-sm btn-info ml-2" id="dep-import-utility">Import</button>
                             </div>
                           </div>
                           <div class="mb-1 row form-group">
@@ -475,6 +477,7 @@
                                   />
                                 </svg>
                               </div>
+                              <button type="button" class="btn btn-sm btn-info ml-2" id="dep-import-type">Import</button>
                             </div>
                           </div>
                           <div class="mb-1 row form-group">
@@ -511,6 +514,7 @@
                                   />
                                 </svg>
                               </div>
+                              <button type="button" class="btn btn-sm btn-info ml-2" id="dep-import-code">Import</button>
                             </div>
                           </div>
                             <div class="mb-1 row form-group mr-2">
@@ -681,10 +685,64 @@
                 </div>
             </div>
 </div>
+            <div class="modal fade" id="importModal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Import Finishing</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label>Import from Excel file (.xlsx)</label>
+                                <input type="file" id="import-file" class="form-control-file" accept=".xlsx" />
+                                <select id="import-sheet" class="form-control mt-2"></select>
+                            </div>
+                            <div class="form-group">
+                                <label>Paste from Excel (one row per finishing). Select Utility + Type + Code first.</label>
+                                <textarea id="import-text" class="form-control" rows="10" placeholder="Formats:\nTitle\n\nOr:\nTitle\tRate\tEdging"></textarea>
+                            </div>
+                            <div id="import-result" style="font-size: 12px; color: black"></div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal" id="import-cancel">Cancel</button>
+                            <button type="button" class="btn btn-primary" id="import-apply">Import</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal fade" id="depImportModal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="dep-import-title">Import</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label>Import from Excel file (.xlsx)</label>
+                                <input type="file" id="dep-import-file" class="form-control-file" accept=".xlsx" />
+                                <select id="dep-import-sheet" class="form-control mt-2"></select>
+                            </div>
+                            <div class="form-group">
+                                <label>Paste from Excel</label>
+                                <textarea id="dep-import-text" class="form-control" rows="10"></textarea>
+                            </div>
+                            <div id="dep-import-result" style="font-size: 12px; color: black"></div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal" id="dep-import-cancel">Cancel</button>
+                            <button type="button" class="btn btn-primary" id="dep-import-apply">Import</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
 
-        <!-- END PAGE CONTAINER-->
-    </div>
 
     </div>
     <script>

@@ -51,6 +51,7 @@ ipcMain.on("store:rpc", (event, message) => {
     else if (action === "nextId") result = storage.nextIdFor(data);
     else if (action === "config:get") result = storage.getSystemConfig();
     else if (action === "config:set") result = storage.setSystemConfig(data);
+    else if (action === "tools:excel:export") result = storage.exportToolsExcel(data && data.outPath ? data.outPath : "");
     else throw new Error("Unknown action");
 
     event.sender.send("store:rpc:reply", { requestId, ok: true, result });

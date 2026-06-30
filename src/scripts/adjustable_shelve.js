@@ -489,6 +489,743 @@ function scheduleRefreshShelvesTable() {
   }, 150);
 }
 
+function isProbablyHeaderRow(row) {
+  if (!row || row.length === 0) return false;
+  for (let i = 0; i < row.length; i++) {
+    const v = row[i] != null ? String(row[i]).trim().toLowerCase() : "";
+    if (v === "id" || v === "title" || v === "name" || v === "shelf" || v === "shelve" || v === "rate") return true;
+  }
+  return false;
+}
+
+function toTitleValue(v) {
+  return v != null ? String(v).trim() : "";
+}
+
+function toIdString(v) {
+  const s = v != null ? String(v).trim() : "";
+  if (!s) return "";
+  const n = Number(s);
+  if (isNaN(n)) return "";
+  return String(Math.floor(n));
+}
+
+function toNumOrFallback(v, fallback) {
+  const s = v != null ? String(v).trim() : "";
+  if (!s) return fallback;
+  const n = parseFloat(s);
+  return isNaN(n) ? fallback : n;
+}
+
+function previewImportShelves() {
+  const text = document.getElementById("import-text") ? document.getElementById("import-text").value : "";
+  const rows = file_manager.parseTabularText(text);
+  const usable = rows.length > 0 && isProbablyHeaderRow(rows[0]) ? rows.slice(1) : rows;
+  const count = usable.filter((r) => r && r.length > 0 && toTitleValue(r.length >= 2 ? r[1] : r[0])).length;
+  const el = document.getElementById("import-result");
+  if (el) el.textContent = count ? (String(count) + " row(s) ready to import") : "";
+}
+
+function importShelvesFromText(text) {
+  const utilSelect = document.getElementById("select");
+  const typeSelect = document.getElementById("select-1");
+  const codeSelect = document.getElementById("select-2");
+  const selectedUtilityId = utilSelect ? String(utilSelect.value) : "";
+  const selectedTypeId = typeSelect ? String(typeSelect.value) : "";
+  const selectedCodeId = codeSelect ? String(codeSelect.value) : "";
+
+  const rows = file_manager.parseTabularText(text);
+  const headerIndex = rows.length > 0 && isProbablyHeaderRow(rows[0]) ? file_manager.buildHeaderIndex(rows[0]) : null;
+  const usable = headerIndex ? rows.slice(1) : rows;
+
+  const rateDefault = document.getElementById("rate") ? parseFloat(document.getElementById("rate").value) : 0;
+  const pinDefault = document.getElementById("pin") ? parseFloat(document.getElementById("pin").value) : 0;
+  const edgingDefault = document.getElementById("edging") ? parseFloat(document.getElementById("edging").value) : 0;
+
+  return Promise.all([
+    file_manager.loadFile(path.join(__dirname, "../../db/.shelves.json")),
+    file_manager.loadFile(path.join(__dirname, "../../db/.utilities.json")),
+    file_manager.loadFile(path.join(__dirname, "../../db/.types.json")),
+    file_manager.loadFile(path.join(__dirname, "../../db/.codes.json")),
+  ]).then((results) => {
+    const existing = Array.isArray(results[0]) ? results[0] : [];
+    const utilities = Array.isArray(results[1]) ? results[1] : [];
+    const types = Array.isArray(results[2]) ? results[2] : [];
+    const codes = Array.isArray(results[3]) ? results[3] : [];
+
+    let maxId = 0;
+    const seen = {};
+
+    existing.forEach((s) => {
+      const idNum = s && s.id != null && !isNaN(Number(s.id)) ? Number(s.id) : 0;
+      if (idNum > maxId) maxId = idNum;
+      const u = s && s.utility_id != null ? String(s.utility_id) : "";
+      const t = s && s.type_id != null ? String(s.type_id) : "";
+      const c = s && s.code_id != null ? String(s.code_id) : "";
+      const title = s && s.title != null ? String(s.title).trim().toLowerCase() : "";
+      if (u && t && c && title) seen[u + "::" + t + "::" + c + "::" + title] = true;
+    });
+    listData.forEach((s) => {
+      const idNum = s && s.id != null && !isNaN(Number(s.id)) ? Number(s.id) : 0;
+      if (idNum > maxId) maxId = idNum;
+      const u = s && s.utility_id != null ? String(s.utility_id) : "";
+      const t = s && s.type_id != null ? String(s.type_id) : "";
+      const c = s && s.code_id != null ? String(s.code_id) : "";
+      const title = s && s.title != null ? String(s.title).trim().toLowerCase() : "";
+      if (u && t && c && title) seen[u + "::" + t + "::" + c + "::" + title] = true;
+    });
+
+    let added = 0;
+    let skipped = 0;
+    let invalid = 0;
+
+    usable.forEach((row) => {
+      if (!row || row.length === 0) return;
+
+      let utilityId = selectedUtilityId;
+      let typeId = selectedTypeId;
+      let codeId = selectedCodeId;
+
+      if (headerIndex) {
+        const utilIdIdx = headerIndex.utility_id != null ? headerIndex.utility_id : null;
+        const utilIdx = headerIndex.utility != null ? headerIndex.utility : null;
+        if (utilIdIdx != null && row[utilIdIdx] != null && String(row[utilIdIdx]).trim()) {
+          utilityId = String(row[utilIdIdx]).trim();
+        } else if (utilIdx != null && row[utilIdx] != null && String(row[utilIdx]).trim()) {
+          const utilName = String(row[utilIdx]).trim().toLowerCase();
+          const matchU = utilities.find((u) => u && u.title != null && String(u.title).trim().toLowerCase() === utilName);
+          utilityId = matchU && matchU.id != null ? String(matchU.id) : "";
+        }
+
+        const typeIdIdx = headerIndex.type_id != null ? headerIndex.type_id : null;
+        const typeIdx = headerIndex.type != null ? headerIndex.type : headerIndex.description != null ? headerIndex.description : null;
+        if (typeIdIdx != null && row[typeIdIdx] != null && String(row[typeIdIdx]).trim()) {
+          typeId = String(row[typeIdIdx]).trim();
+        } else if (typeIdx != null && row[typeIdx] != null && String(row[typeIdx]).trim()) {
+          const typeName = String(row[typeIdx]).trim().toLowerCase();
+          const matchT = types.find((t) => {
+            const okUtil = utilityId ? String(t.utility_id) === String(utilityId) : true;
+            const tt = t && t.title != null ? String(t.title).trim().toLowerCase() : "";
+            return okUtil && tt === typeName;
+          });
+          typeId = matchT && matchT.id != null ? String(matchT.id) : "";
+        }
+
+        const codeIdIdx = headerIndex.code_id != null ? headerIndex.code_id : null;
+        const codeIdx = headerIndex.code != null ? headerIndex.code : null;
+        if (codeIdIdx != null && row[codeIdIdx] != null && String(row[codeIdIdx]).trim()) {
+          codeId = String(row[codeIdIdx]).trim();
+        } else if (codeIdx != null && row[codeIdx] != null && String(row[codeIdx]).trim()) {
+          const codeName = String(row[codeIdx]).trim().toLowerCase();
+          const matchC = codes.find((c) => {
+            const okType = typeId ? String(c.type_id) === String(typeId) : true;
+            const ct = c && c.title != null ? String(c.title).trim().toLowerCase() : "";
+            return okType && ct === codeName;
+          });
+          codeId = matchC && matchC.id != null ? String(matchC.id) : "";
+        }
+      }
+
+      if (!utilityId || !typeId || !codeId) {
+        invalid += 1;
+        return;
+      }
+
+      let title = "";
+      if (headerIndex) {
+        const titleIdx = headerIndex.title != null ? headerIndex.title : headerIndex.name != null ? headerIndex.name : headerIndex.shelf != null ? headerIndex.shelf : headerIndex.shelve != null ? headerIndex.shelve : null;
+        title = titleIdx != null ? toTitleValue(row[titleIdx]) : "";
+      }
+      if (!title) {
+        const hasLeadingId = row.length >= 2 && toIdString(row[0]);
+        title = toTitleValue(hasLeadingId ? row[1] : row[0]);
+      }
+      if (!title) return;
+
+      const key = utilityId + "::" + typeId + "::" + codeId + "::" + title.toLowerCase();
+      if (seen[key]) {
+        skipped += 1;
+        return;
+      }
+
+      maxId += 1;
+      const id = String(maxId);
+
+      let cursor = 0;
+      if (!headerIndex) {
+        const hasLeadingId = row.length >= 2 && toIdString(row[0]);
+        cursor = hasLeadingId ? 2 : 1;
+      }
+
+      const rateIdx = headerIndex && headerIndex.rate != null ? headerIndex.rate : null;
+      const pinIdx = headerIndex && headerIndex.pin != null ? headerIndex.pin : null;
+      const edgingIdx = headerIndex && headerIndex.edging != null ? headerIndex.edging : null;
+
+      const rate = toNumOrFallback(headerIndex ? row[rateIdx] : row[cursor], rateDefault || 0);
+      const pin = toNumOrFallback(headerIndex ? row[pinIdx] : row[cursor + 1], pinDefault || 0);
+      const edging = toNumOrFallback(headerIndex ? row[edgingIdx] : row[cursor + 2], edgingDefault || 0);
+
+      const utilityRow = utilities.find((u) => u && String(u.id) === String(utilityId));
+      const typeRow = types.find((t) => t && String(t.id) === String(typeId));
+      const codeRow = codes.find((c) => c && String(c.id) === String(codeId));
+      const utilityText = utilityRow && utilityRow.title != null ? String(utilityRow.title) : "";
+      const typeText = typeRow && typeRow.title != null ? String(typeRow.title) : "";
+      const codeText = codeRow && codeRow.title != null ? String(codeRow.title) : "";
+
+      listData.push({
+        id: id,
+        title: title,
+        rate: String(rate),
+        pin: String(pin),
+        edging: String(edging),
+        utility_id: utilityId,
+        utility: utilityText,
+        type_id: typeId,
+        type: typeText,
+        code_id: codeId,
+        code: codeText,
+      });
+
+      seen[key] = true;
+      added += 1;
+    });
+
+    const idEl = document.getElementById("id");
+    if (idEl) {
+      let localMax = maxId;
+      listData.forEach((s) => {
+        const idNum = s && s.id != null && !isNaN(Number(s.id)) ? Number(s.id) : 0;
+        if (idNum > localMax) localMax = idNum;
+      });
+      idEl.innerHTML = String(localMax + 1);
+    }
+
+    return { added: added, skipped: skipped, invalid: invalid };
+  });
+}
+
+let excelImport = null;
+if (file_manager && typeof file_manager.bindExcelImportControls === "function") {
+  excelImport = file_manager.bindExcelImportControls({ preferredSheetName: "Adjustable Shelves", afterTextSet: previewImportShelves });
+}
+
+if (document.getElementById("import-open")) {
+  document.getElementById("import-open").addEventListener("click", (event) => {
+    event.preventDefault();
+    const t = document.getElementById("import-text");
+    const r = document.getElementById("import-result");
+    if (t) t.value = "";
+    if (r) r.textContent = "";
+    if ((!excelImport || excelImport.isBound === false) && file_manager && typeof file_manager.bindExcelImportControls === "function") {
+      excelImport = file_manager.bindExcelImportControls({ preferredSheetName: "Adjustable Shelves", afterTextSet: previewImportShelves });
+    }
+    if (excelImport && excelImport.reset) excelImport.reset();
+    if (window.$) window.$("#importModal").modal("show");
+  });
+}
+
+if (document.getElementById("import-text")) {
+  document.getElementById("import-text").addEventListener("input", previewImportShelves);
+}
+
+if (document.getElementById("import-apply")) {
+  document.getElementById("import-apply").addEventListener("click", (event) => {
+    event.preventDefault();
+    const text = document.getElementById("import-text") ? document.getElementById("import-text").value : "";
+    importShelvesFromText(text)
+      .then((result) => {
+        scheduleRefreshShelvesTable();
+        document.getElementById("save").disabled = listData.length === 0;
+        const nameEl = document.getElementById("client-name");
+        if (nameEl) nameEl.value = "";
+        if (window.$) window.$("#importModal").modal("hide");
+        if (result && result.added) alert("Imported " + String(result.added) + " row(s).");
+        else alert("Nothing imported.");
+      })
+      .catch((err) => {
+        alert(err && err.message ? err.message : String(err));
+      });
+  });
+}
+
+function depIsProbablyHeaderRow(row) {
+  if (!row || row.length === 0) return false;
+  for (let i = 0; i < row.length; i++) {
+    const v = row[i] != null ? String(row[i]).trim().toLowerCase() : "";
+    if (v === "title" || v === "name" || v === "utility" || v === "utility_id" || v === "type" || v === "type_id" || v === "description" || v === "code" || v === "code_id") return true;
+  }
+  return false;
+}
+
+function depTitleValue(v) {
+  return v != null ? String(v).trim() : "";
+}
+
+function depNumValue(v, fallback) {
+  const s = v != null ? String(v).trim() : "";
+  if (!s) return fallback != null ? fallback : 0;
+  const n = parseFloat(s);
+  return isNaN(n) ? (fallback != null ? fallback : 0) : n;
+}
+
+function refreshUtilitySelectAfterDepImport() {
+  const select = document.getElementById("select");
+  if (!select) return Promise.resolve();
+  const prev = select.value != null ? String(select.value) : "";
+  return file_manager.loadFile(path.join(__dirname, "../../db/.utilities.json")).then((res) => {
+    select.innerHTML = "";
+    let option = document.createElement("option");
+    option.text = "Please Select";
+    option.value = "";
+    option.classList.add("d-none");
+    select.add(option);
+    (Array.isArray(res) ? res : []).forEach((data) => {
+      let op = document.createElement("option");
+      op.text = data && data.title != null ? String(data.title) : "";
+      op.value = data && data.id != null ? String(data.id) : "";
+      select.add(op);
+    });
+    select.value = prev;
+  });
+}
+
+function refreshTypeSelectAfterDepImport() {
+  const utilSel = document.getElementById("select");
+  const typeSel = document.getElementById("select-1");
+  if (!utilSel || !typeSel) return Promise.resolve();
+  const utilId = utilSel.value != null ? String(utilSel.value) : "";
+  const prev = typeSel.value != null ? String(typeSel.value) : "";
+  return file_manager.loadFile(path.join(__dirname, "../../db/.types.json")).then((res) => {
+    typeSel.innerHTML = "";
+    let option = document.createElement("option");
+    option.text = "Please Select";
+    option.value = "";
+    option.classList.add("d-none");
+    typeSel.add(option);
+    (Array.isArray(res) ? res : []).forEach((data) => {
+      if (!utilId || (data && String(data.utility_id) === utilId)) {
+        let op = document.createElement("option");
+        op.text = data && data.title != null ? String(data.title) : "";
+        op.value = data && data.id != null ? String(data.id) : "";
+        typeSel.add(op);
+      }
+    });
+    typeSel.value = prev;
+  });
+}
+
+function refreshCodeSelectAfterDepImport() {
+  const utilSel = document.getElementById("select");
+  const typeSel = document.getElementById("select-1");
+  const codeSel = document.getElementById("select-2");
+  if (!utilSel || !typeSel || !codeSel) return Promise.resolve();
+  const utilId = utilSel.value != null ? String(utilSel.value) : "";
+  const typeId = typeSel.value != null ? String(typeSel.value) : "";
+  const prev = codeSel.value != null ? String(codeSel.value) : "";
+  return file_manager.loadFile(path.join(__dirname, "../../db/.codes.json")).then((res) => {
+    codeSel.innerHTML = "";
+    let option = document.createElement("option");
+    option.text = "Please Select";
+    option.value = "";
+    option.classList.add("d-none");
+    codeSel.add(option);
+    (Array.isArray(res) ? res : []).forEach((data) => {
+      const ok =
+        (!typeId && !utilId) ||
+        (data && String(data.type_id) === typeId && String(data.utility_id) === utilId);
+      if (ok) {
+        let op = document.createElement("option");
+        op.text = data && data.title != null ? String(data.title) : "";
+        op.value = data && data.id != null ? String(data.id) : "";
+        codeSel.add(op);
+      }
+    });
+    codeSel.value = prev;
+  });
+}
+
+function depImportUtilitiesFromText(text) {
+  const rows = file_manager.parseTabularText(text);
+  const headerIndex = rows.length > 0 && depIsProbablyHeaderRow(rows[0]) ? file_manager.buildHeaderIndex(rows[0]) : null;
+  const usable = headerIndex ? rows.slice(1) : rows;
+
+  return file_manager.loadFile(path.join(__dirname, "../../db/.utilities.json")).then((res) => {
+    const existing = Array.isArray(res) ? res : [];
+    let maxId = 0;
+    const seen = {};
+    existing.forEach((u) => {
+      const idNum = u && u.id != null && !isNaN(Number(u.id)) ? Number(u.id) : 0;
+      if (idNum > maxId) maxId = idNum;
+      const title = u && u.title != null ? String(u.title).trim().toLowerCase() : "";
+      if (title) seen[title] = true;
+    });
+
+    let added = 0;
+    let skipped = 0;
+    usable.forEach((row) => {
+      if (!row || row.length === 0) return;
+      let title = "";
+      if (headerIndex) {
+        const idx = headerIndex.title != null ? headerIndex.title : headerIndex.name != null ? headerIndex.name : null;
+        title = idx != null ? depTitleValue(row[idx]) : "";
+      }
+      if (!title) title = depTitleValue(row[0]);
+      if (!title) return;
+      const key = title.toLowerCase();
+      if (seen[key]) {
+        skipped += 1;
+        return;
+      }
+      maxId += 1;
+      existing.push({ id: String(maxId), title: title });
+      seen[key] = true;
+      added += 1;
+    });
+
+    return file_manager.writeFile(path.join(__dirname, "../../db/.utilities.json"), existing).then(() => ({ added: added, skipped: skipped }));
+  });
+}
+
+function depImportTypesFromText(text) {
+  const rows = file_manager.parseTabularText(text);
+  const headerIndex = rows.length > 0 && depIsProbablyHeaderRow(rows[0]) ? file_manager.buildHeaderIndex(rows[0]) : null;
+  const usable = headerIndex ? rows.slice(1) : rows;
+  const selectedUtilityId = document.getElementById("select") ? String(document.getElementById("select").value) : "";
+
+  return Promise.all([
+    file_manager.loadFile(path.join(__dirname, "../../db/.types.json")),
+    file_manager.loadFile(path.join(__dirname, "../../db/.utilities.json")),
+  ]).then((results) => {
+    const existing = Array.isArray(results[0]) ? results[0] : [];
+    const utilities = Array.isArray(results[1]) ? results[1] : [];
+
+    let maxId = 0;
+    const seen = {};
+    existing.forEach((t) => {
+      const idNum = t && t.id != null && !isNaN(Number(t.id)) ? Number(t.id) : 0;
+      if (idNum > maxId) maxId = idNum;
+      const utilId = t && t.utility_id != null ? String(t.utility_id) : "";
+      const title = t && t.title != null ? String(t.title).trim().toLowerCase() : "";
+      if (utilId && title) seen[utilId + "::" + title] = true;
+    });
+
+    let added = 0;
+    let skipped = 0;
+    let invalid = 0;
+
+    usable.forEach((row) => {
+      if (!row || row.length === 0) return;
+
+      let utilityId = selectedUtilityId;
+      let utilityName = "";
+
+      if (headerIndex) {
+        const utilIdIdx = headerIndex.utility_id != null ? headerIndex.utility_id : null;
+        const utilIdx = headerIndex.utility != null ? headerIndex.utility : null;
+        if (utilIdIdx != null && row[utilIdIdx] != null && String(row[utilIdIdx]).trim()) {
+          utilityId = String(row[utilIdIdx]).trim();
+        } else if (utilIdx != null && row[utilIdx] != null && String(row[utilIdx]).trim()) {
+          const uName = String(row[utilIdx]).trim().toLowerCase();
+          const match = utilities.find((u) => u && u.title != null && String(u.title).trim().toLowerCase() === uName);
+          utilityId = match && match.id != null ? String(match.id) : "";
+          utilityName = match && match.title != null ? String(match.title) : "";
+        }
+      } else if (row.length >= 2) {
+        const uName = String(row[0]).trim().toLowerCase();
+        const match = utilities.find((u) => u && u.title != null && String(u.title).trim().toLowerCase() === uName);
+        if (match && match.id != null) {
+          utilityId = String(match.id);
+          utilityName = match && match.title != null ? String(match.title) : "";
+        }
+      }
+
+      if (!utilityId) {
+        invalid += 1;
+        return;
+      }
+
+      let title = "";
+      if (headerIndex) {
+        const titleIdx =
+          headerIndex.title != null
+            ? headerIndex.title
+            : headerIndex.name != null
+              ? headerIndex.name
+              : headerIndex.description != null
+                ? headerIndex.description
+                : headerIndex.type != null
+                  ? headerIndex.type
+                  : null;
+        title = titleIdx != null ? depTitleValue(row[titleIdx]) : "";
+      }
+      if (!title) title = depTitleValue(row.length >= 2 ? row[1] : row[0]);
+      if (!title) return;
+
+      const key = utilityId + "::" + title.toLowerCase();
+      if (seen[key]) {
+        skipped += 1;
+        return;
+      }
+
+      if (!utilityName) {
+        const uRow = utilities.find((u) => u && u.id != null && String(u.id) === String(utilityId));
+        utilityName = uRow && uRow.title != null ? String(uRow.title) : "";
+      }
+
+      maxId += 1;
+      existing.push({ id: String(maxId), title: title, utility_id: utilityId, utility: utilityName });
+      seen[key] = true;
+      added += 1;
+    });
+
+    return file_manager
+      .writeFile(path.join(__dirname, "../../db/.types.json"), existing)
+      .then(() => ({ added: added, skipped: skipped, invalid: invalid }));
+  });
+}
+
+function depImportCodesFromText(text) {
+  const rows = file_manager.parseTabularText(text);
+  const headerIndex = rows.length > 0 && depIsProbablyHeaderRow(rows[0]) ? file_manager.buildHeaderIndex(rows[0]) : null;
+  const usable = headerIndex ? rows.slice(1) : rows;
+
+  const selectedUtilityId = document.getElementById("select") ? String(document.getElementById("select").value) : "";
+  const selectedTypeId = document.getElementById("select-1") ? String(document.getElementById("select-1").value) : "";
+
+  return Promise.all([
+    file_manager.loadFile(path.join(__dirname, "../../db/.codes.json")),
+    file_manager.loadFile(path.join(__dirname, "../../db/.utilities.json")),
+    file_manager.loadFile(path.join(__dirname, "../../db/.types.json")),
+  ]).then((results) => {
+    const existing = Array.isArray(results[0]) ? results[0] : [];
+    const utilities = Array.isArray(results[1]) ? results[1] : [];
+    const types = Array.isArray(results[2]) ? results[2] : [];
+
+    let maxId = 0;
+    const seen = {};
+    existing.forEach((c) => {
+      const idNum = c && c.id != null && !isNaN(Number(c.id)) ? Number(c.id) : 0;
+      if (idNum > maxId) maxId = idNum;
+      const u = c && c.utility_id != null ? String(c.utility_id) : "";
+      const t = c && c.type_id != null ? String(c.type_id) : "";
+      const title = c && c.title != null ? String(c.title).trim().toLowerCase() : "";
+      if (u && t && title) seen[u + "::" + t + "::" + title] = true;
+    });
+
+    let added = 0;
+    let skipped = 0;
+    let invalid = 0;
+
+    usable.forEach((row) => {
+      if (!row || row.length === 0) return;
+
+      let utilityId = selectedUtilityId;
+      let typeId = selectedTypeId;
+      let utilityName = "";
+      let typeName = "";
+
+      if (headerIndex) {
+        const utilIdx = headerIndex.utility != null ? headerIndex.utility : null;
+        if (utilIdx != null && row[utilIdx] != null && String(row[utilIdx]).trim()) {
+          const uName = String(row[utilIdx]).trim().toLowerCase();
+          const matchU = utilities.find((u) => u && u.title != null && String(u.title).trim().toLowerCase() === uName);
+          utilityId = matchU && matchU.id != null ? String(matchU.id) : "";
+          utilityName = matchU && matchU.title != null ? String(matchU.title) : "";
+        }
+        const typeIdx = headerIndex.type != null ? headerIndex.type : headerIndex.description != null ? headerIndex.description : null;
+        if (typeIdx != null && row[typeIdx] != null && String(row[typeIdx]).trim()) {
+          const tName = String(row[typeIdx]).trim().toLowerCase();
+          const matchT = types.find((t) => {
+            const okUtil = utilityId ? String(t.utility_id) === String(utilityId) : true;
+            const tt = t && t.title != null ? String(t.title).trim().toLowerCase() : "";
+            return okUtil && tt === tName;
+          });
+          typeId = matchT && matchT.id != null ? String(matchT.id) : "";
+          typeName = matchT && matchT.title != null ? String(matchT.title) : "";
+        }
+      } else if (row.length >= 3) {
+        const uName = String(row[0]).trim().toLowerCase();
+        const tName = String(row[1]).trim().toLowerCase();
+        const matchU = utilities.find((u) => u && u.title != null && String(u.title).trim().toLowerCase() === uName);
+        if (matchU && matchU.id != null) {
+          utilityId = String(matchU.id);
+          utilityName = matchU && matchU.title != null ? String(matchU.title) : "";
+        }
+        const matchT = types.find((t) => {
+          const okUtil = utilityId ? String(t.utility_id) === String(utilityId) : true;
+          const tt = t && t.title != null ? String(t.title).trim().toLowerCase() : "";
+          return okUtil && tt === tName;
+        });
+        typeId = matchT && matchT.id != null ? String(matchT.id) : "";
+        typeName = matchT && matchT.title != null ? String(matchT.title) : "";
+      }
+
+      if (!utilityId || !typeId) {
+        invalid += 1;
+        return;
+      }
+
+      let title = "";
+      if (headerIndex) {
+        const titleIdx =
+          headerIndex.title != null
+            ? headerIndex.title
+            : headerIndex.name != null
+              ? headerIndex.name
+              : headerIndex.code != null
+                ? headerIndex.code
+                : null;
+        title = titleIdx != null ? depTitleValue(row[titleIdx]) : "";
+      }
+      if (!title) title = depTitleValue(row.length >= 3 ? row[2] : row.length >= 2 ? row[1] : row[0]);
+      if (!title) return;
+
+      const key = utilityId + "::" + typeId + "::" + title.toLowerCase();
+      if (seen[key]) {
+        skipped += 1;
+        return;
+      }
+
+      if (!utilityName) {
+        const uRow = utilities.find((u) => u && u.id != null && String(u.id) === String(utilityId));
+        utilityName = uRow && uRow.title != null ? String(uRow.title) : "";
+      }
+      if (!typeName) {
+        const tRow = types.find((t) => t && t.id != null && String(t.id) === String(typeId));
+        typeName = tRow && tRow.title != null ? String(tRow.title) : "";
+      }
+
+      const rate = depNumValue(headerIndex && headerIndex.rate != null ? row[headerIndex.rate] : row.length >= 4 ? row[3] : 0, 0);
+      const back_area = depNumValue(headerIndex && headerIndex.back_area != null ? row[headerIndex.back_area] : row.length >= 5 ? row[4] : 0, 0);
+      const secondary_top = depNumValue(headerIndex && headerIndex.secondary_top != null ? row[headerIndex.secondary_top] : row.length >= 6 ? row[5] : 0, 0);
+      const edging = depNumValue(headerIndex && headerIndex.edging != null ? row[headerIndex.edging] : row.length >= 7 ? row[6] : 0, 0);
+      const screws = depNumValue(headerIndex && headerIndex.screws != null ? row[headerIndex.screws] : row.length >= 8 ? row[7] : 0, 0);
+
+      maxId += 1;
+      existing.push({
+        id: String(maxId),
+        title: title,
+        utility_id: utilityId,
+        utility: utilityName,
+        type_id: typeId,
+        type: typeName,
+        rate: String(rate),
+        back_area: String(back_area),
+        secondary_top: String(secondary_top),
+        edging: String(edging),
+        screws: String(screws),
+      });
+      seen[key] = true;
+      added += 1;
+    });
+
+    return file_manager
+      .writeFile(path.join(__dirname, "../../db/.codes.json"), existing)
+      .then(() => ({ added: added, skipped: skipped, invalid: invalid }));
+  });
+}
+
+let depMode = "";
+let depExcel = null;
+
+function openDepImport(mode) {
+  depMode = mode != null ? String(mode) : "";
+  const titleEl = document.getElementById("dep-import-title");
+  if (titleEl) {
+    titleEl.textContent =
+      depMode === "utilities"
+        ? "Import Utilities"
+        : depMode === "types"
+          ? "Import Descriptions"
+          : depMode === "codes"
+            ? "Import Codes"
+            : "Import";
+  }
+
+  const t = document.getElementById("dep-import-text");
+  const r = document.getElementById("dep-import-result");
+  if (t) t.value = "";
+  if (r) r.textContent = "";
+
+  const preferred =
+    depMode === "utilities" ? "Utilities" : depMode === "types" ? "Descriptions" : depMode === "codes" ? "Codes" : "";
+  if (file_manager && typeof file_manager.bindExcelImportControls === "function") {
+    depExcel = file_manager.bindExcelImportControls({
+      fileInputId: "dep-import-file",
+      sheetSelectId: "dep-import-sheet",
+      textAreaId: "dep-import-text",
+      preferredSheetName: preferred,
+    });
+  }
+
+  if (window.$) window.$("#depImportModal").modal("show");
+}
+
+function ensureDepImportBindings() {
+  const applyEl = document.getElementById("dep-import-apply");
+  if (applyEl && !applyEl.__depBound) {
+    applyEl.addEventListener("click", (event) => {
+      event.preventDefault();
+      const text = document.getElementById("dep-import-text") ? document.getElementById("dep-import-text").value : "";
+      const job =
+        depMode === "utilities"
+          ? depImportUtilitiesFromText(text)
+          : depMode === "types"
+            ? depImportTypesFromText(text)
+            : depMode === "codes"
+              ? depImportCodesFromText(text)
+              : Promise.resolve({ added: 0 });
+
+      job
+        .then((result) => {
+          const added = result && result.added != null ? Number(result.added) : 0;
+          if (depMode === "utilities") {
+            return refreshUtilitySelectAfterDepImport().then(() => ({ added: added }));
+          }
+          if (depMode === "types") {
+            return refreshTypeSelectAfterDepImport().then(() => ({ added: added }));
+          }
+          if (depMode === "codes") {
+            return refreshCodeSelectAfterDepImport().then(() => ({ added: added }));
+          }
+          return { added: added };
+        })
+        .then((finalRes) => {
+          if (window.$) window.$("#depImportModal").modal("hide");
+          const added = finalRes && finalRes.added != null ? Number(finalRes.added) : 0;
+          if (added > 0) alert("Imported " + String(added) + " row(s).");
+          else alert("Nothing imported.");
+        })
+        .catch((err) => {
+          alert(err && err.message ? err.message : String(err));
+        });
+    });
+    applyEl.__depBound = true;
+  }
+}
+
+if (document.getElementById("dep-import-utility")) {
+  document.getElementById("dep-import-utility").addEventListener("click", (event) => {
+    event.preventDefault();
+    ensureDepImportBindings();
+    openDepImport("utilities");
+  });
+}
+if (document.getElementById("dep-import-type")) {
+  document.getElementById("dep-import-type").addEventListener("click", (event) => {
+    event.preventDefault();
+    ensureDepImportBindings();
+    openDepImport("types");
+  });
+}
+if (document.getElementById("dep-import-code")) {
+  document.getElementById("dep-import-code").addEventListener("click", (event) => {
+    event.preventDefault();
+    ensureDepImportBindings();
+    openDepImport("codes");
+  });
+}
+
 function del() {
   const selected = [];
   file_manager

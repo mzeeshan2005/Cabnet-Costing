@@ -1486,6 +1486,104 @@
     console.log(err);
   }
 })(jQuery);
+
+(function (window, document) {
+  "use strict";
+
+  function ensureToastHost() {
+    let host = document.getElementById("app-toast-host");
+    if (host) return host;
+
+    host = document.createElement("div");
+    host.id = "app-toast-host";
+    host.style.position = "fixed";
+    host.style.top = "20px";
+    host.style.right = "20px";
+    host.style.zIndex = "200000";
+    host.style.display = "flex";
+    host.style.flexDirection = "column";
+    host.style.gap = "8px";
+    host.style.pointerEvents = "none";
+    document.body.appendChild(host);
+    return host;
+  }
+
+  function notify(message) {
+    const host = ensureToastHost();
+    const toast = document.createElement("div");
+    toast.textContent = message != null ? String(message) : "";
+    toast.style.minWidth = "220px";
+    toast.style.maxWidth = "420px";
+    toast.style.padding = "12px 16px";
+    toast.style.borderRadius = "8px";
+    toast.style.background = "rgba(33, 37, 41, 0.96)";
+    toast.style.color = "#fff";
+    toast.style.fontSize = "14px";
+    toast.style.lineHeight = "1.4";
+    toast.style.boxShadow = "0 8px 24px rgba(0,0,0,0.28)";
+    toast.style.opacity = "0";
+    toast.style.transform = "translateY(-6px)";
+    toast.style.transition = "opacity 140ms ease, transform 140ms ease";
+    host.appendChild(toast);
+
+    window.requestAnimationFrame(function () {
+      toast.style.opacity = "1";
+      toast.style.transform = "translateY(0)";
+    });
+
+    window.setTimeout(function () {
+      toast.style.opacity = "0";
+      toast.style.transform = "translateY(-6px)";
+      window.setTimeout(function () {
+        if (toast.parentNode) toast.parentNode.removeChild(toast);
+      }, 180);
+    }, 2200);
+  }
+
+  function setSessionFlag(key, value) {
+    try {
+      window.sessionStorage.setItem(key, value);
+    } catch (_) {}
+  }
+
+  function getSessionFlag(key) {
+    try {
+      return window.sessionStorage.getItem(key);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function showProtectedDropdown(mode) {
+    if (String(mode) === "2") {
+      const toolsDropdown = document.getElementById("dpdb1");
+      if (toolsDropdown) toolsDropdown.classList.remove("d-none");
+      return;
+    }
+
+    const settingsDropdown = document.getElementById("dpdb");
+    if (settingsDropdown) settingsDropdown.classList.remove("d-none");
+    window.setTimeout(function () {
+      const settingsAnchor = document.getElementById("dpd");
+      if (settingsAnchor) settingsAnchor.classList.add("show-dropdown");
+    }, 300);
+  }
+
+  window.appUi = window.appUi || {};
+  window.appUi.notify = notify;
+  window.appUi.isHeaderAuthUnlocked = function (key) {
+    return getSessionFlag(key) === "1";
+  };
+  window.appUi.unlockHeaderAuth = function (key) {
+    setSessionFlag(key, "1");
+  };
+  window.appUi.showProtectedDropdown = showProtectedDropdown;
+
+  window.alert = function (message) {
+    notify(message);
+  };
+})(window, document);
+
 (function ($) {
   // USE STRICT
   "use strict";

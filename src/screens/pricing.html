@@ -768,16 +768,16 @@
                                             <option value="no">NO</option>
                                         </select>
                                     </div>
+                                    <div class="form-group px-0 mx-0 mb-0" style="display: flex; flex-direction: column; align-items: bottom; width: 46px;">
+                                        <label for="apply-profit-margin" class="form-control-label" style="margin-bottom: 4px;padding-bottom:0px">PM</label>
+                                        <label class="au-checkbox" style="margin-bottom: 0px; width: 33.5px; height: 33.5px">
+                                            <input type="checkbox" id="apply-profit-margin" checked style="border: 1px solid green"/>
+                                            <span class="au-checkmark" id="apply-profit-margin-box" style="border: 1px solid green; width: 33.5px; height: 33.5px"></span>
+                                        </label>
+                                    </div>
                                     <div class="form-group px-1" >
                                         <label for="additional" class="form-control-label ">Additional</label>
                                         <input type="number" step="any" name="custom" value="0" id="additional" class="form-control p-0" style="padding-left: 5px; font-size: 12.7px; width: 60px; color: black; text-align: center; background-color: gainsboro;">
-                                    </div>
-                                    <div class="form-group px-0" style="display: flex; flex-direction: column; align-items: center; padding-top: 2px">
-                                        <label for="apply-profit-margin" class="form-control-label" style="white-space: nowrap">PM(<span id="profit-margin-label">0</span>%)</label>
-                                        <label class="au-checkbox" style="margin-bottom: 0px; width: 26px; height: 26px">
-                                            <input type="checkbox" id="apply-profit-margin" checked style="border: 1px solid green"/>
-                                            <span class="au-checkmark" id="apply-profit-margin-box" style="border: 1px solid green; width: 26px; height: 26px"></span>
-                                        </label>
                                     </div>
                                     <style>
                                         input[type=number]::-webkit-inner-spin-button,
@@ -787,10 +787,10 @@
                                         }
 
                                         #apply-profit-margin-box:after {
-                                            left: 7px;
-                                            top: 1px;
+                                            left: 10px;
+                                            top: 3px;
                                             width: 10px;
-                                            height: 16px;
+                                            height: 19px;
                                         }
                                     </style>
                                     <div class="form-group px-1" style="display: flex; flex-direction: column">
@@ -875,9 +875,13 @@
                                                 </div>
                                             </div>
                                             <div class="form-group col mx-1">
-                                                <div class="row">
-                                                    <label for="discount" class="px-1 form-control-label ">Discount</label>
-                                                    <input type="number" id="discount" required class="form-control" min="0" oninput="this.value = !!this.value && Math.abs(this.value) >= 0 ? Math.abs(this.value) : null" style="width: 80%">
+                                                <div class="row align-items-center">
+                                                    <label for="discount" class="px-1 form-control-label mb-0">Discount</label>
+                                                    <div class="d-flex align-items-center ml-2" style="gap: 4px;">
+                                                        <input type="checkbox" id="show-discount" checked>
+                                                        <label for="show-discount" class="form-control-label mb-0" style="font-size: 11px;">Show</label>
+                                                    </div>
+                                                    <input type="number" id="discount" required class="form-control mt-1" min="0" oninput="this.value = !!this.value && Math.abs(this.value) >= 0 ? Math.abs(this.value) : null" style="width: 80%">
                                                 </div>
 
                                             </div>
@@ -1030,7 +1034,11 @@
   const path1 = require('path')
   const file_manager1 = require(path1.join(__dirname, '../scripts/file_manager.js'));
   function openModal(a) {
-    document.getElementById('show-modal').click();
+        if (String(a) === '2' && window.appUi && window.appUi.isHeaderAuthUnlocked('header-tools')) {
+          window.appUi.showProtectedDropdown('2');
+          return;
+        }
+    window.modalInputFix.showModal('#staticModal-2');
     document.getElementById('numb').value = a;
   }
 
@@ -1041,7 +1049,11 @@
           if (res[1].pass === document.getElementById("pass2").value) {
             if(document.getElementById('numb').value === '2')
             {
-              document.getElementById('dpdb1').classList.remove('d-none')
+              if (window.appUi) window.appUi.unlockHeaderAuth('header-tools');
+
+              if (window.appUi) window.appUi.showProtectedDropdown('2');
+
+              else document.getElementById('dpdb1').classList.remove('d-none')
               document.getElementById('cancel2').click();
             }
             else
@@ -1052,7 +1064,7 @@
             }
           }
           else {
-            alert("Invalid Password!")
+            window.modalInputFix.showInvalid('pass2', 'Invalid Password!')
           }
         })
   })
@@ -1072,6 +1084,7 @@
   window.jQuery = window.$ = require('jquery');
 </script>
 <script src="../../node_modules/bootstrap/dist/js/bootstrap.bundle.js"></script>
+<script src="../scripts/modal_input_fix.js"></script>
 <script src="../vendor/bootstrap-4.1/popper.min.js"></script>
 <!--    <script src="vendor/bootstrap-4.1/bootstrap.min.js"></script>-->
 <!-- Vendor JS       -->

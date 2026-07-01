@@ -16,6 +16,7 @@ let check_list2 = []
 let custom_val = 0.0
 let profitMarginPercentage = 0;
 let baseGrossAmount = 0;
+let breakdownRefreshToken = 0;
 
 function isProfitMarginApplied() {
   const el = document.getElementById('apply-profit-margin');
@@ -65,6 +66,203 @@ function refreshGrossAmount() {
   const base = baseGrossAmount != null ? Number(baseGrossAmount) : 0;
   grossEl.value = Math.round(!isNaN(base) ? base : 0);
   setProfitMarginLabel();
+}
+
+function numValue(v) {
+  const n = parseFloat(v);
+  return isNaN(n) ? 0 : n;
+}
+
+function shouldShowDiscountOnOutput() {
+  const el = document.getElementById('show-discount');
+  return el ? !!el.checked : true;
+}
+
+function setDiscountVisibilityToggle(value) {
+  const el = document.getElementById('show-discount');
+  if (!el) return;
+  el.checked = value !== false;
+}
+
+function rateValue(rates, key) {
+  if (!rates || rates[key] == null || rates[key] === "") return 0;
+  return numValue(rates[key]);
+}
+
+function formatBreakdownNumber(v) {
+  const n = numValue(v);
+  return Intl.NumberFormat('en-US', {
+    minimumFractionDigits: n % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(n);
+}
+
+function setBreakdownCard(baseId, qty, rate, amount) {
+  const card = document.getElementById(baseId);
+  const formula = document.getElementById(baseId + '-formula');
+  const value = document.getElementById(baseId + '-value');
+  if (!card || !formula || !value) return false;
+
+  const qtyNum = numValue(qty);
+  const rateNum = numValue(rate);
+  const amountNum = numValue(amount);
+  const shouldShow = qtyNum !== 0 || rateNum !== 0 || amountNum !== 0;
+
+  if (shouldShow) {
+    card.classList.remove('d-none');
+    formula.textContent = formatBreakdownNumber(qtyNum) + ' x ' + formatBreakdownNumber(rateNum);
+    value.textContent = formatBreakdownNumber(amountNum);
+  } else {
+    card.classList.add('d-none');
+    formula.textContent = '0 x 0';
+    value.textContent = '0';
+  }
+
+  return shouldShow;
+}
+
+function renderNewCostBreakdown(data) {
+  const totalEl = document.getElementById('new-cost-breakdown-total');
+  const emptyEl = document.getElementById('new-cost-breakdown-empty');
+  if (!totalEl || !emptyEl) return;
+
+  const entries = data || {};
+  let visibleCount = 0;
+
+  if (setBreakdownCard('breakdown-wall-bracket', entries.wall_bracket_qty, entries.wall_bracket_rate, entries.wall_bracket_amount)) visibleCount += 1;
+  if (setBreakdownCard('breakdown-hanger-pipe', entries.hanger_pipe_qty, entries.hanger_pipe_rate, entries.hanger_pipe_amount)) visibleCount += 1;
+  if (setBreakdownCard('breakdown-hanger-pipe-fitting', entries.hanger_pipe_fitting_qty, entries.hanger_pipe_fitting_rate, entries.hanger_pipe_fitting_amount)) visibleCount += 1;
+  if (setBreakdownCard('breakdown-locks', entries.locks_qty, entries.locks_rate, entries.locks_amount)) visibleCount += 1;
+  if (setBreakdownCard('breakdown-drawer-handles', entries.drawer_handles_qty, entries.drawer_handles_rate, entries.drawer_handles_amount)) visibleCount += 1;
+
+  const total =
+    numValue(entries.wall_bracket_amount) +
+    numValue(entries.hanger_pipe_amount) +
+    numValue(entries.hanger_pipe_fitting_amount) +
+    numValue(entries.locks_amount) +
+    numValue(entries.drawer_handles_amount);
+
+  totalEl.textContent = formatBreakdownNumber(total);
+  emptyEl.style.display = visibleCount === 0 ? 'block' : 'none';
+}
+
+function refreshNewCostBreakdown() {
+  const token = ++breakdownRefreshToken;
+  const codeId = document.getElementById('code') ? document.getElementById('code').value : '';
+  const hardwareId = document.getElementById('hardware') ? document.getElementById('hardware').value : '';
+
+  return Promise.all([
+    file_manager.loadFile(path.join(__dirname, `../db/.rates.json`)),
+    codeId ? file_manager.loadFile(path.join(__dirname, `../db/.codes.json`)) : Promise.resolve([]),
+    hardwareId ? file_manager.loadFile(path.join(__dirname, `../db/.hardwares.json`)) : Promise.resolve([]),
+  ])
+    .then((results) => {
+      if (token !== breakdownRefreshToken) return;
+
+      const rates = results[0] || {};
+      const codes = Array.isArray(results[1]) ? results[1] : [];
+      const hardwares = Array.isArray(results[2]) ? results[2] : [];
+      const codeRow = codeId ? codes.find((row) => row && row.id === codeId) : null;
+      const hardwareRow = hardwareId ? hardwares.find((row) => row && row.id === hardwareId) : null;
+
+      const wallBracketQty = codeRow ? numValue(codeRow.wall_bracket) : 0;
+      const wallBracketRate = rateValue(rates, 'wall_bracket_codes');
+      const hangerPipeQty = hardwareRow ? numValue(hardwareRow.hanger_pipe) : 0;
+      const hangerPipeRate = rateValue(rates, 'hanger_pipe_hardware');
+      const hangerPipeFittingQty = hardwareRow ? numValue(hardwareRow.hanger_pipe_fitting) : 0;
+      const hangerPipeFittingRate = rateValue(rates, 'hanger_pipe_fitting_hardware');
+      const locksQty = hardwareRow ? numValue(hardwareRow.locks) : 0;
+      const locksRate = rateValue(rates, 'locks_hardware');
+      const drawerHandlesQty = hardwareRow ? numValue(hardwareRow.drawer_handles) : 0;
+      const drawerHandlesRate = rateValue(rates, 'drawer_handle_rate');
+
+      renderNewCostBreakdown({
+        wall_bracket_qty: wallBracketQty,
+        wall_bracket_rate: wallBracketRate,
+        wall_bracket_amount: wallBracketQty * wallBracketRate,
+        hanger_pipe_qty: hangerPipeQty,
+        hanger_pipe_rate: hangerPipeRate,
+        hanger_pipe_amount: hangerPipeQty * hangerPipeRate,
+        hanger_pipe_fitting_qty: hangerPipeFittingQty,
+        hanger_pipe_fitting_rate: hangerPipeFittingRate,
+        hanger_pipe_fitting_amount: hangerPipeFittingQty * hangerPipeFittingRate,
+        locks_qty: locksQty,
+        locks_rate: locksRate,
+        locks_amount: locksQty * locksRate,
+        drawer_handles_qty: drawerHandlesQty,
+        drawer_handles_rate: drawerHandlesRate,
+        drawer_handles_amount: drawerHandlesQty * drawerHandlesRate,
+      });
+    })
+    .catch(() => {
+      if (token !== breakdownRefreshToken) return;
+      renderNewCostBreakdown({});
+    });
+}
+
+function computeCodeContribution(codeRow, rates, selectedType, customRateValue) {
+  if (!codeRow) return 0;
+  const primaryType = selectedType || "Box Sheet Price/PC";
+  const primaryRate = numValue(customRateValue);
+
+  if (primaryType === "Box Back Sheet Price/PC") {
+    return (numValue(codeRow.rate) * rateValue(rates, "rate_codes"))
+      + (numValue(codeRow.back_area) * primaryRate)
+      + (numValue(codeRow.secondary_top) * rateValue(rates, "secondary_top_codes"))
+      + (numValue(codeRow.edging) * rateValue(rates, "edging_codes"))
+      + (numValue(codeRow.screws) * rateValue(rates, "screws_codes"))
+      + (numValue(codeRow.wall_bracket) * rateValue(rates, "wall_bracket_codes"));
+  }
+
+  if (primaryType === "Secondary Top Sheet Price/PC") {
+    return (numValue(codeRow.rate) * rateValue(rates, "rate_codes"))
+      + (numValue(codeRow.back_area) * rateValue(rates, "back_area_codes"))
+      + (numValue(codeRow.secondary_top) * primaryRate)
+      + (numValue(codeRow.edging) * rateValue(rates, "edging_codes"))
+      + (numValue(codeRow.screws) * rateValue(rates, "screws_codes"))
+      + (numValue(codeRow.wall_bracket) * rateValue(rates, "wall_bracket_codes"));
+  }
+
+  return (numValue(codeRow.rate) * primaryRate)
+    + (numValue(codeRow.back_area) * rateValue(rates, "back_area_codes"))
+    + (numValue(codeRow.secondary_top) * rateValue(rates, "secondary_top_codes"))
+    + (numValue(codeRow.edging) * rateValue(rates, "edging_codes"))
+    + (numValue(codeRow.screws) * rateValue(rates, "screws_codes"))
+    + (numValue(codeRow.wall_bracket) * rateValue(rates, "wall_bracket_codes"));
+}
+
+function computeHardwareContribution(hardwareRow, rates, selectedType, customRateValue) {
+  if (!hardwareRow) return 0;
+  const primaryType = selectedType || "Hinges Price/SET";
+  const primaryRate = numValue(customRateValue);
+
+  if (primaryType === "Slider Price/SET") {
+    return (numValue(hardwareRow.rate) * rateValue(rates, "rate_hardware"))
+      + (numValue(hardwareRow.slider) * primaryRate)
+      + (numValue(hardwareRow.lift) * rateValue(rates, "lift_hardware"))
+      + (numValue(hardwareRow.hanger_pipe) * rateValue(rates, "hanger_pipe_hardware"))
+      + (numValue(hardwareRow.hanger_pipe_fitting) * rateValue(rates, "hanger_pipe_fitting_hardware"))
+      + (numValue(hardwareRow.locks) * rateValue(rates, "locks_hardware"))
+      + (numValue(hardwareRow.drawer_handles) * rateValue(rates, "drawer_handle_rate"));
+  }
+
+  if (primaryType === "Lift Up Price/SET") {
+    return (numValue(hardwareRow.rate) * rateValue(rates, "rate_hardware"))
+      + (numValue(hardwareRow.slider) * rateValue(rates, "slider_hardware"))
+      + (numValue(hardwareRow.lift) * primaryRate)
+      + (numValue(hardwareRow.hanger_pipe) * rateValue(rates, "hanger_pipe_hardware"))
+      + (numValue(hardwareRow.hanger_pipe_fitting) * rateValue(rates, "hanger_pipe_fitting_hardware"))
+      + (numValue(hardwareRow.locks) * rateValue(rates, "locks_hardware"))
+      + (numValue(hardwareRow.drawer_handles) * rateValue(rates, "drawer_handle_rate"));
+  }
+
+  return (numValue(hardwareRow.rate) * primaryRate)
+    + (numValue(hardwareRow.slider) * rateValue(rates, "slider_hardware"))
+    + (numValue(hardwareRow.lift) * rateValue(rates, "lift_hardware"))
+    + (numValue(hardwareRow.hanger_pipe) * rateValue(rates, "hanger_pipe_hardware"))
+    + (numValue(hardwareRow.hanger_pipe_fitting) * rateValue(rates, "hanger_pipe_fitting_hardware"))
+    + (numValue(hardwareRow.locks) * rateValue(rates, "locks_hardware"))
+    + (numValue(hardwareRow.drawer_handles) * rateValue(rates, "drawer_handle_rate"));
 }
 
 file_manager
@@ -187,39 +385,12 @@ function change_code_rate(event){
                 try {
                   const select = document.getElementById("code-price");
                   const selectedIndex = select.selectedIndex;
-                  const selectedValue = select.value;
                   const selectedText = select.options[selectedIndex].text; 
-                  if (selectedText === "Box Sheet Price/PC") {
-                    code_rate = parseFloat(i.rate)
-                    code_rate = code_rate * parseFloat(document.getElementById('code-new-rate').value)
-                    const back_area = parseFloat(i.back_area) * parseFloat(rates.back_area_codes);
-                    const edging = parseFloat(i.edging) * parseFloat(rates.edging_codes);
-                    const screws = parseFloat(i.screws) * parseFloat(rates.screws_codes);
-                    const secondary_top = parseFloat(i.secondary_top) * parseFloat(rates.secondary_top_codes);
-                    code_rate = code_rate + back_area + edging + screws + secondary_top;
-                  }
-                  else if (selectedText === "Box Back Sheet Price/PC") {
-                    code_rate = parseFloat(i.back_area)
-                    code_rate = code_rate * parseFloat(document.getElementById('code-new-rate').value)
-                    const back_area = parseFloat(i.rate) * parseFloat(rates.rate_codes);
-                    const edging = parseFloat(i.edging) * parseFloat(rates.edging_codes);
-                    const screws = parseFloat(i.screws) * parseFloat(rates.screws_codes);
-                    const secondary_top = parseFloat(i.secondary_top) * parseFloat(rates.secondary_top_codes);
-                    code_rate = code_rate + back_area + edging + screws + secondary_top;
-                  }
-                  else if (selectedText === "Secondary Top Sheet Price/PC") {
-                    code_rate = parseFloat(i.secondary_top)
-                    code_rate = code_rate * parseFloat(document.getElementById('code-new-rate').value)
-                    const back_area = parseFloat(i.back_area) * parseFloat(rates.back_area_codes);
-                    const edging = parseFloat(i.edging) * parseFloat(rates.edging_codes);
-                    const screws = parseFloat(i.screws) * parseFloat(rates.screws_codes);
-                    const secondary_top = parseFloat(i.rate) * parseFloat(rates.rate_codes);
-                    code_rate = code_rate + back_area + edging + screws + secondary_top;
-                  }
+                  code_rate = computeCodeContribution(i, rates, selectedText, document.getElementById('code-new-rate').value);
                   
                 }
                 catch (e){
-                  code_rate = i.rate
+                  code_rate = numValue(i.rate)
                 }
                 document.getElementById('unit').value = parseFloat(document.getElementById('unit').value) + code_rate;
                 document.getElementById('unit').value = parseFloat(document.getElementById('unit').value).toFixed(2)
@@ -317,35 +488,11 @@ function change_hardware_rate(event){
                 try{
                   const select = document.getElementById("hardware-price");
                   const selectedIndex = select.selectedIndex;
-                  const selectedValue = select.value;
                   const selectedText = select.options[selectedIndex].text; 
-                  if(selectedText === "Hinges Price/SET"){
-                    hardware = parseFloat(i.rate)
-                    hardware = hardware * parseFloat(document.getElementById('harware-new-rate').value);
-                    const slider = parseFloat(i.slider) * parseFloat(rates.slider_hardware);
-                    hardware = hardware + slider;
-                    const lift = parseFloat(i.lift) * parseFloat(rates.lift_hardware);
-                    hardware = hardware + lift;
-                  }
-                  else if (selectedText === "Slider Price/SET"){
-                    hardware = parseFloat(i.slider)
-                    hardware = hardware * parseFloat(document.getElementById('harware-new-rate').value);
-                    const slider = parseFloat(i.rate) * parseFloat(rates.rate_hardware);
-                    hardware = hardware + slider;
-                    const lift = parseFloat(i.lift) * parseFloat(rates.lift_hardware);
-                    hardware = hardware + lift;
-                  }
-                  else if (selectedText === "Lift Up Price/SET"){
-                    hardware = parseFloat(i.lift)
-                    hardware = hardware * parseFloat(document.getElementById('harware-new-rate').value);
-                    const slider = parseFloat(i.rate) * parseFloat(rates.rate_hardware);
-                    hardware = hardware + slider;
-                    const lift = parseFloat(i.slider) * parseFloat(rates.slider_hardware);
-                    hardware = hardware + lift;
-                  }
+                  hardware = computeHardwareContribution(i, rates, selectedText, document.getElementById('harware-new-rate').value);
                 }
                 catch (e) {
-                  hardware = i.rate
+                  hardware = numValue(i.rate)
                 }
                 document.getElementById('unit').value = parseFloat(document.getElementById('unit').value) + hardware;
                 document.getElementById('unit').value = parseFloat(document.getElementById('unit').value).toFixed(2)
@@ -440,6 +587,7 @@ document.getElementById('edit').addEventListener('click', (event) => {
           }
         })
         document.getElementById('code').value = item.code;
+        refreshNewCostBreakdown();
         file_manager.loadFile(path.join(__dirname, `../db/.codes.json`))
         .then(res => {
           file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
@@ -448,42 +596,19 @@ document.getElementById('edit').addEventListener('click', (event) => {
               if(i.id === item.code)
               {
                 try { 
-                  if (item.code_rate_type === "Box Sheet Price/PC") {
-                    document.getElementById("code-price").selectedIndex = 0;
-                    document.getElementById('code-new-rate').value = item.code_rate;
-                    code_rate = parseFloat(i.rate)
-                    code_rate = code_rate * parseFloat(document.getElementById('code-new-rate').value)
-                    const back_area = parseFloat(i.back_area) * parseFloat(rates.back_area_codes);
-                    const edging = parseFloat(i.edging) * parseFloat(rates.edging_codes);
-                    const screws = parseFloat(i.screws) * parseFloat(rates.screws_codes);
-                    const secondary_top = parseFloat(i.secondary_top) * parseFloat(rates.secondary_top_codes);
-                    code_rate = code_rate + back_area + edging + screws + secondary_top;
-                  }
-                  else if (item.code_rate_type === "Box Back Sheet Price/PC") {
+                  if (item.code_rate_type === "Box Back Sheet Price/PC") {
                     document.getElementById("code-price").selectedIndex = 1;
-                    document.getElementById('code-new-rate').value = item.code_rate;
-                    code_rate = parseFloat(i.back_area)
-                    code_rate = code_rate * parseFloat(document.getElementById('code-new-rate').value)
-                    const back_area = parseFloat(i.rate) * parseFloat(rates.rate_codes);
-                    const edging = parseFloat(i.edging) * parseFloat(rates.edging_codes);
-                    const screws = parseFloat(i.screws) * parseFloat(rates.screws_codes);
-                    const secondary_top = parseFloat(i.secondary_top) * parseFloat(rates.secondary_top_codes);
-                    code_rate = code_rate + back_area + edging + screws + secondary_top;
                   }
                   else if (item.code_rate_type === "Secondary Top Sheet Price/PC") {
                     document.getElementById("code-price").selectedIndex = 2;
-                    document.getElementById('code-new-rate').value = item.code_rate;
-                    code_rate = parseFloat(i.secondary_top)
-                    code_rate = code_rate * parseFloat(document.getElementById('code-new-rate').value)
-                    const back_area = parseFloat(i.back_area) * parseFloat(rates.back_area_codes);
-                    const edging = parseFloat(i.edging) * parseFloat(rates.edging_codes);
-                    const screws = parseFloat(i.screws) * parseFloat(rates.screws_codes);
-                    const secondary_top = parseFloat(i.rate) * parseFloat(rates.rate_codes);
-                    code_rate = code_rate + back_area + edging + screws + secondary_top;
+                  } else {
+                    document.getElementById("code-price").selectedIndex = 0;
                   }
+                  document.getElementById('code-new-rate').value = item.code_rate;
+                  code_rate = computeCodeContribution(i, rates, item.code_rate_type, item.code_rate);
                 }
                 catch (e){
-                  code_rate = i.rate
+                  code_rate = numValue(i.rate)
                 }
               }
             })
@@ -597,6 +722,7 @@ document.getElementById('edit').addEventListener('click', (event) => {
           }
         })
         document.getElementById('hardware').value = item.hardware;
+        refreshNewCostBreakdown();
         file_manager.loadFile(path.join(__dirname, `../db/.hardwares.json`))
         .then(res => {
           file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
@@ -606,39 +732,19 @@ document.getElementById('edit').addEventListener('click', (event) => {
               {
                 try{
                   
-                  if(item.hardware_rate_type === "Hinges Price/SET"){
-                    document.getElementById("hardware-price").selectedIndex = 0;
-                    document.getElementById('harware-new-rate').value = item.hardware_rate
-                    hardware = parseFloat(i.rate)
-                    hardware = hardware * parseFloat(document.getElementById('harware-new-rate').value);
-                    const slider = parseFloat(i.slider) * parseFloat(rates.slider_hardware);
-                    hardware = hardware + slider;
-                    const lift = parseFloat(i.lift) * parseFloat(rates.lift_hardware);
-                    hardware = hardware + lift;
-                  }
-                  else if (item.hardware_rate_type === "Slider Price/SET"){
+                  if (item.hardware_rate_type === "Slider Price/SET"){
                     document.getElementById("hardware-price").selectedIndex = 1;
-                    document.getElementById('harware-new-rate').value = item.hardware_rate
-                    hardware = parseFloat(i.slider)
-                    hardware = hardware * parseFloat(document.getElementById('harware-new-rate').value);
-                    const slider = parseFloat(i.rate) * parseFloat(rates.rate_hardware);
-                    hardware = hardware + slider;
-                    const lift = parseFloat(i.lift) * parseFloat(rates.lift_hardware);
-                    hardware = hardware + lift;
                   }
                   else if (item.hardware_rate_type === "Lift Up Price/SET"){
                     document.getElementById("hardware-price").selectedIndex = 2;
-                    document.getElementById('harware-new-rate').value = item.hardware_rate
-                    hardware = parseFloat(i.lift)
-                    hardware = hardware * parseFloat(document.getElementById('harware-new-rate').value);
-                    const slider = parseFloat(i.rate) * parseFloat(rates.rate_hardware);
-                    hardware = hardware + slider;
-                    const lift = parseFloat(i.slider) * parseFloat(rates.slider_hardware);
-                    hardware = hardware + lift;
+                  } else {
+                    document.getElementById("hardware-price").selectedIndex = 0;
                   }
+                  document.getElementById('harware-new-rate').value = item.hardware_rate
+                  hardware = computeHardwareContribution(i, rates, item.hardware_rate_type, item.hardware_rate);
                 }
                 catch (e) {
-                  hardware = i.rate
+                  hardware = numValue(i.rate)
                 }
               
               }
@@ -698,6 +804,7 @@ document.getElementById('edit').addEventListener('click', (event) => {
   document.getElementById('additional').value = item.additional;
   document.getElementById('unit').value = item.unit;
   document.getElementById('total').innerHTML = item.total;
+  refreshNewCostBreakdown();
 
   // item = {
   //   "item_id": items.length + 1,
@@ -783,6 +890,7 @@ function clear_dropdowns() {
   hardware = 0;
   shelve = 0;
   custom_val = 0;
+  refreshNewCostBreakdown();
 }
 
 document.getElementById('clear').addEventListener('click', (event) => {
@@ -866,6 +974,7 @@ function all_clear(){
         document.getElementById('open').disabled = false;
         document.getElementById('gross-amount').value = 0;
         document.getElementById('discount').value = 0;
+        setDiscountVisibilityToggle(true);
         document.getElementById('discount').disabled = true;
         document.getElementById('tax').value = 0;
         document.getElementById('tax').disabled = true;
@@ -883,6 +992,7 @@ function all_clear(){
         custom_val = 0
         check_list = []
         check_list2 = []
+        refreshNewCostBreakdown();
       })
 }
 
@@ -973,6 +1083,7 @@ function load_pricing_dropdown() {
           opt.style.color = 'black'
           codePrice.options.add(opt)
         })
+        refreshNewCostBreakdown();
       })
 }
 
@@ -1085,6 +1196,7 @@ function utility_change(event){
           })
         })
   }
+  refreshNewCostBreakdown();
 }
 
 function type_change(event){
@@ -1131,6 +1243,7 @@ function type_change(event){
           })
         })
   }
+  refreshNewCostBreakdown();
 }
 
 function code_change(event){
@@ -1169,17 +1282,11 @@ function code_change(event){
               {
                 try {
                   document.getElementById("code-price").selectedIndex = 0;
-                  code_rate = parseFloat(i.rate)
                   document.getElementById('code-new-rate').value = rates.rate_codes
-                  code_rate = code_rate * parseFloat(rates.rate_codes);
-                  const back_area = parseFloat(i.back_area) * parseFloat(rates.back_area_codes);
-                  const edging = parseFloat(i.edging) * parseFloat(rates.edging_codes);
-                  const screws = parseFloat(i.screws) * parseFloat(rates.screws_codes);
-                  const secondary_top = parseFloat(i.secondary_top) * parseFloat(rates.secondary_top_codes);
-                  code_rate = code_rate + back_area + edging + screws + secondary_top;
+                  code_rate = computeCodeContribution(i, rates, "Box Sheet Price/PC", rates.rate_codes);
                 }
                 catch (e){
-                  code_rate = i.rate
+                  code_rate = numValue(i.rate)
                 }
                 document.getElementById('unit').value = code_rate;
                 document.getElementById('unit').value = parseFloat(document.getElementById('unit').value).toFixed(2)
@@ -1276,6 +1383,7 @@ function code_change(event){
           })
         })
   }
+  refreshNewCostBreakdown();
 }
 
 document.getElementById("hardware-price").addEventListener("change", (event) => {
@@ -1370,12 +1478,10 @@ document.getElementById('form-pricing').addEventListener('submit', (event) => {
   document.getElementById('open').disabled = true;
   const select = document.getElementById("hardware-price");
   const selectedIndex = select.selectedIndex;
-  const selectedValue = select.value;
   const selectedText = select.options[selectedIndex].text; 
   const select1 = document.getElementById("code-price");
-  const selectedIndex1 = select.selectedIndex;
-  const selectedValue1 = select.value;
-  const selectedText1 = select.options[selectedIndex].text; 
+  const selectedIndex1 = select1.selectedIndex;
+  const selectedText1 = select1.options[selectedIndex1].text; 
   item = {
     "item_id": items.length + 1,
     "elevation": document.getElementById('elevation-input').value,
@@ -1574,6 +1680,7 @@ document.getElementById('door-panel').addEventListener('change', (event) => {
           
         })
   }
+  refreshNewCostBreakdown();
 })
 
 document.getElementById('handler').addEventListener('change', (event) => {
@@ -1634,17 +1741,12 @@ document.getElementById('hardware').addEventListener('change', (event) => {
               if(i.id === val)
               {
                 try{
-                  hardware = parseFloat(i.rate);
                   document.getElementById("hardware-price").selectedIndex = 0;
                   document.getElementById('harware-new-rate').value = rates.rate_hardware;
-                  hardware = hardware * parseFloat(rates.rate_hardware);
-                  const slider = parseFloat(i.slider) * parseFloat(rates.slider_hardware);
-                  hardware = hardware + slider;
-                  const lift = parseFloat(i.lift) * parseFloat(rates.lift_hardware);
-                  hardware = hardware + lift;
+                  hardware = computeHardwareContribution(i, rates, "Hinges Price/SET", rates.rate_hardware);
                 }
                 catch (e) {
-                  hardware = i.rate;
+                  hardware = numValue(i.rate);
                 }
                 document.getElementById('unit').value = parseFloat(document.getElementById('unit').value) + hardware;
                 document.getElementById('unit').value = parseFloat(document.getElementById('unit').value).toFixed(2)
@@ -1755,6 +1857,7 @@ document.getElementById('confirm').addEventListener('click', (event) => {
                           "is_quotation": document.getElementById('is_quotation').checked,
                           "gross_amount": document.getElementById('gross-amount').value,
                           "discount": document.getElementById('discount').value,
+                          "show_discount": shouldShowDiscountOnOutput(),
                           "tax": document.getElementById('tax').value,
                           "calculated_tax": document.getElementById('calculated-tax').value,
                           "net": document.getElementById('net').value,
@@ -1804,6 +1907,7 @@ document.getElementById('confirm').addEventListener('click', (event) => {
                     "is_quotation": document.getElementById('is_quotation').checked,
                     "gross_amount": document.getElementById('gross-amount').value,
                     "discount": document.getElementById('discount').value,
+                    "show_discount": shouldShowDiscountOnOutput(),
                     "tax": document.getElementById('tax').value,
                     "calculated_tax": document.getElementById('calculated-tax').value,
                     "net": document.getElementById('net').value,
@@ -1839,9 +1943,7 @@ document.getElementById('confirm').addEventListener('click', (event) => {
         }
         else
         {
-          document.getElementById('cancel').click();
-          document.getElementById('pass').value = "";
-          alert("Invalid Password, Try Again!")
+          window.modalInputFix.showInvalid('pass', 'Invalid Password, Try Again!');
         }
       })
   if(document.getElementById('checkbox-all-open').checked)
@@ -1987,6 +2089,7 @@ document.getElementById('confirm-1').addEventListener('click', (event) => {
 
             document.getElementById('gross-amount').value = i["pinfo"].gross_amount;
             document.getElementById('discount').value = i["pinfo"].discount;
+            setDiscountVisibilityToggle(i["pinfo"].show_discount);
             document.getElementById('tax').value = i["pinfo"].tax;
             document.getElementById('calculated-tax').value = i["pinfo"].calculated_tax;
             document.getElementById('net').value = i["pinfo"].net;
@@ -2147,19 +2250,31 @@ document.getElementById('print').addEventListener('click', async function (event
                   }
                   else
                   {
+                    const showDiscountInOutput = shouldShowDiscountOnOutput();
+                    const invoiceTotalLabels = [
+                      `<p style="color: black; font-size: 10px;"><b>Total:</b></p>`
+                    ];
+                    const invoiceTotalValues = [
+                      `<p style="color: black; font-size: 10px; font-weight: 500">${Intl.NumberFormat('en-US').format(document.getElementById('gross-amount').value)}</p>`
+                    ];
+
+                    if (showDiscountInOutput) {
+                      invoiceTotalLabels.push(`<p style="color: black; font-size: 10px;"><b>Discount:</b></p>`);
+                      invoiceTotalValues.push(`<p style="color: black; font-size: 10px;font-weight: 500">${Intl.NumberFormat('en-US').format(document.getElementById('discount').value)}</p>`);
+                    }
+
+                    invoiceTotalLabels.push(`<p style="color: black; font-size: 10px;"><b>Taxes:</b></p>`);
+                    invoiceTotalLabels.push(`<p style="color: black; font-size: 10px;"><b>Net Value:</b></p>`);
+                    invoiceTotalValues.push(`<p style="color: black; font-size: 10px;font-weight: 500; border-bottom: 1px solid black;">${Intl.NumberFormat('en-US').format(document.getElementById('calculated-tax').value)}</p>`);
+                    invoiceTotalValues.push(`<p style="color: black; font-size: 10px; border-bottom: 1px black double;"><b>${Intl.NumberFormat('en-US').format(document.getElementById('net').value)}</b></p>`);
+
                     qout = `<h3 style="color: black">${res[0].name}</h3>`
                     total = `
                               <div style="display: flex; flex-direction: column; text-align: right; ">
-                                <p style="color: black; font-size: 10px;"><b>Total:</b></p>
-                                <p style="color: black; font-size: 10px;"><b>Discount:</b></p>
-                                <p style="color: black; font-size: 10px;"><b>Taxes:</b></p>
-                                <p style="color: black; font-size: 10px;"><b>Net Value:</b></p>
+                                ${invoiceTotalLabels.join("")}
                             </div>
                             <div style="display: flex; flex-direction: column; width: 60px; text-align: left; margin-left: 10px">
-                                <p style="color: black; font-size: 10px; font-weight: 500">${Intl.NumberFormat('en-US').format(document.getElementById('gross-amount').value)}</p>
-                                <p style="color: black; font-size: 10px;font-weight: 500">${Intl.NumberFormat('en-US').format(document.getElementById('discount').value)}</p>
-                                <p style="color: black; font-size: 10px;font-weight: 500; border-bottom: 1px solid black;">${Intl.NumberFormat('en-US').format(document.getElementById('calculated-tax').value)}</p>
-                                <p style="color: black; font-size: 10px; border-bottom: 1px black double;"><b>${Intl.NumberFormat('en-US').format(document.getElementById('net').value)}</b></p>
+                                ${invoiceTotalValues.join("")}
                             </div>
                           `;
                     name = " Invoice.pdf"
@@ -2458,10 +2573,12 @@ $(document).ready(() => {
   document.getElementById('unit').value = 0;
   document.getElementById('gross-amount').value = 0;
   document.getElementById('discount').value = 0;
+  setDiscountVisibilityToggle(true);
   document.getElementById('net').value = 0;
   document.getElementById('tax').value = 0;
   document.getElementById('tax').disabled = true;
   document.getElementById('discount').disabled = true;
+  refreshNewCostBreakdown();
   document.getElementById('is_quotation').checked = true;
   document.getElementById('calculated-tax').value = 0;
   document.getElementById('code-new-rate').value = 0;

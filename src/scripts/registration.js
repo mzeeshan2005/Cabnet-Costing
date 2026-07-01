@@ -212,7 +212,6 @@ $(document).ready(() => {
 });
 
 document.getElementById('cancel').addEventListener('click', (event) => {
-  event.preventDefault();
   document.getElementById('pass').value = '';
 })
 

@@ -555,8 +555,8 @@
                                 <select id="import-sheet" class="form-control mt-2"></select>
                             </div>
                             <div class="form-group">
-                                <label>Paste from Excel (one row per utility). Supported format: Title</label>
-                                <textarea id="import-text" class="form-control" rows="10" placeholder="Example:\nKitchen\nWardrobe"></textarea>
+                                <label>Preview (loaded from Excel file)</label>
+                                <textarea id="import-text" class="form-control" rows="10" placeholder=""></textarea>
                             </div>
                             <div id="import-result" style="font-size: 12px; color: black"></div>
                         </div>
@@ -575,7 +575,11 @@
       const path1 = require('path')
       const file_manager1 = require(path1.join(__dirname, '../../scripts/file_manager.js'));
       function openModal(a) {
-        document.getElementById('show-modal').click();
+        if (String(a) === '2' && window.appUi && window.appUi.isHeaderAuthUnlocked('header-tools')) {
+          window.appUi.showProtectedDropdown('2');
+          return;
+        }
+        window.modalInputFix.showModal('#staticModal-2');
         document.getElementById('numb').value = a;
       }
 
@@ -586,7 +590,11 @@
               if (res[1].pass === document.getElementById("pass2").value) {
                 if(document.getElementById('numb').value === '2')
                 {
-                  document.getElementById('dpdb1').classList.remove('d-none')
+                  if (window.appUi) window.appUi.unlockHeaderAuth('header-tools');
+
+                  if (window.appUi) window.appUi.showProtectedDropdown('2');
+
+                  else document.getElementById('dpdb1').classList.remove('d-none')
                   document.getElementById('cancel2').click();
                 }
                 else
@@ -597,7 +605,8 @@
                 }
               }
               else {
-                alert("Invalid Password!")
+                window.modalInputFix.showInvalid('pass2', 'Invalid Password!')
+                document.getElementById('pass2').focus(); // Set focus back to the input
               }
             })
       })
@@ -616,6 +625,7 @@
         window.jQuery = window.$ = require('jquery');
     </script>
     <script src="../../../node_modules/bootstrap/dist/js/bootstrap.bundle.js"></script>
+    <script src="../../scripts/modal_input_fix.js"></script>
     <script src="../../vendor/bootstrap-4.1/popper.min.js"></script>
     <!--    <script src="vendor/bootstrap-4.1/bootstrap.min.js"></script>-->
     <!-- Vendor JS       -->

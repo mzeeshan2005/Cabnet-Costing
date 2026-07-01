@@ -739,11 +739,11 @@ if (document.getElementById("import-apply")) {
         const nameEl = document.getElementById("client-name");
         if (nameEl) nameEl.value = "";
         if (window.$) window.$("#importModal").modal("hide");
-        if (result && result.added) alert("Imported " + String(result.added) + " row(s).");
-        else alert("Nothing imported.");
+        if (result && result.added) window.appUi.notify("Imported " + String(result.added) + " row(s).");
+        else window.appUi.notify("Nothing imported.");
       })
       .catch((err) => {
-        alert(err && err.message ? err.message : String(err));
+        window.appUi.notify(err && err.message ? err.message : String(err));
       });
   });
 }
@@ -1194,11 +1194,11 @@ function ensureDepImportBindings() {
         .then((finalRes) => {
           if (window.$) window.$("#depImportModal").modal("hide");
           const added = finalRes && finalRes.added != null ? Number(finalRes.added) : 0;
-          if (added > 0) alert("Imported " + String(added) + " row(s).");
-          else alert("Nothing imported.");
+          if (added > 0) window.appUi.notify("Imported " + String(added) + " row(s).");
+          else window.appUi.notify("Nothing imported.");
         })
         .catch((err) => {
-          alert(err && err.message ? err.message : String(err));
+          window.appUi.notify(err && err.message ? err.message : String(err));
         });
     });
     applyEl.__depBound = true;
@@ -1248,7 +1248,7 @@ function del() {
         .then((res) => {
           if (res === "success") {
             clearFields();
-            alert("Deleted Successfully!");
+            window.appUi.notify("Deleted Successfully!");
             document.getElementById("checkbox-all").checked = false;
             const selected1 = [];
 
@@ -1340,7 +1340,6 @@ document.getElementById("clear").addEventListener("click", (event) => {
 });
 
 document.getElementById('cancel').addEventListener('click', (event) => {
-  event.preventDefault();
   document.getElementById('pass').value = '';
 })
 
@@ -1376,14 +1375,18 @@ document.getElementById("confirm").addEventListener("click", (event) => {
                     )
                     .then((res) => {
                       if (res === "success") {
-                        alert("Saved Successfully!");
+                        window.appUi.notify("Saved Successfully!");
                         document.getElementById("cancel").click();
                         document.getElementById("pass").value = "";
                         listData = [];
                         document.getElementById("save").disabled = true;
                         populateTable();
                       } else {
-                        alert("Could Not Saved!");
+                        if (file_manager.isDuplicateWriteResult(res)) {
+                          window.appUi.notify(file_manager.getDuplicateToolMessage());
+                        } else {
+                          window.appUi.notify("Could Not Saved!");
+                        }
                         document.getElementById("cancel").click();
                         document.getElementById("pass").value = "";
                       }
@@ -1392,9 +1395,7 @@ document.getElementById("confirm").addEventListener("click", (event) => {
         }
         else
         {
-          alert("Password Not Matched!");
-          document.getElementById("cancel").click();
-          document.getElementById("pass").value = "";
+          window.modalInputFix.showInvalid('pass', 'Password Not Matched!');
         }
       }
       else if (opt === 'update') {
@@ -1426,44 +1427,47 @@ document.getElementById("confirm").addEventListener("click", (event) => {
                   file_manager
                       .writeFile(path.join(__dirname, "../../db/.shelves.json"), res)
                       .then((res) => {
-                        populateTable();
-                        clearFields();
-                        document.getElementById('edit').disabled = true
-                        if (listData.length === 0) {
-                          document.getElementById("save").disabled = true;
+                        if (res === "success") {
+                          listData.forEach((d) => {
+                            if (d.id === document.getElementById("id").innerHTML) {
+                              d.title = document.getElementById("client-name").value;
+                              d.utility_id = dd.utility_id;
+                              d.utility = dd.utility;
+                              d.type_id = dd.type_id;
+                              d.type = dd.type;
+                              d.code_id = dd.code_id;
+                              d.code = dd.code;
+                              d.rate = document.getElementById("rate").value;
+                              d.pin = document.getElementById("pin").value;
+                              d.edging = document.getElementById("edging").value;
+                            }
+                          });
+                          populateTable();
+                          clearFields();
+                          document.getElementById('edit').disabled = true
+                          if (listData.length === 0) {
+                            document.getElementById("save").disabled = true;
+                          } else {
+                            document.getElementById("save").disabled = false;
+                          }
+                          document.getElementById("add").disabled = false;
+                          document.getElementById("cancel").click();
+                          document.getElementById("pass").value = "";
+                        } else if (file_manager.isDuplicateWriteResult(res)) {
+                          window.appUi.notify(file_manager.getDuplicateToolMessage());
                         } else {
-                          document.getElementById("save").disabled = false;
+                          window.appUi.notify("Could Not Saved!");
                         }
-                        document.getElementById("add").disabled = false;
                       });
                 });
-            listData.forEach((d) => {
-              if (d.id === document.getElementById("id").innerHTML) {
-                d.title = document.getElementById("client-name").value;
-                d.utility_id = dd.utility_id;
-                d.utility = dd.utility;
-                d.type_id = dd.type_id;
-                d.type = dd.type;
-                d.code_id = dd.code_id;
-                d.code = dd.code;
-                d.rate = document.getElementById("rate").value;
-                d.pin = document.getElementById("pin").value;
-                d.edging = document.getElementById("edging").value;
-              }
-            });
-            populateTable();
-            document.getElementById("cancel").click();
-            document.getElementById("pass").value = "";
           }
           else
           {
-            alert("Password Not Matched!");
-            document.getElementById("cancel").click();
-            document.getElementById("pass").value = "";
+            window.modalInputFix.showInvalid('pass', 'Password Not Matched!');
           }
         }
         else {
-          alert("Incomplete Data! Please fill all fields.")
+          window.appUi.notify("Incomplete Data! Please fill all fields.")
           document.getElementById('cancel').click();
         }
 
@@ -1477,9 +1481,7 @@ document.getElementById("confirm").addEventListener("click", (event) => {
         }
         else
         {
-          alert("Password Not Matched!");
-          document.getElementById("cancel").click();
-          document.getElementById("pass").value = "";
+          window.modalInputFix.showInvalid('pass', 'Password Not Matched!');
         }
       }
     });

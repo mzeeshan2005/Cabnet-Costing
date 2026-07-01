@@ -41,6 +41,7 @@ function toRowsCodes(rows) {
     secondary_top: asNumber(r && r.secondary_top),
     edging: asNumber(r && r.edging),
     screws: asNumber(r && r.screws),
+    wall_bracket: asNumber(r && r.wall_bracket),
   }));
 }
 
@@ -72,6 +73,10 @@ function toRowsHardwares(rows) {
     rate: asNumber(r && r.rate),
     slider: asNumber(r && r.slider),
     lift: asNumber(r && r.lift),
+    hanger_pipe: asNumber(r && r.hanger_pipe),
+    hanger_pipe_fitting: asNumber(r && r.hanger_pipe_fitting),
+    locks: asNumber(r && r.locks),
+    drawer_handles: asNumber(r && r.drawer_handles),
   }));
 }
 
@@ -110,10 +115,10 @@ function jsonToSheet(XLSX, rows, header) {
   return sheet;
 }
 
-function readJsonFile(filePath) {
+async function readJsonFile(filePath) {
   try {
     if (!fs.existsSync(filePath)) return [];
-    const raw = fs.readFileSync(filePath, { encoding: "utf8" });
+    const raw = await fs.promises.readFile(filePath, { encoding: "utf8" });
     if (!raw) return [];
     return JSON.parse(raw);
   } catch (e) {
@@ -182,7 +187,16 @@ function getArgValue(flag) {
   return v != null ? String(v) : "";
 }
 
-function main() {
+function getExcelPath(app) {
+  if (app && app.isPackaged) {
+    const exeDir = path.dirname(process.execPath);
+    return path.join(exeDir, "data", "Tools_Data.xlsx");
+  }
+  // Dev mode: place next to index.js (project root)
+  return path.join(__dirname, "../Tools_Data.xlsx");
+}
+
+async function main(app) {
   const XLSX = require("xlsx");
 
   const dbDir = path.join(__dirname, "../src/db");
@@ -196,18 +210,18 @@ function main() {
     shelves: path.join(dbDir, ".shelves.json"),
   };
 
-  const outPath = path.join(__dirname, "../Tools_Data.xlsx");
+  const outPath = getExcelPath(app);
 
   const sqlitePath = getArgValue("--db") || (process.env.CABINET_COSTING_DB_PATH ? String(process.env.CABINET_COSTING_DB_PATH) : "");
   const fromSqlite = tryReadFromSqlite(sqlitePath);
 
-  const utilities = fromSqlite ? fromSqlite.utilities : readJsonFile(paths.utilities);
-  const types = fromSqlite ? fromSqlite.types : readJsonFile(paths.types);
-  const codes = fromSqlite ? fromSqlite.codes : readJsonFile(paths.codes);
-  const doors = fromSqlite ? fromSqlite.doors : readJsonFile(paths.doors);
-  const hardwares = fromSqlite ? fromSqlite.hardwares : readJsonFile(paths.hardwares);
-  const handlers = fromSqlite ? fromSqlite.handlers : readJsonFile(paths.handlers);
-  const shelves = fromSqlite ? fromSqlite.shelves : readJsonFile(paths.shelves);
+  const utilities = fromSqlite ? fromSqlite.utilities : await readJsonFile(paths.utilities);
+  const types = fromSqlite ? fromSqlite.types : await readJsonFile(paths.types);
+  const codes = fromSqlite ? fromSqlite.codes : await readJsonFile(paths.codes);
+  const doors = fromSqlite ? fromSqlite.doors : await readJsonFile(paths.doors);
+  const hardwares = fromSqlite ? fromSqlite.hardwares : await readJsonFile(paths.hardwares);
+  const handlers = fromSqlite ? fromSqlite.handlers : await readJsonFile(paths.handlers);
+  const shelves = fromSqlite ? fromSqlite.shelves : await readJsonFile(paths.shelves);
 
   const wb = XLSX.utils.book_new();
 
@@ -215,7 +229,7 @@ function main() {
   XLSX.utils.book_append_sheet(wb, jsonToSheet(XLSX, toRowsTypes(types), ["id", "title", "utility_id", "utility"]), "Descriptions");
   XLSX.utils.book_append_sheet(
     wb,
-    jsonToSheet(XLSX, toRowsCodes(codes), ["id", "title", "utility_id", "utility", "type_id", "type", "rate", "back_area", "secondary_top", "edging", "screws"]),
+    jsonToSheet(XLSX, toRowsCodes(codes), ["id", "title", "utility_id", "utility", "type_id", "type", "rate", "back_area", "secondary_top", "edging", "screws", "wall_bracket"]),
     "Codes"
   );
   XLSX.utils.book_append_sheet(
@@ -225,7 +239,7 @@ function main() {
   );
   XLSX.utils.book_append_sheet(
     wb,
-    jsonToSheet(XLSX, toRowsHardwares(hardwares), ["id", "title", "utility_id", "utility", "type_id", "type", "code_id", "code", "rate", "slider", "lift"]),
+    jsonToSheet(XLSX, toRowsHardwares(hardwares), ["id", "title", "utility_id", "utility", "type_id", "type", "code_id", "code", "rate", "slider", "lift", "hanger_pipe", "hanger_pipe_fitting", "locks", "drawer_handles"]),
     "Hardware"
   );
   XLSX.utils.book_append_sheet(
@@ -239,14 +253,11 @@ function main() {
     "Adjustable Shelves"
   );
 
-  XLSX.writeFile(wb, outPath);
-  console.log(outPath);
+  await XLSX.writeFile(wb, outPath);
+  return outPath;
 }
 
-try {
-  main();
-  process.exit(0);
-} catch (e) {
-  console.error(e && e.stack ? e.stack : String(e));
-  process.exit(1);
-}
+module.exports = {
+  getExcelPath,
+  main
+};

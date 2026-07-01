@@ -122,6 +122,5 @@ document.getElementById('clear').addEventListener('click', (event) => {
 })
 
 document.getElementById('cancel').addEventListener('click', (event) => {
-  event.preventDefault();
   document.getElementById('pass').value = '';
 })

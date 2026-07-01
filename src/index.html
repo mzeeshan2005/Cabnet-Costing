@@ -403,43 +403,71 @@
     <script>
       const path = require('path')
       const file_manager = require(path.join(__dirname, 'scripts/file_manager.js'));
-        function openModal(a) {
-          document.getElementById('show-modal').click();
-          document.getElementById('numb').value = a;
+
+      function openModal(a) {
+        // If already unlocked this session, just show the dropdown directly
+        if (String(a) === '2' && window.appUi && window.appUi.isHeaderAuthUnlocked('header-tools')) {
+          window.appUi.showProtectedDropdown('2');
+          return;
         }
+        if (String(a) === '1' && window.appUi && window.appUi.isHeaderAuthUnlocked('header-settings')) {
+          window.appUi.showProtectedDropdown('1');
+          return;
+        }
+        document.getElementById('show-modal').click();
+        document.getElementById('numb').value = a;
+      }
 
-        document.getElementById('confirm').addEventListener('click', (event) => {
-          file_manager
-              .loadFile(path.join(__dirname, "db/.credentials.json"))
-              .then((res) => {
-                if (res[1].pass === document.getElementById("pass").value) {
-                  if(document.getElementById('numb').value === '2')
-                  {
-                    document.getElementById('dpdb1').classList.remove('d-none')
-                    document.getElementById('cancel').click();
-                  }
-                  else
-                  {
-                    document.getElementById('dpdb').classList.remove('d-none')
-                    setTimeout(() => {document.getElementById('dpd').classList.add('show-dropdown')}, 300)
-                    document.getElementById('cancel').click();
-                  }
-                }
+      document.getElementById('confirm').addEventListener('click', (event) => {
+        file_manager
+          .loadFile(path.join(__dirname, "db/.credentials.json"))
+          .then((res) => {
+            if (res[1].pass === document.getElementById("pass").value) {
+              const mode = document.getElementById('numb').value;
+              if (mode === '2') {
+                // Tools — unlock for this session then show
+                if (window.appUi) window.appUi.unlockHeaderAuth('header-tools');
+                if (window.appUi) window.appUi.showProtectedDropdown('2');
+                else document.getElementById('dpdb1').classList.remove('d-none');
+                document.getElementById('cancel').click();
+              } else {
+                // Settings — unlock for this session then show
+                if (window.appUi) window.appUi.unlockHeaderAuth('header-settings');
+                if (window.appUi) window.appUi.showProtectedDropdown('1');
                 else {
-                  alert("Invalid Password!")
+                  document.getElementById('dpdb').classList.remove('d-none');
+                  setTimeout(() => { document.getElementById('dpd').classList.add('show-dropdown'); }, 300);
                 }
-              })
-        })
+                document.getElementById('cancel').click();
+              }
+            } else {
+              window.appUi.notify("Invalid Password!");
+            }
+          });
+      });
 
-      document.getElementById('dpdb').addEventListener('mouseleave', (event) => {
-        document.getElementById('dpdb').classList.add('d-none')
-      })
-      document.getElementById('dpdb1').addEventListener('mouseleave', (event) => {
-        document.getElementById('dpdb1').classList.add('d-none')
-      })
-      document.getElementById('dpd1').addEventListener('mouseleave', (event) => {
-        document.getElementById('dpdb1').classList.add('d-none')
-      })
+      // Hide dropdowns on mouse leave
+      document.getElementById('dpdb').addEventListener('mouseleave', () => {
+        document.getElementById('dpdb').classList.add('d-none');
+      });
+      document.getElementById('dpdb1').addEventListener('mouseleave', () => {
+        document.getElementById('dpdb1').classList.add('d-none');
+      });
+      document.getElementById('dpd1').addEventListener('mouseleave', () => {
+        document.getElementById('dpdb1').classList.add('d-none');
+      });
+
+      // Re-open on hover if already unlocked this session
+      document.getElementById('dpd1').addEventListener('mouseenter', () => {
+        if (window.appUi && window.appUi.isHeaderAuthUnlocked('header-tools')) {
+          window.appUi.showProtectedDropdown('2');
+        }
+      });
+      document.getElementById('dpd').addEventListener('mouseenter', () => {
+        if (window.appUi && window.appUi.isHeaderAuthUnlocked('header-settings')) {
+          window.appUi.showProtectedDropdown('1');
+        }
+      });
     </script>
 
     <!-- Jquery JS-->

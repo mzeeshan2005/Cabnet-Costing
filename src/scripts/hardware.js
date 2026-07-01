@@ -17,6 +17,10 @@ function clearFields() {
   document.getElementById("rate").value = "0";
   document.getElementById("slider").value = "0";
   document.getElementById("lift").value = "0";
+  document.getElementById("hanger-pipe").value = "0";
+  document.getElementById("hanger-pipe-fitting").value = "0";
+  document.getElementById("locks").value = "0";
+  document.getElementById("drawer-handles").value = "0";
   file_manager
     .loadFile(path.join(__dirname, "../../db/.hardwares.json"))
     .then((res) => {
@@ -211,6 +215,10 @@ function edit(event)
             document.getElementById("rate").value = data.rate;
             document.getElementById("slider").value = data.slider;
             document.getElementById("lift").value = data.lift;
+            document.getElementById("hanger-pipe").value = data.hanger_pipe != null ? data.hanger_pipe : "0";
+            document.getElementById("hanger-pipe-fitting").value = data.hanger_pipe_fitting != null ? data.hanger_pipe_fitting : "0";
+            document.getElementById("locks").value = data.locks != null ? data.locks : "0";
+            document.getElementById("drawer-handles").value = data.drawer_handles != null ? data.drawer_handles : "0";
             
             document.getElementById("update").disabled = false;
             document.getElementById("save").disabled = true;
@@ -304,7 +312,7 @@ function renderHardwaresTable(rows) {
   if (!rows || rows.length === 0) {
     tb.innerHTML = `
       <tr class="tr-shadow" style="border-bottom: 2px solid grey">
-        <td style="border: 1px solid black" colspan="5">No Data Added.</td>
+        <td style="border: 1px solid black" colspan="11">No Data Added.</td>
       </tr>`;
     document.getElementById("checkbox-all-box").style.display = "none";
     return;
@@ -327,6 +335,10 @@ function renderHardwaresTable(rows) {
           <td style="border: 1px solid black">${data.rate}</td>
           <td style="border: 1px solid black">${data.slider}</td>
           <td style="border: 1px solid black">${data.lift}</td>
+          <td style="border: 1px solid black">${data.hanger_pipe != null ? data.hanger_pipe : 0}</td>
+          <td style="border: 1px solid black">${data.hanger_pipe_fitting != null ? data.hanger_pipe_fitting : 0}</td>
+          <td style="border: 1px solid black">${data.locks != null ? data.locks : 0}</td>
+          <td style="border: 1px solid black">${data.drawer_handles != null ? data.drawer_handles : 0}</td>
         </tr>`
     )
     .join("");
@@ -447,6 +459,10 @@ function importHardwaresFromText(text) {
   const rateDefault = document.getElementById("rate") ? parseFloat(document.getElementById("rate").value) : 0;
   const sliderDefault = document.getElementById("slider") ? parseFloat(document.getElementById("slider").value) : 0;
   const liftDefault = document.getElementById("lift") ? parseFloat(document.getElementById("lift").value) : 0;
+  const hangerPipeDefault = document.getElementById("hanger-pipe") ? parseFloat(document.getElementById("hanger-pipe").value) : 0;
+  const hangerPipeFittingDefault = document.getElementById("hanger-pipe-fitting") ? parseFloat(document.getElementById("hanger-pipe-fitting").value) : 0;
+  const locksDefault = document.getElementById("locks") ? parseFloat(document.getElementById("locks").value) : 0;
+  const drawerHandlesDefault = document.getElementById("drawer-handles") ? parseFloat(document.getElementById("drawer-handles").value) : 0;
 
   return Promise.all([
     file_manager.loadFile(path.join(__dirname, "../../db/.hardwares.json")),
@@ -566,10 +582,37 @@ function importHardwaresFromText(text) {
       const rateIdx = headerIndex && headerIndex.rate != null ? headerIndex.rate : null;
       const sliderIdx = headerIndex && headerIndex.slider != null ? headerIndex.slider : headerIndex && headerIndex.sliders != null ? headerIndex.sliders : null;
       const liftIdx = headerIndex && headerIndex.lift != null ? headerIndex.lift : headerIndex && headerIndex.lift_up != null ? headerIndex.lift_up : null;
+      const hangerPipeIdx =
+        headerIndex && headerIndex.hanger_pipe != null
+          ? headerIndex.hanger_pipe
+          : headerIndex && headerIndex.hangerpipe != null
+            ? headerIndex.hangerpipe
+            : null;
+      const hangerPipeFittingIdx =
+        headerIndex && headerIndex.hanger_pipe_fitting != null
+          ? headerIndex.hanger_pipe_fitting
+          : headerIndex && headerIndex.pipe_fitting != null
+            ? headerIndex.pipe_fitting
+            : headerIndex && headerIndex.hangerpipefitting != null
+              ? headerIndex.hangerpipefitting
+              : null;
+      const locksIdx = headerIndex && headerIndex.locks != null ? headerIndex.locks : null;
+      const drawerHandlesIdx =
+        headerIndex && headerIndex.drawer_handles != null
+          ? headerIndex.drawer_handles
+          : headerIndex && headerIndex.drawer_handle != null
+            ? headerIndex.drawer_handle
+            : headerIndex && headerIndex.drawerhandles != null
+              ? headerIndex.drawerhandles
+              : null;
 
       const rate = toNumOrFallback(headerIndex ? row[rateIdx] : row[cursor], rateDefault || 0);
       const slider = toNumOrFallback(headerIndex ? row[sliderIdx] : row[cursor + 1], sliderDefault || 0);
       const lift = toNumOrFallback(headerIndex ? row[liftIdx] : row[cursor + 2], liftDefault || 0);
+      const hanger_pipe = toNumOrFallback(headerIndex ? row[hangerPipeIdx] : row[cursor + 3], hangerPipeDefault || 0);
+      const hanger_pipe_fitting = toNumOrFallback(headerIndex ? row[hangerPipeFittingIdx] : row[cursor + 4], hangerPipeFittingDefault || 0);
+      const locks = toNumOrFallback(headerIndex ? row[locksIdx] : row[cursor + 5], locksDefault || 0);
+      const drawer_handles = toNumOrFallback(headerIndex ? row[drawerHandlesIdx] : row[cursor + 6], drawerHandlesDefault || 0);
 
       const utilityRow = utilities.find((u) => u && String(u.id) === String(utilityId));
       const typeRow = types.find((t) => t && String(t.id) === String(typeId));
@@ -584,6 +627,10 @@ function importHardwaresFromText(text) {
         rate: String(rate),
         slider: String(slider),
         lift: String(lift),
+        hanger_pipe: String(hanger_pipe),
+        hanger_pipe_fitting: String(hanger_pipe_fitting),
+        locks: String(locks),
+        drawer_handles: String(drawer_handles),
         utility_id: utilityId,
         utility: utilityText,
         type_id: typeId,
@@ -645,11 +692,11 @@ if (document.getElementById("import-apply")) {
         const nameEl = document.getElementById("client-name");
         if (nameEl) nameEl.value = "";
         if (window.$) window.$("#importModal").modal("hide");
-        if (result && result.added) alert("Imported " + String(result.added) + " row(s).");
-        else alert("Nothing imported.");
+        if (result && result.added) window.appUi.notify("Imported " + String(result.added) + " row(s).");
+        else window.appUi.notify("Nothing imported.");
       })
       .catch((err) => {
-        alert(err && err.message ? err.message : String(err));
+        window.appUi.notify(err && err.message ? err.message : String(err));
       });
   });
 }
@@ -1100,11 +1147,11 @@ function ensureDepImportBindings() {
         .then((finalRes) => {
           if (window.$) window.$("#depImportModal").modal("hide");
           const added = finalRes && finalRes.added != null ? Number(finalRes.added) : 0;
-          if (added > 0) alert("Imported " + String(added) + " row(s).");
-          else alert("Nothing imported.");
+          if (added > 0) window.appUi.notify("Imported " + String(added) + " row(s).");
+          else window.appUi.notify("Nothing imported.");
         })
         .catch((err) => {
-          alert(err && err.message ? err.message : String(err));
+          window.appUi.notify(err && err.message ? err.message : String(err));
         });
     });
     applyEl.__depBound = true;
@@ -1154,7 +1201,7 @@ function del() {
         .then((res) => {
           if (res === "success") {
             clearFields();
-            alert("Deleted Successfully!");
+            window.appUi.notify("Deleted Successfully!");
             document.getElementById("checkbox-all").checked = false;
             const selected1 = [];
             listData.forEach((data) => {
@@ -1206,6 +1253,10 @@ document.getElementById("form").addEventListener("submit", (event) => {
   const rate = document.getElementById("rate").value;
   const slider =  document.getElementById("slider").value;
   const lift = document.getElementById("lift").value;
+  const hanger_pipe = document.getElementById("hanger-pipe").value;
+  const hanger_pipe_fitting = document.getElementById("hanger-pipe-fitting").value;
+  const locks = document.getElementById("locks").value;
+  const drawer_handles = document.getElementById("drawer-handles").value;
   const data = {
     id: id,
     title: name,
@@ -1218,6 +1269,10 @@ document.getElementById("form").addEventListener("submit", (event) => {
     code: text2,
     slider: slider,
     lift: lift,
+    hanger_pipe: hanger_pipe,
+    hanger_pipe_fitting: hanger_pipe_fitting,
+    locks: locks,
+    drawer_handles: drawer_handles,
   };
   listData.push(data);
   file_manager
@@ -1245,7 +1300,6 @@ document.getElementById("clear").addEventListener("click", (event) => {
 });
 
 document.getElementById('cancel').addEventListener('click', (event) => {
-  event.preventDefault();
   document.getElementById('pass').value = '';
 })
 
@@ -1281,14 +1335,18 @@ document.getElementById("confirm").addEventListener("click", (event) => {
                     )
                     .then((res) => {
                       if (res === "success") {
-                        alert("Saved Successfully!");
+                        window.appUi.notify("Saved Successfully!");
                         document.getElementById("cancel").click();
                         document.getElementById("pass").value = "";
                         listData = [];
                         document.getElementById("save").disabled = true;
                         populateTable();
                       } else {
-                        alert("Could Not Saved!");
+                        if (file_manager.isDuplicateWriteResult(res)) {
+                          window.appUi.notify(file_manager.getDuplicateToolMessage());
+                        } else {
+                          window.appUi.notify("Could Not Saved!");
+                        }
                         document.getElementById("cancel").click();
                         document.getElementById("pass").value = "";
                       }
@@ -1297,9 +1355,7 @@ document.getElementById("confirm").addEventListener("click", (event) => {
         }
         else
         {
-          alert("Password Not Matched!");
-          document.getElementById("cancel").click();
-          document.getElementById("pass").value = "";
+          window.modalInputFix.showInvalid('pass', 'Password Not Matched!');
         }
       }
       else if(opt === 'update')
@@ -1310,7 +1366,11 @@ document.getElementById("confirm").addEventListener("click", (event) => {
             document.getElementById('client-name').value.trim().length !== 0 &&
             document.getElementById('rate').value.trim().length !== 0 &&
             document.getElementById("slider").value.trim().length !== "0" &&
-            document.getElementById("lift").value.trim().length !== "0" )
+            document.getElementById("lift").value.trim().length !== "0" &&
+            document.getElementById("hanger-pipe").value.trim().length !== 0 &&
+            document.getElementById("hanger-pipe-fitting").value.trim().length !== 0 &&
+            document.getElementById("locks").value.trim().length !== 0 &&
+            document.getElementById("drawer-handles").value.trim().length !== 0 )
         {
           if (res[1].pass === document.getElementById('pass').value) {
             file_manager
@@ -1328,6 +1388,10 @@ document.getElementById("confirm").addEventListener("click", (event) => {
                       d.rate = document.getElementById("rate").value;
                       d.slider = document.getElementById("slider").value;
                       d.lift = document.getElementById("lift").value;
+                      d.hanger_pipe = document.getElementById("hanger-pipe").value;
+                      d.hanger_pipe_fitting = document.getElementById("hanger-pipe-fitting").value;
+                      d.locks = document.getElementById("locks").value;
+                      d.drawer_handles = document.getElementById("drawer-handles").value;
                     }
                   });
                   file_manager
@@ -1336,42 +1400,51 @@ document.getElementById("confirm").addEventListener("click", (event) => {
                           res
                       )
                       .then((res) => {
-                        document.getElementById('edit').disabled = true
-                        populateTable();
-                        clearFields();
-                        document.getElementById("add").disabled = false;
-                        if (listData.length === 0) {
-                          document.getElementById("save").disabled = true;
+                        if (res === "success") {
+                          listData.forEach((d) => {
+                            if (d.id === document.getElementById("id").innerHTML) {
+                              d.title = document.getElementById("client-name").value;
+                              d.utility_id = dd.utility_id;
+                              d.utility = dd.utility;
+                              d.type_id = dd.type_id;
+                              d.type = dd.type;
+                              d.code_id = dd.code_id;
+                              d.code = dd.code;
+                              d.rate = document.getElementById("rate").value;
+                              d.slider = document.getElementById("slider").value;
+                              d.lift = document.getElementById("lift").value;
+                              d.hanger_pipe = document.getElementById("hanger-pipe").value;
+                              d.hanger_pipe_fitting = document.getElementById("hanger-pipe-fitting").value;
+                              d.locks = document.getElementById("locks").value;
+                              d.drawer_handles = document.getElementById("drawer-handles").value;
+                            }
+                          });
+                          document.getElementById('edit').disabled = true
+                          populateTable();
+                          clearFields();
+                          document.getElementById("add").disabled = false;
+                          if (listData.length === 0) {
+                            document.getElementById("save").disabled = true;
+                          } else {
+                            document.getElementById("save").disabled = false;
+                          }
+                          document.getElementById("cancel").click();
+                          document.getElementById("pass").value = "";
+                        } else if (file_manager.isDuplicateWriteResult(res)) {
+                          window.appUi.notify(file_manager.getDuplicateToolMessage());
                         } else {
-                          document.getElementById("save").disabled = false;
+                          window.appUi.notify("Could Not Saved!");
                         }
                       });
                 });
-            listData.forEach((d) => {
-              if (d.id === document.getElementById("id").innerHTML) {
-                d.title = document.getElementById("client-name").value;
-                d.utility_id = dd.utility_id;
-                d.utility = dd.utility;
-                d.type_id = dd.type_id;
-                d.type = dd.type;
-                d.code_id = dd.code_id;
-                d.code = dd.code;
-                d.rate = document.getElementById("rate").value;
-              }
-            });
-            populateTable();
-            document.getElementById("cancel").click();
-            document.getElementById("pass").value = "";
           }
           else
           {
-            alert("Password Not Matched!");
-            document.getElementById("cancel").click();
-            document.getElementById("pass").value = "";
+            window.modalInputFix.showInvalid('pass', 'Password Not Matched!');
           }
         }
         else {
-          alert("Incomplete Data! Please fill all fields.")
+          window.appUi.notify("Incomplete Data! Please fill all fields.")
           document.getElementById('cancel').click();
         }
 
@@ -1385,9 +1458,7 @@ document.getElementById("confirm").addEventListener("click", (event) => {
         }
         else
         {
-          alert("Password Not Matched!");
-          document.getElementById("cancel").click();
-          document.getElementById("pass").value = "";
+          window.modalInputFix.showInvalid('pass', 'Password Not Matched!');
         }
       }
     });

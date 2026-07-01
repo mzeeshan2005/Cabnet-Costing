@@ -62,6 +62,10 @@ exports.writeFile = async (file, data) => {
   return res;
 };
 
+exports.isDuplicateWriteResult = (res) => res === "duplicate";
+
+exports.getDuplicateToolMessage = () => "Duplicate title already exists in this scope.";
+
 exports.searchCodes = async (query, utility_id, type_id, limit) => {
   const payload = {
     query: query != null ? String(query) : "",
@@ -254,6 +258,13 @@ exports.bindExcelImportControls = (opts) => {
   if (!fileEl || !sheetEl || !textEl) return { reset: () => {}, isBound: false };
 
   let currentPath = "";
+
+  textEl.readOnly = true;
+  textEl.addEventListener("paste", (e) => e.preventDefault());
+  textEl.addEventListener("drop", (e) => e.preventDefault());
+  textEl.addEventListener("beforeinput", (e) => {
+    if (e && e.inputType && e.inputType !== "insertReplacementText") e.preventDefault();
+  });
 
   function reportError(err) {
     const msg = err && err.message ? err.message : String(err);

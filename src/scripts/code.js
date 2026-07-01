@@ -19,6 +19,7 @@ function clearFields() {
   document.getElementById("edging").value = "0";
   document.getElementById("screws").value = "0";
   document.getElementById("secondary-top").value = "0";
+  document.getElementById("wall-bracket").value = "0";
   file_manager
     .loadFile(path.join(__dirname, "../../db/.codes.json"))
     .then((res) => {
@@ -190,6 +191,7 @@ function edit(event){
             document.getElementById("edging").value = data.edging;
             document.getElementById("screws").value = data.screws;
             document.getElementById("secondary-top").value = data.secondary_top;
+            document.getElementById("wall-bracket").value = data.wall_bracket != null ? data.wall_bracket : "0";
             document.getElementById("update").disabled = false;
             document.getElementById("save").disabled = true;
             document.getElementById("clear").disabled = false;
@@ -254,7 +256,7 @@ function renderCodesTable(rows) {
   if (!rows || rows.length === 0) {
     tb.innerHTML = `
       <tr class="tr-shadow" style="border-bottom: 2px solid grey">
-        <td style="border: 1px solid black" colspan="8">No Data Added.</td>
+        <td style="border: 1px solid black" colspan="9">No Data Added.</td>
       </tr>`;
     document.getElementById("checkbox-all-box").style.display = "none";
     return;
@@ -278,6 +280,7 @@ function renderCodesTable(rows) {
           <td style="border: 1px solid black">${data.secondary_top}</td>
           <td style="border: 1px solid black">${data.edging}</td>
           <td style="border: 1px solid black">${data.screws}</td>
+          <td style="border: 1px solid black">${data.wall_bracket != null ? data.wall_bracket : 0}</td>
         </tr>`
     )
     .join("");
@@ -395,6 +398,7 @@ function importCodesFromText(text) {
   const secondaryTopDefault = document.getElementById("secondary-top") ? parseFloat(document.getElementById("secondary-top").value) : 0;
   const edgingDefault = document.getElementById("edging") ? parseFloat(document.getElementById("edging").value) : 0;
   const screwsDefault = document.getElementById("screws") ? parseFloat(document.getElementById("screws").value) : 0;
+  const wallBracketDefault = document.getElementById("wall-bracket") ? parseFloat(document.getElementById("wall-bracket").value) : 0;
 
   return Promise.all([
     file_manager.loadFile(path.join(__dirname, "../../db/.codes.json")),
@@ -497,12 +501,19 @@ function importCodesFromText(text) {
       const secondaryTopIdx = headerIndex && headerIndex.secondary_top != null ? headerIndex.secondary_top : headerIndex && headerIndex.secondarytop != null ? headerIndex.secondarytop : null;
       const edgingIdx = headerIndex && headerIndex.edging != null ? headerIndex.edging : null;
       const screwsIdx = headerIndex && headerIndex.screws != null ? headerIndex.screws : null;
+      const wallBracketIdx =
+        headerIndex && headerIndex.wall_bracket != null
+          ? headerIndex.wall_bracket
+          : headerIndex && headerIndex.wallbracket != null
+            ? headerIndex.wallbracket
+            : null;
 
       const rate = toNumOrFallback(headerIndex ? row[rateIdx] : row[cursor], rateDefault || 0);
       const back_area = toNumOrFallback(headerIndex ? row[backAreaIdx] : row[cursor + 1], backAreaDefault || 0);
       const secondary_top = toNumOrFallback(headerIndex ? row[secondaryTopIdx] : row[cursor + 2], secondaryTopDefault || 0);
       const edging = toNumOrFallback(headerIndex ? row[edgingIdx] : row[cursor + 3], edgingDefault || 0);
       const screws = toNumOrFallback(headerIndex ? row[screwsIdx] : row[cursor + 4], screwsDefault || 0);
+      const wall_bracket = toNumOrFallback(headerIndex ? row[wallBracketIdx] : row[cursor + 5], wallBracketDefault || 0);
 
       const utilityTextRow = utilities.find((u) => u && String(u.id) === String(utilityId));
       const typeTextRow = types.find((t) => t && String(t.id) === String(typeId));
@@ -517,6 +528,7 @@ function importCodesFromText(text) {
         secondary_top: String(secondary_top),
         edging: String(edging),
         screws: String(screws),
+        wall_bracket: String(wall_bracket),
         utility_id: utilityId,
         utility: utilityText,
         type_id: typeId,
@@ -576,11 +588,11 @@ if (document.getElementById("import-apply")) {
         const nameEl = document.getElementById("client-name");
         if (nameEl) nameEl.value = "";
         if (window.$) window.$("#importModal").modal("hide");
-        if (result && result.added) alert("Imported " + String(result.added) + " row(s).");
-        else alert("Nothing imported.");
+        if (result && result.added) window.appUi.notify("Imported " + String(result.added) + " row(s).");
+        else window.appUi.notify("Nothing imported.");
       })
       .catch((err) => {
-        alert(err && err.message ? err.message : String(err));
+        window.appUi.notify(err && err.message ? err.message : String(err));
       });
   });
 }
@@ -830,11 +842,11 @@ function ensureDepImportBindings() {
         .then((finalRes) => {
           if (window.$) window.$("#depImportModal").modal("hide");
           const added = finalRes && finalRes.added != null ? Number(finalRes.added) : 0;
-          if (added > 0) alert("Imported " + String(added) + " row(s).");
-          else alert("Nothing imported.");
+          if (added > 0) window.appUi.notify("Imported " + String(added) + " row(s).");
+          else window.appUi.notify("Nothing imported.");
         })
         .catch((err) => {
-          alert(err && err.message ? err.message : String(err));
+          window.appUi.notify(err && err.message ? err.message : String(err));
         });
     });
     applyEl.__depBound = true;
@@ -875,6 +887,7 @@ document.getElementById("form").addEventListener("submit", (event) => {
   const edging = document.getElementById("edging").value;
   const screws = document.getElementById("screws").value;
   const secondary_top = document.getElementById("secondary-top").value;
+  const wall_bracket = document.getElementById("wall-bracket").value;
   const data = {
     id: id,
     title: name,
@@ -883,6 +896,7 @@ document.getElementById("form").addEventListener("submit", (event) => {
     edging: edging,
     screws: screws,
     secondary_top: secondary_top,
+    wall_bracket: wall_bracket,
     utility_id: value,
     utility: text,
     type_id: value1,
@@ -914,7 +928,6 @@ document.getElementById("clear").addEventListener("click", (event) => {
 });
 
 document.getElementById('cancel').addEventListener('click', (event) => {
-  event.preventDefault();
   document.getElementById('pass').value = '';
 })
 
@@ -949,14 +962,18 @@ document.getElementById("confirm").addEventListener("click", (event) => {
                     )
                     .then((res) => {
                       if (res === "success") {
-                        alert("Saved Successfully!");
+                          window.appUi.notify("Saved Successfully!");
                         document.getElementById("cancel").click();
                         document.getElementById("pass").value = "";
                         listData = [];
                         document.getElementById("save").disabled = true;
                         populateTable();
                       } else {
-                        alert("Could Not Saved!");
+                        if (file_manager.isDuplicateWriteResult(res)) {
+                          window.appUi.notify(file_manager.getDuplicateToolMessage());
+                        } else {
+                          window.appUi.notify("Could Not Saved!");
+                        }
                         document.getElementById("cancel").click();
                         document.getElementById("pass").value = "";
                       }
@@ -965,9 +982,7 @@ document.getElementById("confirm").addEventListener("click", (event) => {
         }
         else
         {
-          alert("Password Not Matched!");
-          document.getElementById("cancel").click();
-          document.getElementById("pass").value = "";
+          window.modalInputFix.showInvalid('pass', 'Password Not Matched!');
         }
       }
       else if (opt === 'update')
@@ -979,7 +994,8 @@ document.getElementById("confirm").addEventListener("click", (event) => {
             document.getElementById("back-area").value.trim().length !== 0 &&
             document.getElementById("edging").value.trim().length !== 0 &&
             document.getElementById("screws").value.trim().length !== 0 &&
-            document.getElementById("secondary-top").value.trim().length !== 0 )
+            document.getElementById("secondary-top").value.trim().length !== 0 &&
+            document.getElementById("wall-bracket").value.trim().length !== 0 )
         {
           if(res[1].pass === document.getElementById('pass').value)
           {
@@ -998,49 +1014,54 @@ document.getElementById("confirm").addEventListener("click", (event) => {
                       d.edging = document.getElementById("edging").value;
                       d.screws = document.getElementById("screws").value;
                       d.secondary_top = document.getElementById("secondary-top").value;
+                      d.wall_bracket = document.getElementById("wall-bracket").value;
                     }
                   });
                   file_manager
                       .writeFile(path.join(__dirname, "../../db/.codes.json"), res)
                       .then((res) => {
-                        document.getElementById('edit').disabled = true;
-                        populateTable();
-                        clearFields();
-                        if (listData.length === 0) {
-                          document.getElementById("save").disabled = true;
+                        if (res === "success") {
+                          listData.forEach((d) => {
+                            if (d.id === document.getElementById("id").innerHTML) {
+                              d.title = document.getElementById("client-name").value;
+                              d.utility_id = dd.utility_id;
+                              d.utility = dd.utility;
+                              d.type_id = dd.type_id;
+                              d.type = dd.type
+                              d.rate = document.getElementById("rate").value;
+                              d.back_area = document.getElementById("back-area").value;
+                              d.edging = document.getElementById("edging").value;
+                              d.screws = document.getElementById("screws").value;
+                              d.secondary_top = document.getElementById("secondary-top").value;
+                              d.wall_bracket = document.getElementById("wall-bracket").value;
+                            }
+                          });
+                          document.getElementById('edit').disabled = true;
+                          populateTable();
+                          clearFields();
+                          if (listData.length === 0) {
+                            document.getElementById("save").disabled = true;
+                          } else {
+                            document.getElementById("save").disabled = false;
+                          }
+                          document.getElementById("add").disabled = false;
+                          document.getElementById("cancel").click();
+                          document.getElementById("pass").value = "";
+                        } else if (file_manager.isDuplicateWriteResult(res)) {
+                          window.appUi.notify(file_manager.getDuplicateToolMessage());
                         } else {
-                          document.getElementById("save").disabled = false;
+                          window.appUi.notify("Could Not Saved!");
                         }
-                        document.getElementById("add").disabled = false;
                       });
                 });
-            listData.forEach((d) => {
-              if (d.id === document.getElementById("id").innerHTML) {
-                d.title = document.getElementById("client-name").value;
-                d.utility_id = dd.utility_id;
-                d.utility = dd.utility;
-                d.type_id = dd.type_id;
-                d.type = dd.type
-                d.rate = document.getElementById("rate").value;
-                d.back_area = document.getElementById("back-area").value;
-                d.edging = document.getElementById("edging").value;
-                d.screws = document.getElementById("screws").value;
-                d.secondary_top = document.getElementById("secondary-top").value;
-              }
-            });
-            populateTable();
-            document.getElementById("cancel").click();
-            document.getElementById("pass").value = "";
           }
           else
           {
-            alert("Password Not Matched!");
-            document.getElementById("cancel").click();
-            document.getElementById("pass").value = "";
+            window.modalInputFix.showInvalid('pass', 'Password Not Matched!');
           }
         }
         else {
-          alert("Incomplete Data! Please fill all fields.")
+          window.appUi.notify("Incomplete Data! Please fill all fields.")
           document.getElementById('cancel').click();
         }
 
@@ -1054,9 +1075,7 @@ document.getElementById("confirm").addEventListener("click", (event) => {
         }
         else
         {
-          alert("Password Not Matched!");
-          document.getElementById("cancel").click();
-          document.getElementById("pass").value = "";
+          window.modalInputFix.showInvalid('pass', 'Password Not Matched!');
         }
       }
     });
@@ -1207,7 +1226,7 @@ function del() {
         .then((res) => {
           if (res === "success") {
             document.getElementById('edit').disabled = true
-            alert("Deleted Successfully!");
+            window.appUi.notify("Deleted Successfully!");
             document.getElementById("checkbox-all").checked = false;
             const selected1 = [];
 

@@ -101,7 +101,8 @@ function getDefaultToolsExcelPath() {
     ensureDir(dataDir);
     return path.join(dataDir, "Tools_Data.xlsx");
   }
-  return path.join(app.getPath("userData"), "Tools_Data.xlsx");
+  // Dev mode: place next to index.js (project root)
+  return path.join(__dirname, "../../Tools_Data.xlsx");
 }
 
 function exportToolsExcel(outPath) {
@@ -151,7 +152,7 @@ function exportToolsExcel(outPath) {
       .all();
     hardwares = database
       .prepare(
-        "SELECT h.id, h.title, h.utility_id, u.title AS utility, h.type_id, t.title AS type, h.code_id, c.title AS code, h.rate, h.slider, h.lift FROM hardwares h LEFT JOIN utilities u ON u.id = h.utility_id LEFT JOIN types t ON t.id = h.type_id LEFT JOIN codes c ON c.id = h.code_id ORDER BY h.id"
+        "SELECT h.id, h.title, h.utility_id, u.title AS utility, h.type_id, t.title AS type, h.code_id, c.title AS code, h.rate, h.slider, h.lift, h.hanger_pipe, h.hanger_pipe_fitting, h.locks, h.drawer_handles FROM hardwares h LEFT JOIN utilities u ON u.id = h.utility_id LEFT JOIN types t ON t.id = h.type_id LEFT JOIN codes c ON c.id = h.code_id ORDER BY h.id"
       )
       .all();
     handlers = database
@@ -265,8 +266,12 @@ function exportToolsExcel(outPath) {
         rate: toNumStr(r.rate),
         slider: toNumStr(r.slider),
         lift: toNumStr(r.lift),
+        hanger_pipe: toNumStr(r.hanger_pipe),
+        hanger_pipe_fitting: toNumStr(r.hanger_pipe_fitting),
+        locks: toNumStr(r.locks),
+        drawer_handles: toNumStr(r.drawer_handles),
       })),
-      { header: ["id", "title", "utility_id", "utility", "type_id", "type", "code_id", "code", "rate", "slider", "lift"], skipHeader: false }
+      { header: ["id", "title", "utility_id", "utility", "type_id", "type", "code_id", "code", "rate", "slider", "lift", "hanger_pipe", "hanger_pipe_fitting", "locks", "drawer_handles"], skipHeader: false }
     ),
     "Hardware"
   );
@@ -487,6 +492,10 @@ function initSchema(database) {
       rate REAL NOT NULL,
       slider REAL NOT NULL,
       lift REAL NOT NULL,
+      hanger_pipe REAL NOT NULL DEFAULT 0,
+      hanger_pipe_fitting REAL NOT NULL DEFAULT 0,
+      locks REAL NOT NULL DEFAULT 0,
+      drawer_handles REAL NOT NULL DEFAULT 0,
       utility_id INTEGER,
       type_id INTEGER,
       code_id INTEGER
@@ -524,6 +533,154 @@ function initSchema(database) {
     CREATE INDEX IF NOT EXISTS idx_shelves_type_id ON shelves(type_id);
     CREATE INDEX IF NOT EXISTS idx_shelves_code_id ON shelves(code_id);
   `);
+
+  // ALTER TABLE migrations for existing databases — safe to run multiple times
+  const hardwaresCols = database.prepare("PRAGMA table_info(hardwares)").all().map((c) => c.name);
+  if (!hardwaresCols.includes("hanger_pipe")) database.exec("ALTER TABLE hardwares ADD COLUMN hanger_pipe REAL NOT NULL DEFAULT 0");
+  if (!hardwaresCols.includes("hanger_pipe_fitting")) database.exec("ALTER TABLE hardwares ADD COLUMN hanger_pipe_fitting REAL NOT NULL DEFAULT 0");
+  if (!hardwaresCols.includes("locks")) database.exec("ALTER TABLE hardwares ADD COLUMN locks REAL NOT NULL DEFAULT 0");
+  if (!hardwaresCols.includes("drawer_handles")) database.exec("ALTER TABLE hardwares ADD COLUMN drawer_handles REAL NOT NULL DEFAULT 0");
+}
+
+function normalizedToolTitle(value) {
+  return value != null ? String(value).trim().toLowerCase() : "";
+}
+
+function scopedToolPart(value) {
+  return value != null ? String(value).trim() : "";
+}
+
+function duplicateToolKey(base, row) {
+  const title = normalizedToolTitle(row && row.title);
+  if (!title) return "";
+
+  if (base === ".utilities.json") {
+    return title;
+  }
+
+  if (base === ".types.json") {
+    return `${scopedToolPart(row && row.utility_id)}::${title}`;
+  }
+
+  if (base === ".codes.json") {
+    return `${scopedToolPart(row && row.utility_id)}::${scopedToolPart(row && row.type_id)}::${title}`;
+  }
+
+  if (
+    base === ".doors.json" ||
+    base === ".hardwares.json" ||
+    base === ".handlers.json" ||
+    base === ".shelves.json"
+  ) {
+    return `${scopedToolPart(row && row.utility_id)}::${scopedToolPart(row && row.type_id)}::${scopedToolPart(row && row.code_id)}::${title}`;
+  }
+
+  return "";
+}
+
+function hasDuplicateToolRows(base, data) {
+  if (!Array.isArray(data)) return false;
+  const seen = new Set();
+
+  for (const row of data) {
+    const key = duplicateToolKey(base, row);
+    if (!key) continue;
+    if (seen.has(key)) return true;
+    seen.add(key);
+  }
+
+  return false;
+}
+
+function mergeDuplicateIds(database, table, groupByColumns, childRefs) {
+  const groupExpr = groupByColumns.concat(["LOWER(TRIM(title))"]).join(", ");
+  const rows = database
+    .prepare(
+      `
+        SELECT MIN(id) AS keep_id, GROUP_CONCAT(id) AS ids
+        FROM ${table}
+        GROUP BY ${groupExpr}
+        HAVING COUNT(*) > 1
+      `
+    )
+    .all();
+
+  if (!rows || rows.length === 0) return;
+
+  const updates = (childRefs || []).map((ref) =>
+    database.prepare(`UPDATE ${ref.table} SET ${ref.column} = ? WHERE ${ref.column} = ?`)
+  );
+  const del = database.prepare(`DELETE FROM ${table} WHERE id = ?`);
+
+  for (const row of rows) {
+    const keepId = row && row.keep_id != null ? Number(row.keep_id) : null;
+    const ids = row && row.ids != null ? String(row.ids).split(",").map((v) => Number(v)) : [];
+    if (keepId == null || !ids.length) continue;
+
+    for (const id of ids) {
+      if (id === keepId || Number.isNaN(id)) continue;
+      for (const stmt of updates) stmt.run(keepId, id);
+      del.run(id);
+    }
+  }
+}
+
+function mergeAndConstrainToolTables(database) {
+  const tx = database.transaction(() => {
+    mergeDuplicateIds(database, "utilities", [], [
+      { table: "types", column: "utility_id" },
+      { table: "codes", column: "utility_id" },
+      { table: "doors", column: "utility_id" },
+      { table: "hardwares", column: "utility_id" },
+      { table: "handlers", column: "utility_id" },
+      { table: "shelves", column: "utility_id" },
+    ]);
+
+    mergeDuplicateIds(database, "types", ["COALESCE(utility_id, -1)"], [
+      { table: "codes", column: "type_id" },
+      { table: "doors", column: "type_id" },
+      { table: "hardwares", column: "type_id" },
+      { table: "handlers", column: "type_id" },
+      { table: "shelves", column: "type_id" },
+    ]);
+
+    mergeDuplicateIds(database, "codes", ["COALESCE(utility_id, -1)", "COALESCE(type_id, -1)"], [
+      { table: "doors", column: "code_id" },
+      { table: "hardwares", column: "code_id" },
+      { table: "handlers", column: "code_id" },
+      { table: "shelves", column: "code_id" },
+    ]);
+
+    mergeDuplicateIds(database, "doors", ["COALESCE(utility_id, -1)", "COALESCE(type_id, -1)", "COALESCE(code_id, -1)"], []);
+    mergeDuplicateIds(database, "hardwares", ["COALESCE(utility_id, -1)", "COALESCE(type_id, -1)", "COALESCE(code_id, -1)"], []);
+    mergeDuplicateIds(database, "handlers", ["COALESCE(utility_id, -1)", "COALESCE(type_id, -1)", "COALESCE(code_id, -1)"], []);
+    mergeDuplicateIds(database, "shelves", ["COALESCE(utility_id, -1)", "COALESCE(type_id, -1)", "COALESCE(code_id, -1)"], []);
+
+    database.exec(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_utilities_unique_title_nocase
+      ON utilities(LOWER(TRIM(title)));
+
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_types_unique_scope_title
+      ON types(COALESCE(utility_id, -1), LOWER(TRIM(title)));
+
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_codes_unique_scope_title
+      ON codes(COALESCE(utility_id, -1), COALESCE(type_id, -1), LOWER(TRIM(title)));
+
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_doors_unique_scope_title
+      ON doors(COALESCE(utility_id, -1), COALESCE(type_id, -1), COALESCE(code_id, -1), LOWER(TRIM(title)));
+
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_hardwares_unique_scope_title
+      ON hardwares(COALESCE(utility_id, -1), COALESCE(type_id, -1), COALESCE(code_id, -1), LOWER(TRIM(title)));
+
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_handlers_unique_scope_title
+      ON handlers(COALESCE(utility_id, -1), COALESCE(type_id, -1), COALESCE(code_id, -1), LOWER(TRIM(title)));
+
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_shelves_unique_scope_title
+      ON shelves(COALESCE(utility_id, -1), COALESCE(type_id, -1), COALESCE(code_id, -1), LOWER(TRIM(title)));
+    `);
+  });
+
+  tx();
 }
 
 function getMeta(database, key) {
@@ -876,13 +1033,17 @@ function migrateDoors(database, json) {
 
 function migrateHardwares(database, json) {
   const insert = database.prepare(`
-    INSERT INTO hardwares (id, title, rate, slider, lift, utility_id, type_id, code_id)
-    VALUES (@id, @title, @rate, @slider, @lift, @utility_id, @type_id, @code_id)
+    INSERT INTO hardwares (id, title, rate, slider, lift, hanger_pipe, hanger_pipe_fitting, locks, drawer_handles, utility_id, type_id, code_id)
+    VALUES (@id, @title, @rate, @slider, @lift, @hanger_pipe, @hanger_pipe_fitting, @locks, @drawer_handles, @utility_id, @type_id, @code_id)
     ON CONFLICT(id) DO UPDATE SET
       title=excluded.title,
       rate=excluded.rate,
       slider=excluded.slider,
       lift=excluded.lift,
+      hanger_pipe=excluded.hanger_pipe,
+      hanger_pipe_fitting=excluded.hanger_pipe_fitting,
+      locks=excluded.locks,
+      drawer_handles=excluded.drawer_handles,
       utility_id=excluded.utility_id,
       type_id=excluded.type_id,
       code_id=excluded.code_id
@@ -896,6 +1057,10 @@ function migrateHardwares(database, json) {
       rate: h && h.rate != null ? Number(h.rate) : 0,
       slider: h && h.slider != null ? Number(h.slider) : 0,
       lift: h && h.lift != null ? Number(h.lift) : 0,
+      hanger_pipe: h && h.hanger_pipe != null ? Number(h.hanger_pipe) : 0,
+      hanger_pipe_fitting: h && h.hanger_pipe_fitting != null ? Number(h.hanger_pipe_fitting) : 0,
+      locks: h && h.locks != null ? Number(h.locks) : 0,
+      drawer_handles: h && h.drawer_handles != null ? Number(h.drawer_handles) : 0,
       utility_id: h && h.utility_id != null ? Number(h.utility_id) : null,
       type_id: h && h.type_id != null ? Number(h.type_id) : null,
       code_id: h && h.code_id != null ? Number(h.code_id) : null,
@@ -1072,6 +1237,7 @@ function loadFromSqlite(database, base) {
     const rows = database
       .prepare(
         `SELECT h.id, h.title, h.rate, h.slider, h.lift,
+                h.hanger_pipe, h.hanger_pipe_fitting, h.locks, h.drawer_handles,
                 h.utility_id, u.title AS utility,
                 h.type_id, t.title AS type,
                 h.code_id, c.title AS code
@@ -1088,6 +1254,10 @@ function loadFromSqlite(database, base) {
       rate: String(r.rate),
       slider: String(r.slider),
       lift: String(r.lift),
+      hanger_pipe: String(r.hanger_pipe != null ? r.hanger_pipe : 0),
+      hanger_pipe_fitting: String(r.hanger_pipe_fitting != null ? r.hanger_pipe_fitting : 0),
+      locks: String(r.locks != null ? r.locks : 0),
+      drawer_handles: String(r.drawer_handles != null ? r.drawer_handles : 0),
       utility_id: r.utility_id != null ? String(r.utility_id) : "",
       utility: r.utility != null ? r.utility : "",
       type_id: r.type_id != null ? String(r.type_id) : "",
@@ -1394,6 +1564,9 @@ function load(filePath) {
 
 function write(filePath, data) {
   const base = path.basename(filePath);
+  if (hasDuplicateToolRows(base, data)) {
+    return "duplicate";
+  }
   if (!SQLITE_TARGET_BASENAMES.has(base)) {
     fs.writeFileSync(filePath, JSON.stringify(data));
     return "success";
@@ -1420,6 +1593,8 @@ function migrateAllLegacyFiles() {
     const filePath = path.join(dbDir, base);
     ensureMigratedForFile(database, filePath);
   }
+
+  mergeAndConstrainToolTables(database);
 }
 
 function searchCodes(opts) {
@@ -1666,6 +1841,7 @@ function searchHardwares(opts) {
   let sql = `
     SELECT
       h.id, h.title, h.rate, h.slider, h.lift,
+      h.hanger_pipe, h.hanger_pipe_fitting, h.locks, h.drawer_handles,
       h.utility_id, u.title AS utility,
       h.type_id, t.title AS type,
       h.code_id, c.title AS code
@@ -1688,6 +1864,10 @@ function searchHardwares(opts) {
       rate: String(r.rate),
       slider: String(r.slider),
       lift: String(r.lift),
+      hanger_pipe: String(r.hanger_pipe != null ? r.hanger_pipe : 0),
+      hanger_pipe_fitting: String(r.hanger_pipe_fitting != null ? r.hanger_pipe_fitting : 0),
+      locks: String(r.locks != null ? r.locks : 0),
+      drawer_handles: String(r.drawer_handles != null ? r.drawer_handles : 0),
       utility_id: r.utility_id != null ? String(r.utility_id) : "",
       utility: r.utility != null ? r.utility : "",
       type_id: r.type_id != null ? String(r.type_id) : "",

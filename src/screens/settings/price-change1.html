@@ -654,6 +654,10 @@
   const path1 = require('path')
   const file_manager1 = require(path1.join(__dirname, '../../scripts/file_manager.js'));
   function openModal(a) {
+        if (String(a) === '2' && window.appUi && window.appUi.isHeaderAuthUnlocked('header-tools')) {
+          window.appUi.showProtectedDropdown('2');
+          return;
+        }
     document.getElementById('show-modal').click();
     document.getElementById('numb').value = a;
   }
@@ -665,7 +669,11 @@
           if (res[1].pass === document.getElementById("pass2").value) {
             if(document.getElementById('numb').value === '2')
             {
-              document.getElementById('dpdb1').classList.remove('d-none')
+              if (window.appUi) window.appUi.unlockHeaderAuth('header-tools');
+
+              if (window.appUi) window.appUi.showProtectedDropdown('2');
+
+              else document.getElementById('dpdb1').classList.remove('d-none')
               document.getElementById('cancel2').click();
             }
             else

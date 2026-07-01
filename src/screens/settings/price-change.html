@@ -40,7 +40,7 @@
 
 </head>
 
-<body class="animsition" id="body" style="overflow: hidden">
+<body class="animsition" id="body" style="overflow-x: hidden; overflow-y: auto;">
 <div class="page-wrapper">
     <!-- HEADER DESKTOP-->
     <header class="header-desktop3 d-none d-lg-block">
@@ -371,13 +371,9 @@
                         >
                           <fieldset id="fieldset">
 
-                            <div class="mb-1 row form-group">
-                              <div class="col col-md-7">
-                                <label for="profit-margin-percentage" style="margin-top: 5px;" class="form-control-label">Global Profit Margin (%)</label>
-                              </div>
-                              <div class="col-12 col-md-5">
-                                <input type="number" id="profit-margin-percentage" step="any" min="0" placeholder="Enter %" class="form-control" value="0" required />
-                              </div>
+                            <div class="mb-1 form-group" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                              <label for="profit-margin-percentage" style="margin-top: 0; margin-bottom: 0;" class="form-control-label">Global Profit Margin (%)</label>
+                              <input type="number" id="profit-margin-percentage" step="any" min="0" placeholder="Enter %" class="form-control" style="width: 160px;" value="0" required />
                             </div>
 
                             <div class="row">
@@ -473,6 +469,25 @@
                                       <input
                                         type="number"
                                         id="screws-codes"
+                                        placeholder="Enter Unit Rate"
+                                        class="form-control"
+                                        value="0"
+                                        step="any"
+                                        required
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <div class="mb-1 row form-group">
+                                    <div class="col col-md-7">
+                                      <label for="rate" class="form-control-label" style="margin-top: 5px;"
+                                        >Wall Bracket Price / PC</label
+                                      >
+                                    </div>
+                                    <div class="col-12 col-md-5">
+                                      <input
+                                        type="number"
+                                        id="wall-bracket-codes"
                                         placeholder="Enter Unit Rate"
                                         class="form-control"
                                         value="0"
@@ -586,6 +601,63 @@
                                     </div>
                                   </div>
 
+                                  <div class="mb-1 row form-group">
+                                    <div class="col col-md-7">
+                                      <label for="rate" class="form-control-label" style="margin-top: 5px;"
+                                        >Hanger Pipe Price / PC</label
+                                      >
+                                    </div>
+                                    <div class="col-12 col-md-5">
+                                      <input
+                                        type="number"
+                                        id="hanger-pipe-hardware"
+                                        placeholder="Enter Unit Rate"
+                                        class="form-control"
+                                        value="0"
+                                        step="any"
+                                        required
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <div class="mb-1 row form-group">
+                                    <div class="col col-md-7">
+                                      <label for="rate" class="form-control-label" style="margin-top: 5px;"
+                                        >Pipe Fitting Price / PC</label
+                                      >
+                                    </div>
+                                    <div class="col-12 col-md-5">
+                                      <input
+                                        type="number"
+                                        id="hanger-pipe-fitting-hardware"
+                                        placeholder="Enter Unit Rate"
+                                        class="form-control"
+                                        value="0"
+                                        step="any"
+                                        required
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <div class="mb-1 row form-group">
+                                    <div class="col col-md-7">
+                                      <label for="rate" class="form-control-label" style="margin-top: 5px;"
+                                        >Locks Price / PC</label
+                                      >
+                                    </div>
+                                    <div class="col-12 col-md-5">
+                                      <input
+                                        type="number"
+                                        id="locks-hardware"
+                                        placeholder="Enter Unit Rate"
+                                        class="form-control"
+                                        value="0"
+                                        step="any"
+                                        required
+                                      />
+                                    </div>
+                                  </div>
+
                                 <h3 class="my-2">Handles</h2>
   
                                   <div class="mb-1 row form-group">
@@ -598,6 +670,25 @@
                                       <input
                                         type="number"
                                         id="rate-handles"
+                                        placeholder="Enter Unit Rate"
+                                        class="form-control"
+                                        value="0"
+                                        step="any"
+                                        required
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <div class="mb-1 row form-group">
+                                    <div class="col col-md-7">
+                                      <label for="rate" class="form-control-label" style="margin-top: 5px;"
+                                        >Drawer Handle Price / PC</label
+                                      >
+                                    </div>
+                                    <div class="col-12 col-md-5">
+                                      <input
+                                        type="number"
+                                        id="drawer-handle-rate"
                                         placeholder="Enter Unit Rate"
                                         class="form-control"
                                         value="0"
@@ -797,6 +888,10 @@
   const path1 = require('path')
   const file_manager1 = require(path1.join(__dirname, '../../scripts/file_manager.js'));
   function openModal(a) {
+        if (String(a) === '2' && window.appUi && window.appUi.isHeaderAuthUnlocked('header-tools')) {
+          window.appUi.showProtectedDropdown('2');
+          return;
+        }
     document.getElementById('show-modal').click();
     document.getElementById('numb').value = a;
   }
@@ -808,7 +903,11 @@
           if (res[1].pass === document.getElementById("pass2").value) {
             if(document.getElementById('numb').value === '2')
             {
-              document.getElementById('dpdb1').classList.remove('d-none')
+              if (window.appUi) window.appUi.unlockHeaderAuth('header-tools');
+
+              if (window.appUi) window.appUi.showProtectedDropdown('2');
+
+              else document.getElementById('dpdb1').classList.remove('d-none')
               document.getElementById('cancel2').click();
             }
             else

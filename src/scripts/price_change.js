@@ -17,6 +17,11 @@ function persistProfitMarginPercentage(pct) {
   return file_manager.setSystemConfig({ profit_margin_percentage: pct });
 }
 
+function rateValue(obj, key) {
+  if (!obj || obj[key] == null || obj[key] === "") return 0;
+  return obj[key];
+}
+
 $(document).ready(() => {
   file_manager
       .loadFile(path.join(__dirname, "../../db/.rates.json"))
@@ -26,12 +31,17 @@ $(document).ready(() => {
         document.getElementById('secondary-top-codes').value = res.secondary_top_codes;
         document.getElementById('edging-codes').value = res.edging_codes;
         document.getElementById('screws-codes').value = res.screws_codes;
+        document.getElementById('wall-bracket-codes').value = rateValue(res, 'wall_bracket_codes');
         document.getElementById('rate-doors').value = res.rate_doors;
         document.getElementById('edging-doors').value = res.edging_doors;
         document.getElementById('rate-hardware').value = res.rate_hardware;
         document.getElementById('slider-hardware').value = res.slider_hardware;
         document.getElementById('lift-hardware').value = res.lift_hardware;
+        document.getElementById('hanger-pipe-hardware').value = rateValue(res, 'hanger_pipe_hardware');
+        document.getElementById('hanger-pipe-fitting-hardware').value = rateValue(res, 'hanger_pipe_fitting_hardware');
+        document.getElementById('locks-hardware').value = rateValue(res, 'locks_hardware');
         document.getElementById('rate-handles').value = res.rate_handles;
+        document.getElementById('drawer-handle-rate').value = rateValue(res, 'drawer_handle_rate');
         document.getElementById('rate-shelve').value = res.rate_shelve;
         document.getElementById('pin-shelve').value = res.pin_shelve;
         document.getElementById('edging-shelve').value = res.edging_shelve;
@@ -59,7 +69,6 @@ $(document).ready(() => {
 });
 
 document.getElementById('cancel').addEventListener('click', (event) => {
-  event.preventDefault();
   document.getElementById('pass').value = '';
 })
 
@@ -74,13 +83,18 @@ document.getElementById("confirm").addEventListener("click", (event) => {
             "back_area_codes": "10",
             "edging_codes": "10",
             "screws_codes": "10",
+            "wall_bracket_codes": "10",
             "secondary_top_codes": "10",
             "rate_doors": "10",
             "edging_doors": "10",
             "rate_hardware": "10",
             "slider_hardware": "10",
             "lift_hardware": "10",
+            "hanger_pipe_hardware": "10",
+            "hanger_pipe_fitting_hardware": "10",
+            "locks_hardware": "10",
             "rate_handles": "10",
+            "drawer_handle_rate": "10",
             "rate_shelve": "10",
             "edging_shelve": "10",
             "pin_shelve": "10"
@@ -90,12 +104,17 @@ document.getElementById("confirm").addEventListener("click", (event) => {
           prices.secondary_top_codes = document.getElementById('secondary-top-codes').value;
           prices.edging_codes = document.getElementById('edging-codes').value;
           prices.screws_codes = document.getElementById('screws-codes').value;
+          prices.wall_bracket_codes = document.getElementById('wall-bracket-codes').value;
           prices.rate_doors = document.getElementById('rate-doors').value;
           prices.edging_doors = document.getElementById('edging-doors').value;
           prices.rate_hardware = document.getElementById('rate-hardware').value;
           prices.slider_hardware =  document.getElementById('slider-hardware').value;
           prices.lift_hardware = document.getElementById('lift-hardware').value;
+          prices.hanger_pipe_hardware = document.getElementById('hanger-pipe-hardware').value;
+          prices.hanger_pipe_fitting_hardware = document.getElementById('hanger-pipe-fitting-hardware').value;
+          prices.locks_hardware = document.getElementById('locks-hardware').value;
           prices.rate_handles = document.getElementById('rate-handles').value;
+          prices.drawer_handle_rate = document.getElementById('drawer-handle-rate').value;
           prices.rate_shelve = document.getElementById('rate-shelve').value;
           prices.pin_shelve = document.getElementById('pin-shelve').value;
           prices.edging_shelve = document.getElementById('edging-shelve').value;
@@ -131,13 +150,18 @@ document.getElementById("confirm3").addEventListener("click", (event) => {
             "back_area_codes": "0",
             "edging_codes": "0",
             "screws_codes": "0",
+            "wall_bracket_codes": "0",
             "secondary_top_codes": "0",
             "rate_doors": "0",
             "edging_doors": "0",
             "rate_hardware": "0",
             "slider_hardware": "0",
             "lift_hardware": "0",
+            "hanger_pipe_hardware": "0",
+            "hanger_pipe_fitting_hardware": "0",
+            "locks_hardware": "0",
             "rate_handles": "0",
+            "drawer_handle_rate": "0",
             "rate_shelve": "0",
             "edging_shelve": "0",
             "pin_shelve": "0"
@@ -147,12 +171,17 @@ document.getElementById("confirm3").addEventListener("click", (event) => {
           document.getElementById('secondary-top-codes').value = res.secondary_top_codes;
           document.getElementById('edging-codes').value = res.edging_codes;
           document.getElementById('screws-codes').value = res.screws_codes;
+          document.getElementById('wall-bracket-codes').value = res.wall_bracket_codes;
           document.getElementById('rate-doors').value = res.rate_doors;
           document.getElementById('edging-doors').value = res.edging_doors;
           document.getElementById('rate-hardware').value = res.rate_hardware;
           document.getElementById('slider-hardware').value = res.slider_hardware;
           document.getElementById('lift-hardware').value = res.lift_hardware;
+          document.getElementById('hanger-pipe-hardware').value = res.hanger_pipe_hardware;
+          document.getElementById('hanger-pipe-fitting-hardware').value = res.hanger_pipe_fitting_hardware;
+          document.getElementById('locks-hardware').value = res.locks_hardware;
           document.getElementById('rate-handles').value = res.rate_handles;
+          document.getElementById('drawer-handle-rate').value = res.drawer_handle_rate;
           document.getElementById('rate-shelve').value = res.rate_shelve;
           document.getElementById('pin-shelve').value = res.pin_shelve;
           document.getElementById('edging-shelve').value = res.edging_shelve;

@@ -258,7 +258,6 @@ document.getElementById("form").addEventListener("submit", (event) => {
 });
 
 document.getElementById('cancel').addEventListener('click', (event) => {
-  event.preventDefault();
   document.getElementById('pass').value = '';
 })
 
@@ -286,7 +285,7 @@ document.getElementById("confirm").addEventListener("click", (event) => {
                     )
                     .then((res) => {
                       if (res === "success") {
-                        alert("Saved Successfully!")
+                        window.appUi.notify("Saved Successfully!")
                         document.getElementById("cancel").click();
                         document.getElementById("pass").value = "";
                         listData = [];
@@ -295,16 +294,18 @@ document.getElementById("confirm").addEventListener("click", (event) => {
                       } else {
                         document.getElementById("cancel").click();
                         document.getElementById("pass").value = "";
-                        alert("Not Saved!")
+                        if (file_manager.isDuplicateWriteResult(res)) {
+                          window.appUi.notify(file_manager.getDuplicateToolMessage());
+                        } else {
+                          window.appUi.notify("Not Saved!");
+                        }
                       }
                     });
               });
         }
         else
         {
-          alert("Password Not Matched!")
-          document.getElementById("cancel").click();
-          document.getElementById("pass").value = "";
+          window.modalInputFix.showInvalid('pass', 'Password Not Matched!');
         }
       }
       else if(opt === 'update')
@@ -324,38 +325,43 @@ document.getElementById("confirm").addEventListener("click", (event) => {
                   file_manager
                       .writeFile(path.join(__dirname, "../../db/.utilities.json"), res)
                       .then((res) => {
-                        populateTable();
-                        clearFields();
-                        if(listData.length === 0)
-                        {
-                          document.getElementById("save").disabled = true;
+                        if (res === "success") {
+                          listData.forEach((d) => {
+                            if (d.id === document.getElementById("id").innerHTML) {
+                              d.title = document.getElementById("client-name").value;
+                            }
+                          });
+                          populateTable();
+                          clearFields();
+                          if(listData.length === 0)
+                          {
+                            document.getElementById("save").disabled = true;
+                          }
+                          else
+                          {
+                            document.getElementById("save").disabled = false;
+                          }
+                          document.getElementById("add").disabled = false;
+                          document.getElementById("edit").disabled = true;
+                          document.getElementById("cancel").click();
+                          document.getElementById("pass").value = "";
+                        } else if (file_manager.isDuplicateWriteResult(res)) {
+                          window.appUi.notify(file_manager.getDuplicateToolMessage());
+                        } else {
+                          window.appUi.notify("Not Saved!");
                         }
-                        else
-                        {
-                          document.getElementById("save").disabled = false;
-                        }
-                        document.getElementById("add").disabled = false;
-                        document.getElementById("edit").disabled = true;
                       });
                 });
-            listData.forEach((d) => {
-              if (d.id === document.getElementById("id").innerHTML) {
-                d.title = document.getElementById("client-name").value;
-              }
-            });
-            document.getElementById("cancel").click();
-            document.getElementById("pass").value = "";
-            populateTable();
           }
           else
           {
             document.getElementById("cancel").click();
             document.getElementById("pass").value = "";
-            alert("Password Not Matched");
+            window.appUi.notify("Password Not Matched");
           }
         }
         else {
-          alert("Incomplete Data! Please fill all fields.")
+          window.appUi.notify("Incomplete Data! Please fill all fields.")
           document.getElementById('cancel').click();
         }
 
@@ -369,9 +375,7 @@ document.getElementById("confirm").addEventListener("click", (event) => {
         }
         else
         {
-          document.getElementById("cancel").click();
-          document.getElementById("pass").value = "";
-          alert("Password Not Matched!")
+          window.modalInputFix.showInvalid('pass', 'Password Not Matched!');
         }
       }
     });
@@ -531,7 +535,7 @@ function del() {
         .then((res) => {
           if (res === "success") {
             document.getElementById('edit').disabled = true
-            alert("Deleted Successfully!")
+            window.appUi.notify("Deleted Successfully!")
             document.getElementById("checkbox-all").checked = false;
             // populateTable();
             const selected1 = [];
@@ -558,7 +562,7 @@ function del() {
             }
             document.getElementById("clear").disabled = false;
           } else {
-            alert("Error Occurred!")
+            window.appUi.notify("Error Occurred!")
           }
         });
     });
@@ -726,11 +730,11 @@ if (document.getElementById("import-apply")) {
         document.getElementById("save").disabled = listData.length === 0;
         clearFields();
         if (window.$) window.$("#importModal").modal("hide");
-        if (result && result.added) alert("Imported " + String(result.added) + " row(s).");
-        else alert("Nothing imported.");
+        if (result && result.added) window.appUi.notify("Imported " + String(result.added) + " row(s).");
+        else window.appUi.notify("Nothing imported.");
       })
       .catch((err) => {
-        alert(err && err.message ? err.message : String(err));
+        window.appUi.notify(err && err.message ? err.message : String(err));
       });
   });
 }

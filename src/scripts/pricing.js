@@ -78,10 +78,45 @@ function shouldShowDiscountOnOutput() {
   return el ? !!el.checked : true;
 }
 
+function isQuotationMode() {
+  const el = document.getElementById('is_quotation');
+  return el ? !!el.checked : false;
+}
+
+function syncDiscountFieldVisibility() {
+  const showEl = document.getElementById('show-discount');
+  const wrapper = document.getElementById('discount-wrapper');
+  const discountEl = document.getElementById('discount');
+  if (!showEl || !discountEl) return;
+
+  const show = !!showEl.checked;
+  const disableForQuotation = isQuotationMode();
+  if (wrapper) wrapper.style.display = true;
+  discountEl.disabled = !show || disableForQuotation;
+  discountEl.required = show && !disableForQuotation;
+
+  if (!show || disableForQuotation) {
+    discountEl.value = 0;
+    discount_and_tax();
+  }
+}
+
 function setDiscountVisibilityToggle(value) {
   const el = document.getElementById('show-discount');
   if (!el) return;
   el.checked = value !== false;
+  syncDiscountFieldVisibility();
+}
+
+function ensurePricingTotalsEnabled() {
+  ['gross-amount', 'tax', 'calculated-tax', 'delivery-charges', 'net'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.disabled = false;
+    el.readOnly = false;
+    el.removeAttribute('readonly');
+  });
+  syncDiscountFieldVisibility();
 }
 
 function rateValue(rates, key) {
@@ -280,56 +315,49 @@ file_manager
   });
 
 
-function toggle(event){
+function toggle(event) {
   const elevation = event.target.id.split('~')[0]
   const my_item_id = event.target.id.split('~')[1]
   const elevation_items = pricing[elevation]
-  if(event.target.checked)
-  {
+  if (event.target.checked) {
     document.getElementById('print').disabled = true;
     elevation_items.forEach(i => {
-      if(i.item_id.toString() === my_item_id){
+      if (i.item_id.toString() === my_item_id) {
         check_list.push(i)
         document.getElementById('delete').disabled = false;
-        if(check_list.length >= 2)
-        {
+        if (check_list.length >= 2) {
           clear_dropdowns()
           item = null
           document.getElementById('edit').disabled = true
-          if(check_list.length === items.length)
-          {
-            document.getElementById('checkbox-all').checked=true;
+          if (check_list.length === items.length) {
+            document.getElementById('checkbox-all').checked = true;
           }
         }
-        else
-        {
+        else {
           item = i;
           document.getElementById('edit').disabled = false
         }
       }
     })
   }
-  else
-  {
+  else {
     elevation_items.forEach(i => {
-      if(i.item_id.toString() === my_item_id){
+      if (i.item_id.toString() === my_item_id) {
         const ind = check_list.indexOf(i)
         check_list.splice(ind, 1)
       }
     })
-    if(check_list.length === 1)
-    {
+    if (check_list.length === 1) {
       item = check_list[0];
       document.getElementById('edit').disabled = false
       document.getElementById('delete').disabled = false;
     }
-    else
-    {
+    else {
       document.getElementById('checkbox-all').checked = false
       document.getElementById('edit').disabled = true
       document.getElementById('delete').disabled = false;
 
-      if(check_list.length === 0) {
+      if (check_list.length === 0) {
         document.getElementById('print').disabled = false;
         document.getElementById('delete').disabled = true;
       }
@@ -348,11 +376,10 @@ document.getElementById('delete').addEventListener('click', (event) => {
   const pinfo = pricing['pinfo']
   pricing = {}
   items.forEach(i => {
-    if(!(i.elevation in pricing)){
+    if (!(i.elevation in pricing)) {
       pricing[i.elevation] = [i]
     }
-    else
-    {
+    else {
       pricing[i.elevation].push(i)
     }
   })
@@ -361,35 +388,33 @@ document.getElementById('delete').addEventListener('click', (event) => {
   clear_dropdowns();
   document.getElementById('delete').disabled = true;
   document.getElementById('edit').disabled = true
-  if(document.getElementById('checkbox-all').checked)
+  if (document.getElementById('checkbox-all').checked)
     document.getElementById('checkbox-all').click()
   populate_table();
   discount_and_tax()
 })
 
 
-function change_code_rate(event){
-  if(event.which === 13)
-  {
+function change_code_rate(event) {
+  if (event.which === 13) {
     event.preventDefault();
     file_manager.loadFile(path.join(__dirname, `../db/.codes.json`))
-        .then(res => {
-          file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
+      .then(res => {
+        file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
           .then(rates => {
             res.forEach(i => {
-              if(i.id === document.getElementById('code').value)
-              {
+              if (i.id === document.getElementById('code').value) {
                 document.getElementById('unit').value = parseFloat(document.getElementById('unit').value) - code_rate;
                 document.getElementById('unit').value = parseFloat(document.getElementById('unit').value).toFixed(2)
                 document.getElementById('total').innerHTML = Math.round(parseFloat(document.getElementById('qty').value) * parseFloat(document.getElementById('unit').value), 0);
                 try {
                   const select = document.getElementById("code-price");
                   const selectedIndex = select.selectedIndex;
-                  const selectedText = select.options[selectedIndex].text; 
+                  const selectedText = select.options[selectedIndex].text;
                   code_rate = computeCodeContribution(i, rates, selectedText, document.getElementById('code-new-rate').value);
-                  
+
                 }
-                catch (e){
+                catch (e) {
                   code_rate = numValue(i.rate)
                 }
                 document.getElementById('unit').value = parseFloat(document.getElementById('unit').value) + code_rate;
@@ -398,26 +423,24 @@ function change_code_rate(event){
               }
             })
           })
-        })
+      })
   }
 }
 
 
-function change_finishing_rate(event){
-  if(event.which === 13)
-  {
+function change_finishing_rate(event) {
+  if (event.which === 13) {
     event.preventDefault();
     file_manager.loadFile(path.join(__dirname, `../db/.doors.json`))
-        .then(res => {
-          file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
+      .then(res => {
+        file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
           .then(rates => {
             res.forEach(i => {
-              if(i.id === document.getElementById('door-panel').value)
-              {
+              if (i.id === document.getElementById('door-panel').value) {
                 document.getElementById('unit').value = parseFloat(document.getElementById('unit').value) - door;
                 document.getElementById('unit').value = parseFloat(document.getElementById('unit').value).toFixed(2)
                 document.getElementById('total').innerHTML = Math.round(parseFloat(document.getElementById('qty').value) * parseFloat(document.getElementById('unit').value), 0);
-                try{
+                try {
                   door = parseFloat(i.rate)
                   door = door * parseFloat(document.getElementById('finishing-new-rate').value);
                   const edging = parseFloat(i.edging) * parseFloat(rates.edging_doors);
@@ -432,27 +455,25 @@ function change_finishing_rate(event){
               }
             })
           })
-          
-        })
+
+      })
   }
 }
 
 
-function change_handles_rate(event){
-  if(event.which === 13)
-  {
+function change_handles_rate(event) {
+  if (event.which === 13) {
     event.preventDefault();
     file_manager.loadFile(path.join(__dirname, `../db/.handlers.json`))
-        .then(res => {
-          file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
+      .then(res => {
+        file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
           .then(rates => {
             res.forEach(i => {
-              if(i.id === document.getElementById('handler').value)
-              {
+              if (i.id === document.getElementById('handler').value) {
                 document.getElementById('unit').value = parseFloat(document.getElementById('unit').value) - handler;
                 document.getElementById('unit').value = parseFloat(document.getElementById('unit').value).toFixed(2)
                 document.getElementById('total').innerHTML = Math.round(parseFloat(document.getElementById('qty').value) * parseFloat(document.getElementById('unit').value), 0);
-                try{
+                try {
                   handler = parseFloat(i.rate)
                   handler = handler * parseFloat(document.getElementById('handle-new-rate').value);
                 }
@@ -465,30 +486,28 @@ function change_handles_rate(event){
               }
             })
           })
-         
-        })
+
+      })
   }
 }
 
 
-function change_hardware_rate(event){
-  if(event.which === 13)
-  {
+function change_hardware_rate(event) {
+  if (event.which === 13) {
     event.preventDefault();
     file_manager.loadFile(path.join(__dirname, `../db/.hardwares.json`))
-        .then(res => {
-          file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
+      .then(res => {
+        file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
           .then(rates => {
             res.forEach(i => {
-              if(i.id === document.getElementById('hardware').value)
-              {
+              if (i.id === document.getElementById('hardware').value) {
                 document.getElementById('unit').value = parseFloat(document.getElementById('unit').value) - hardware;
                 document.getElementById('unit').value = parseFloat(document.getElementById('unit').value).toFixed(2)
                 document.getElementById('total').innerHTML = Math.round(parseFloat(document.getElementById('qty').value) * parseFloat(document.getElementById('unit').value), 0);
-                try{
+                try {
                   const select = document.getElementById("hardware-price");
                   const selectedIndex = select.selectedIndex;
-                  const selectedText = select.options[selectedIndex].text; 
+                  const selectedText = select.options[selectedIndex].text;
                   hardware = computeHardwareContribution(i, rates, selectedText, document.getElementById('harware-new-rate').value);
                 }
                 catch (e) {
@@ -500,26 +519,24 @@ function change_hardware_rate(event){
               }
             })
           })
-        })
+      })
   }
 }
 
 
-function change_shelve_rate(event){
-  if(event.which === 13)
-  {
+function change_shelve_rate(event) {
+  if (event.which === 13) {
     event.preventDefault();
     file_manager.loadFile(path.join(__dirname, `../db/.shelves.json`))
-        .then(res => {
-          file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
+      .then(res => {
+        file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
           .then(rates => {
             res.forEach(i => {
-              if(i.id === document.getElementById("shelves").value)
-              {
+              if (i.id === document.getElementById("shelves").value) {
                 document.getElementById('unit').value = parseFloat(document.getElementById('unit').value) - shelve;
                 document.getElementById('unit').value = parseFloat(document.getElementById('unit').value).toFixed(2)
                 document.getElementById('total').innerHTML = Math.round(parseFloat(document.getElementById('qty').value) * parseFloat(document.getElementById('unit').value), 0);
-                try{
+                try {
                   shelve = parseFloat(i.rate)
                   shelve = shelve * parseFloat(document.getElementById('shelve-new-rate').value);
                   const edging = parseFloat(i.edging) * parseFloat(rates.edging_shelve);
@@ -535,8 +552,8 @@ function change_shelve_rate(event){
               }
             })
           })
-          
-        })
+
+      })
   }
 }
 
@@ -548,257 +565,246 @@ document.getElementById('edit').addEventListener('click', (event) => {
   document.getElementById('utility').value = item.utility;
 
   file_manager.loadFile(path.join(__dirname, `../db/.types.json`))
-      .then(res => {
-        const types = document.getElementById('type')
-        types.innerHTML = ""
-        const opt = document.createElement('option')
-        opt.value = "";
-        opt.text = "Select"
-        opt.classList.add('d-none')
-        types.options.add(opt)
-        res.forEach(iter => {
-          if(iter.utility_id === item.utility)
-          {
-            const opt = document.createElement('option')
-            opt.value = iter.id;
-            opt.text = iter.title
-            types.options.add(opt)
-          }
-        })
-        document.getElementById('type').value = item.type;
+    .then(res => {
+      const types = document.getElementById('type')
+      types.innerHTML = ""
+      const opt = document.createElement('option')
+      opt.value = "";
+      opt.text = "Select"
+      opt.classList.add('d-none')
+      types.options.add(opt)
+      res.forEach(iter => {
+        if (iter.utility_id === item.utility) {
+          const opt = document.createElement('option')
+          opt.value = iter.id;
+          opt.text = iter.title
+          types.options.add(opt)
+        }
       })
+      document.getElementById('type').value = item.type;
+    })
 
   file_manager.loadFile(path.join(__dirname, `../db/.codes.json`))
-      .then(res => {
-        const codes = document.getElementById('code')
-        codes.innerHTML = ""
-        const opt = document.createElement('option')
-        opt.value = "";
-        opt.text = "Select"
-        opt.classList.add('d-none')
-        codes.options.add(opt)
-        res.forEach(iter => {
-          if(iter.utility_id === document.getElementById('utility').value && iter.type_id === item.type)
-          {
-            const opt = document.createElement('option')
-            opt.value = iter.id;
-            opt.text = iter.title
-            codes.options.add(opt)
-          }
-        })
-        document.getElementById('code').value = item.code;
-        refreshNewCostBreakdown();
-        file_manager.loadFile(path.join(__dirname, `../db/.codes.json`))
+    .then(res => {
+      const codes = document.getElementById('code')
+      codes.innerHTML = ""
+      const opt = document.createElement('option')
+      opt.value = "";
+      opt.text = "Select"
+      opt.classList.add('d-none')
+      codes.options.add(opt)
+      res.forEach(iter => {
+        if (iter.utility_id === document.getElementById('utility').value && iter.type_id === item.type) {
+          const opt = document.createElement('option')
+          opt.value = iter.id;
+          opt.text = iter.title
+          codes.options.add(opt)
+        }
+      })
+      document.getElementById('code').value = item.code;
+      refreshNewCostBreakdown();
+      file_manager.loadFile(path.join(__dirname, `../db/.codes.json`))
         .then(res => {
           file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
-          .then(rates => {
-            res.forEach(i => {
-              if(i.id === item.code)
-              {
-                try { 
-                  if (item.code_rate_type === "Box Back Sheet Price/PC") {
-                    document.getElementById("code-price").selectedIndex = 1;
+            .then(rates => {
+              res.forEach(i => {
+                if (i.id === item.code) {
+                  try {
+                    if (item.code_rate_type === "Box Back Sheet Price/PC") {
+                      document.getElementById("code-price").selectedIndex = 1;
+                    }
+                    else if (item.code_rate_type === "Secondary Top Sheet Price/PC") {
+                      document.getElementById("code-price").selectedIndex = 2;
+                    } else {
+                      document.getElementById("code-price").selectedIndex = 0;
+                    }
+                    document.getElementById('code-new-rate').value = item.code_rate;
+                    code_rate = computeCodeContribution(i, rates, item.code_rate_type, item.code_rate);
                   }
-                  else if (item.code_rate_type === "Secondary Top Sheet Price/PC") {
-                    document.getElementById("code-price").selectedIndex = 2;
-                  } else {
-                    document.getElementById("code-price").selectedIndex = 0;
+                  catch (e) {
+                    code_rate = numValue(i.rate)
                   }
-                  document.getElementById('code-new-rate').value = item.code_rate;
-                  code_rate = computeCodeContribution(i, rates, item.code_rate_type, item.code_rate);
                 }
-                catch (e){
-                  code_rate = numValue(i.rate)
-                }
-              }
+              })
             })
-          })
         })
-      })
+    })
 
   document.getElementById('qty').value = item.qty;
 
   file_manager.loadFile(path.join(__dirname, `../db/.doors.json`))
-      .then(res => {
-        const doors = document.getElementById('door-panel')
-        doors.innerHTML = ""
-        const opt = document.createElement('option')
-        opt.value = "";
-        opt.text = "Select"
-        opt.classList.add('d-none')
-        doors.options.add(opt)
-        res.forEach(iter => {
-          if(iter.utility_id === document.getElementById('utility').value && iter.type_id === document.getElementById('type').value && iter.code_id === item.code)
-          {
-            const opt = document.createElement('option')
-            opt.value = iter.id;
-            opt.text = iter.title
-            doors.options.add(opt)
-          }
-        })
-        document.getElementById('door-panel').value = item.door_panel;
-        file_manager.loadFile(path.join(__dirname, `../db/.doors.json`))
+    .then(res => {
+      const doors = document.getElementById('door-panel')
+      doors.innerHTML = ""
+      const opt = document.createElement('option')
+      opt.value = "";
+      opt.text = "Select"
+      opt.classList.add('d-none')
+      doors.options.add(opt)
+      res.forEach(iter => {
+        if (iter.utility_id === document.getElementById('utility').value && iter.type_id === document.getElementById('type').value && iter.code_id === item.code) {
+          const opt = document.createElement('option')
+          opt.value = iter.id;
+          opt.text = iter.title
+          doors.options.add(opt)
+        }
+      })
+      document.getElementById('door-panel').value = item.door_panel;
+      file_manager.loadFile(path.join(__dirname, `../db/.doors.json`))
         .then(res => {
           file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
-          .then(rates => {
-            res.forEach(i => {
-              if(i.id === item.door_panel)
-              {
-                try{
-                  door = parseFloat(i.rate)
-                  document.getElementById('finishing-new-rate').value = item.finishing_rate;
-                  door = door * parseFloat(item.finishing_rate);
-                  const edging = parseFloat(i.edging) * parseFloat(rates.edging_doors);
-                  door = door + edging;
+            .then(rates => {
+              res.forEach(i => {
+                if (i.id === item.door_panel) {
+                  try {
+                    door = parseFloat(i.rate)
+                    document.getElementById('finishing-new-rate').value = item.finishing_rate;
+                    door = door * parseFloat(item.finishing_rate);
+                    const edging = parseFloat(i.edging) * parseFloat(rates.edging_doors);
+                    door = door + edging;
+                  }
+                  catch (e) {
+                    door = i.rate
+                  }
+
                 }
-                catch (e) {
-                  door = i.rate
-                }
-              
-              }
+              })
             })
-          })
-          
+
         })
-      })
+    })
 
   file_manager.loadFile(path.join(__dirname, `../db/.handlers.json`))
-      .then(res => {
-        const doors = document.getElementById('handler')
-        doors.innerHTML = ""
-        const opt = document.createElement('option')
-        opt.value = "";
-        opt.text = "Select"
-        opt.classList.add('d-none')
-        doors.options.add(opt)
-        res.forEach(i => {
-          if(document.getElementById('utility').value && i.type_id === document.getElementById('type').value && i.code_id === item.code)
-          {
-            const opt = document.createElement('option')
-            opt.value = i.id;
-            opt.text = i.title
-            doors.options.add(opt)
-          }
-        })
-        document.getElementById('handler').value = item.handler;
-        file_manager.loadFile(path.join(__dirname, `../db/.handlers.json`))
+    .then(res => {
+      const doors = document.getElementById('handler')
+      doors.innerHTML = ""
+      const opt = document.createElement('option')
+      opt.value = "";
+      opt.text = "Select"
+      opt.classList.add('d-none')
+      doors.options.add(opt)
+      res.forEach(i => {
+        if (document.getElementById('utility').value && i.type_id === document.getElementById('type').value && i.code_id === item.code) {
+          const opt = document.createElement('option')
+          opt.value = i.id;
+          opt.text = i.title
+          doors.options.add(opt)
+        }
+      })
+      document.getElementById('handler').value = item.handler;
+      file_manager.loadFile(path.join(__dirname, `../db/.handlers.json`))
         .then(res => {
           file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
-          .then(rates => {
-            res.forEach(i => {
-              if(i.id === item.handler)
-              {
-                try{
-                  handler = parseFloat(i.rate)
-                  document.getElementById('handle-new-rate').value = item.handle_rate;
-                  handler = handler * parseFloat(item.handle_rate);
+            .then(rates => {
+              res.forEach(i => {
+                if (i.id === item.handler) {
+                  try {
+                    handler = parseFloat(i.rate)
+                    document.getElementById('handle-new-rate').value = item.handle_rate;
+                    handler = handler * parseFloat(item.handle_rate);
+                  }
+                  catch (e) {
+                    handler = i.rate
+                  }
                 }
-                catch (e) {
-                  handler = i.rate
-                }
-              }
+              })
             })
-          })
-         
+
         })
-      })
+    })
 
   file_manager.loadFile(path.join(__dirname, `../db/.hardwares.json`))
-      .then(res => {
-        const doors = document.getElementById('hardware')
-        doors.innerHTML = ""
-        const opt = document.createElement('option')
-        opt.value = "";
-        opt.text = "Select"
-        opt.classList.add('d-none')
-        doors.options.add(opt)
-        res.forEach(i => {
-          if(i.utility_id === document.getElementById('utility').value && i.type_id === document.getElementById('type').value && i.code_id === item.code)
-          {
-            const opt = document.createElement('option')
-            opt.value = i.id;
-            opt.text = i.title
-            doors.options.add(opt)
-          }
-        })
-        document.getElementById('hardware').value = item.hardware;
-        refreshNewCostBreakdown();
-        file_manager.loadFile(path.join(__dirname, `../db/.hardwares.json`))
+    .then(res => {
+      const doors = document.getElementById('hardware')
+      doors.innerHTML = ""
+      const opt = document.createElement('option')
+      opt.value = "";
+      opt.text = "Select"
+      opt.classList.add('d-none')
+      doors.options.add(opt)
+      res.forEach(i => {
+        if (i.utility_id === document.getElementById('utility').value && i.type_id === document.getElementById('type').value && i.code_id === item.code) {
+          const opt = document.createElement('option')
+          opt.value = i.id;
+          opt.text = i.title
+          doors.options.add(opt)
+        }
+      })
+      document.getElementById('hardware').value = item.hardware;
+      refreshNewCostBreakdown();
+      file_manager.loadFile(path.join(__dirname, `../db/.hardwares.json`))
         .then(res => {
           file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
-          .then(rates => {
-            res.forEach(i => {
-              if(i.id === item.hardware)
-              {
-                try{
-                  
-                  if (item.hardware_rate_type === "Slider Price/SET"){
-                    document.getElementById("hardware-price").selectedIndex = 1;
+            .then(rates => {
+              res.forEach(i => {
+                if (i.id === item.hardware) {
+                  try {
+
+                    if (item.hardware_rate_type === "Slider Price/SET") {
+                      document.getElementById("hardware-price").selectedIndex = 1;
+                    }
+                    else if (item.hardware_rate_type === "Lift Up Price/SET") {
+                      document.getElementById("hardware-price").selectedIndex = 2;
+                    } else {
+                      document.getElementById("hardware-price").selectedIndex = 0;
+                    }
+                    document.getElementById('harware-new-rate').value = item.hardware_rate
+                    hardware = computeHardwareContribution(i, rates, item.hardware_rate_type, item.hardware_rate);
                   }
-                  else if (item.hardware_rate_type === "Lift Up Price/SET"){
-                    document.getElementById("hardware-price").selectedIndex = 2;
-                  } else {
-                    document.getElementById("hardware-price").selectedIndex = 0;
+                  catch (e) {
+                    hardware = numValue(i.rate)
                   }
-                  document.getElementById('harware-new-rate').value = item.hardware_rate
-                  hardware = computeHardwareContribution(i, rates, item.hardware_rate_type, item.hardware_rate);
+
                 }
-                catch (e) {
-                  hardware = numValue(i.rate)
-                }
-              
-              }
+              })
             })
-          })
-          
+
         })
-      })
+    })
 
   file_manager.loadFile(path.join(__dirname, `../db/.shelves.json`))
-      .then(res => {
-        const doors = document.getElementById('shelves')
-        doors.innerHTML = ""
-        const opt = document.createElement('option')
-        opt.value = "";
-        opt.text = "Select"
-        opt.classList.add('d-none')
-        doors.options.add(opt)
-        res.forEach(i => {
-          if(i.utility_id === document.getElementById('utility').value && i.type_id === document.getElementById('type').value && i.code_id === item.code)
-          {
-            const opt = document.createElement('option')
-            opt.value = i.id;
-            opt.text = i.title
-            doors.options.add(opt)
-          }
-          if(i.id === item.shelves)
-            shelve = parseFloat(i.rate);
-        })
-        document.getElementById('shelves').value = item.shelves;
-        file_manager.loadFile(path.join(__dirname, `../db/.shelves.json`))
+    .then(res => {
+      const doors = document.getElementById('shelves')
+      doors.innerHTML = ""
+      const opt = document.createElement('option')
+      opt.value = "";
+      opt.text = "Select"
+      opt.classList.add('d-none')
+      doors.options.add(opt)
+      res.forEach(i => {
+        if (i.utility_id === document.getElementById('utility').value && i.type_id === document.getElementById('type').value && i.code_id === item.code) {
+          const opt = document.createElement('option')
+          opt.value = i.id;
+          opt.text = i.title
+          doors.options.add(opt)
+        }
+        if (i.id === item.shelves)
+          shelve = parseFloat(i.rate);
+      })
+      document.getElementById('shelves').value = item.shelves;
+      file_manager.loadFile(path.join(__dirname, `../db/.shelves.json`))
         .then(res => {
           file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
-          .then(rates => {
-            res.forEach(i => {
-              if(i.id === item.shelves)
-              {
-                try{
-                  shelve = parseFloat(i.rate)
-                  document.getElementById('shelve-new-rate').value = item.shelve_rate;
-                  shelve = shelve * parseFloat(item.shelve_rate);
-                  const edging = parseFloat(i.edging) * parseFloat(rates.edging_shelve);
-                  const pins = parseFloat(i.pin) * parseFloat(rates.pin_shelve);
-                  shelve = shelve + edging + pins;
+            .then(rates => {
+              res.forEach(i => {
+                if (i.id === item.shelves) {
+                  try {
+                    shelve = parseFloat(i.rate)
+                    document.getElementById('shelve-new-rate').value = item.shelve_rate;
+                    shelve = shelve * parseFloat(item.shelve_rate);
+                    const edging = parseFloat(i.edging) * parseFloat(rates.edging_shelve);
+                    const pins = parseFloat(i.pin) * parseFloat(rates.pin_shelve);
+                    shelve = shelve + edging + pins;
+                  }
+                  catch (e) {
+                    shelve = i.rate
+                  }
                 }
-                catch (e) {
-                  shelve = i.rate
-                }
-              }
+              })
             })
-          })
-          
+
         })
-      })
+    })
 
   document.getElementById('is_shelve').value = item.is_shelve;
   document.getElementById('additional').value = item.additional;
@@ -930,70 +936,69 @@ document.getElementById('clear').addEventListener('click', (event) => {
   //     })
 })
 
-function all_clear(){
+function all_clear() {
   file_manager.loadFile(path.join(__dirname, `../db/.pricings.json`))
-      .then(res => {
-        if(res.length === 0)
-        {
-          document.getElementById('pricing-no').value = "1"
-        }
-        else {
-          document.getElementById('pricing-no').value = parseFloat(res[res.length - 1]["pinfo"].pricing_no) + 1;
-        }
-        document.getElementById("entry-date").valueAsDate = new Date();
-        document.getElementById('entry-date-backup').value = '';
-        document.getElementById('pricing-type').value = ''
-        document.getElementById('delivery-days').value = "";
-        document.getElementById('manual-input').value = "";
-        document.getElementById('category-input').value = "";
-        document.getElementById('client-input').value = "";
-        document.getElementById('product-input').value = "";
-        document.getElementById('sales-input').value = "";
-        document.getElementById('carcass-input').value = "";
-        if (document.getElementById('is_quotation').checked)
-          document.getElementById('is_quotation').click()
-        document.getElementById('elevation-input').value = "";
-        document.getElementById('utility').value = "";
-        document.getElementById('type').innerHTML = "";
-        document.getElementById('code').innerHTML = "";
-        document.getElementById('qty').value = "1";
-        document.getElementById('door-panel').innerHTML = "";
-        document.getElementById('handler').innerHTML = "";
-        document.getElementById('hardware').innerHTML = "";
-        document.getElementById('shelves').innerHTML = "";
-        document.getElementById('is_shelve').value = "yes";
-        document.getElementById('additional').value = "0";
-        document.getElementById('unit').value = "0";
-        document.getElementById('total').innerHTML = "0";
-        document.getElementById('table-body-div').innerHTML = "";
-        document.getElementById('save').disabled = true;
-        document.getElementById('edit').disabled = true;
-        document.getElementById('save').innerHTML = 'Save'
-        document.getElementById('delete').disabled = true;
-        document.getElementById('print').disabled = true;
-        document.getElementById('open').disabled = false;
-        document.getElementById('gross-amount').value = 0;
-        document.getElementById('discount').value = 0;
-        setDiscountVisibilityToggle(true);
-        document.getElementById('discount').disabled = true;
-        document.getElementById('tax').value = 0;
-        document.getElementById('tax').disabled = true;
-        document.getElementById('calculated-tax').value = 0;
-        document.getElementById('net').value = 0;
-        document.getElementById('is_quotation').checked = true
-        pricing = {}
-        item = null
-        items = []
-        code_rate = 0
-        door = 0
-        handler = 0
-        hardware = 0
-        shelve = 0
-        custom_val = 0
-        check_list = []
-        check_list2 = []
-        refreshNewCostBreakdown();
-      })
+    .then(res => {
+      if (res.length === 0) {
+        document.getElementById('pricing-no').value = "1"
+      }
+      else {
+        document.getElementById('pricing-no').value = parseFloat(res[res.length - 1]["pinfo"].pricing_no) + 1;
+      }
+      document.getElementById("entry-date").valueAsDate = new Date();
+      document.getElementById('entry-date-backup').value = '';
+      document.getElementById('pricing-type').value = ''
+      document.getElementById('delivery-days').value = "";
+      document.getElementById('manual-input').value = "";
+      document.getElementById('category-input').value = "";
+      document.getElementById('client-input').value = "";
+      document.getElementById('product-input').value = "";
+      document.getElementById('sales-input').value = "";
+      document.getElementById('carcass-input').value = "";
+      if (document.getElementById('is_quotation').checked)
+        document.getElementById('is_quotation').click()
+      document.getElementById('elevation-input').value = "";
+      document.getElementById('utility').value = "";
+      document.getElementById('type').innerHTML = "";
+      document.getElementById('code').innerHTML = "";
+      document.getElementById('qty').value = "1";
+      document.getElementById('door-panel').innerHTML = "";
+      document.getElementById('handler').innerHTML = "";
+      document.getElementById('hardware').innerHTML = "";
+      document.getElementById('shelves').innerHTML = "";
+      document.getElementById('is_shelve').value = "yes";
+      document.getElementById('additional').value = "0";
+      document.getElementById('unit').value = "0";
+      document.getElementById('total').innerHTML = "0";
+      document.getElementById('table-body-div').innerHTML = "";
+      document.getElementById('save').disabled = true;
+      document.getElementById('edit').disabled = true;
+      document.getElementById('save').innerHTML = 'Save'
+      document.getElementById('delete').disabled = true;
+      document.getElementById('print').disabled = true;
+      document.getElementById('open').disabled = false;
+      document.getElementById('gross-amount').value = 0;
+      document.getElementById('discount').value = 0;
+      setDiscountVisibilityToggle(true);
+      document.getElementById('tax').value = 0;
+      document.getElementById('calculated-tax').value = 0;
+      document.getElementById('delivery-charges').value = 0;
+      document.getElementById('net').value = 0;
+      document.getElementById('is_quotation').checked = true;
+      ensurePricingTotalsEnabled();
+      pricing = {}
+      item = null
+      items = []
+      code_rate = 0
+      door = 0
+      handler = 0
+      hardware = 0
+      shelve = 0
+      custom_val = 0
+      check_list = []
+      check_list2 = []
+      refreshNewCostBreakdown();
+    })
 }
 
 function save_func(event) {
@@ -1004,55 +1009,55 @@ function load_pricing_dropdown() {
   const files = ['manuals', 'products', 'sales', 'carcass', 'elevations', 'category']
   files.forEach(i => {
     file_manager
-        .loadFile(path.join(__dirname, `../db/.${i}.json`))
-        .then((res) => {
-          const manual = document.getElementById(i);
-          res.forEach(i => {
-            const opt = document.createElement('option')
-              opt.value = i
-            opt.style.color = 'black'
-            manual.appendChild(opt)
-          })
+      .loadFile(path.join(__dirname, `../db/.${i}.json`))
+      .then((res) => {
+        const manual = document.getElementById(i);
+        res.forEach(i => {
+          const opt = document.createElement('option')
+          opt.value = i
+          opt.style.color = 'black'
+          manual.appendChild(opt)
         })
+      })
   })
   file_manager
-      .loadFile(path.join(__dirname, `../db/.utilities.json`))
-      .then((res) => {
-        const utilities = document.getElementById('utility');
-        utilities.innerHTML = ""
+    .loadFile(path.join(__dirname, `../db/.utilities.json`))
+    .then((res) => {
+      const utilities = document.getElementById('utility');
+      utilities.innerHTML = ""
+      const opt = document.createElement('option')
+      opt.value = ""
+      opt.text = "Select"
+      opt.style.color = 'black'
+      opt.classList.add('d-none')
+      utilities.appendChild(opt)
+      res.forEach(i => {
         const opt = document.createElement('option')
-        opt.value = ""
-        opt.text = "Select"
+        opt.value = i.id
+        opt.text = i.title
         opt.style.color = 'black'
-        opt.classList.add('d-none')
-        utilities.appendChild(opt)
-        res.forEach(i => {
-          const opt = document.createElement('option')
-          opt.value = i.id
-          opt.text = i.title
-          opt.style.color = 'black'
-          utilities.options.add(opt)
-        })
+        utilities.options.add(opt)
       })
+    })
   file_manager
-      .loadFile(path.join(__dirname, `../db/.clients.json`))
-      .then((res) => {
-        const utilities = document.getElementById('client-input');
-        utilities.innerHTML = ""
+    .loadFile(path.join(__dirname, `../db/.clients.json`))
+    .then((res) => {
+      const utilities = document.getElementById('client-input');
+      utilities.innerHTML = ""
+      const opt = document.createElement('option')
+      opt.value = ""
+      opt.text = "Select"
+      opt.style.color = 'black'
+      opt.classList.add("d-none")
+      utilities.appendChild(opt)
+      res.forEach(i => {
         const opt = document.createElement('option')
-        opt.value = ""
-        opt.text = "Select"
+        opt.value = i.id
+        opt.text = i.name
         opt.style.color = 'black'
-        opt.classList.add("d-none")
         utilities.appendChild(opt)
-        res.forEach(i => {
-          const opt = document.createElement('option')
-          opt.value = i.id
-          opt.text = i.name
-          opt.style.color = 'black'
-          utilities.appendChild(opt)
-        })
       })
+    })
   const qty = document.getElementById('qty')
   for (let i = 1; i < 100; i++) {
     const opt = document.createElement('option')
@@ -1061,76 +1066,74 @@ function load_pricing_dropdown() {
     opt.style.color = 'black'
     qty.options.add(opt)
   }
-  
+
   file_manager
-      .loadFile(path.join(__dirname, `../db/.rates.json`))
-      .then((res) => {
-        const hardwarePrice = document.getElementById('hardware-price')
-        hardwarePrice.innerHTML = "";
-        [["Hinges Price/SET", "rate_hardware"], ["Slider Price/SET", "slider_hardware"], ["Lift Up Price/SET", "lift_hardware"]].forEach(i => {
-          const opt = document.createElement('option')
-          opt.value = res[i[1]]
-          opt.text = i[0]
-          opt.style.color = 'black'
-          hardwarePrice.options.add(opt)
-        })
-        const codePrice = document.getElementById('code-price')
-        codePrice.innerHTML = "";
-        [["Box Sheet Price/PC", "rate_codes"], ["Box Back Sheet Price/PC", "back_area_codes"], ["Secondary Top Sheet Price/PC", "secondary_top_codes"]].forEach(i => {
-          const opt = document.createElement('option')
-          opt.value = res[i[1]]
-          opt.text = i[0]
-          opt.style.color = 'black'
-          codePrice.options.add(opt)
-        })
-        refreshNewCostBreakdown();
+    .loadFile(path.join(__dirname, `../db/.rates.json`))
+    .then((res) => {
+      const hardwarePrice = document.getElementById('hardware-price')
+      hardwarePrice.innerHTML = "";
+      [["Hinges Price/SET", "rate_hardware"], ["Slider Price/SET", "slider_hardware"], ["Lift Up Price/SET", "lift_hardware"]].forEach(i => {
+        const opt = document.createElement('option')
+        opt.value = res[i[1]]
+        opt.text = i[0]
+        opt.style.color = 'black'
+        hardwarePrice.options.add(opt)
       })
+      const codePrice = document.getElementById('code-price')
+      codePrice.innerHTML = "";
+      [["Box Sheet Price/PC", "rate_codes"], ["Box Back Sheet Price/PC", "back_area_codes"], ["Secondary Top Sheet Price/PC", "secondary_top_codes"]].forEach(i => {
+        const opt = document.createElement('option')
+        opt.value = res[i[1]]
+        opt.text = i[0]
+        opt.style.color = 'black'
+        codePrice.options.add(opt)
+      })
+      refreshNewCostBreakdown();
+    })
 }
 
-function delete_dropdown( drp, inp){
+function delete_dropdown(drp, inp) {
   const val = document.getElementById(inp).value;
   file_manager
-      .loadFile(path.join(__dirname, `../db/.${drp}.json`))
-      .then((res) => {
-        ittems = []
-        res.forEach(i => {
-          if(i !== val)
-            ittems.push(i)
-        })
-        file_manager
-            .writeFile(path.join(__dirname, `../db/.${drp}.json`), ittems)
-            .then((ress) => {
-              file_manager
-                  .loadFile(path.join(__dirname, `../db/.${drp}.json`))
-                  .then((res) => {
-                    const manual = document.getElementById(drp);
-                    manual.innerHTML = ""
-                    res.forEach(i => {
-                      const opt = document.createElement('option')
-                      opt.value = i
-                      opt.style.color = 'black'
-                      manual.appendChild(opt)
-                    })
-                    document.getElementById(inp).value = ""
-                  })
+    .loadFile(path.join(__dirname, `../db/.${drp}.json`))
+    .then((res) => {
+      ittems = []
+      res.forEach(i => {
+        if (i !== val)
+          ittems.push(i)
+      })
+      file_manager
+        .writeFile(path.join(__dirname, `../db/.${drp}.json`), ittems)
+        .then((ress) => {
+          file_manager
+            .loadFile(path.join(__dirname, `../db/.${drp}.json`))
+            .then((res) => {
+              const manual = document.getElementById(drp);
+              manual.innerHTML = ""
+              res.forEach(i => {
+                const opt = document.createElement('option')
+                opt.value = i
+                opt.style.color = 'black'
+                manual.appendChild(opt)
+              })
+              document.getElementById(inp).value = ""
             })
-      })
+        })
+    })
 }
 
-function update_dropdown_del(event, drp, inp){
+function update_dropdown_del(event, drp, inp) {
   const val = document.getElementById(inp).value;
-  if(val !== '' && event.key === "Delete")
-  {
+  if (val !== '' && event.key === "Delete") {
     delete_dropdown(drp, inp)
   }
 }
 
-function save_dropdown(event, drp, drp_text){
-  if(event.which === 13)
-  {
+function save_dropdown(event, drp, drp_text) {
+  if (event.which === 13) {
     event.preventDefault();
     const new_val = document.getElementById(drp_text).value
-    let values= new Set();
+    let values = new Set();
     const ddl = document.getElementById(drp);
     for (let i = 0; i < ddl.options.length; i++) {
       values.add(ddl.options[i].value);
@@ -1145,13 +1148,13 @@ function save_dropdown(event, drp, drp_text){
     })
     manual.value = new_val
     file_manager
-        .writeFile(path.join(__dirname, `../db/.${drp}.json`), Array.from(values))
-        .then((res) => {
-        })
+      .writeFile(path.join(__dirname, `../db/.${drp}.json`), Array.from(values))
+      .then((res) => {
+      })
   }
 }
 
-function utility_change(event){
+function utility_change(event) {
   event.preventDefault();
   const utility = event.target.value;
   document.getElementById('type').innerHTML = ""
@@ -1174,32 +1177,30 @@ function utility_change(event){
   shelve = 0
   document.getElementById('unit').value = 0
   document.getElementById('total').innerHTML = '0'
-  if(utility !== "")
-  {
+  if (utility !== "") {
     file_manager.loadFile(path.join(__dirname, `../db/.types.json`))
-        .then(res => {
-          const types = document.getElementById('type')
-          types.innerHTML = ""
-          const opt = document.createElement('option')
-          opt.value = "";
-          opt.text = "Select"
-          opt.classList.add('d-none')
-          types.options.add(opt)
-          res.forEach(i => {
-            if(i.utility_id === utility)
-            {
-              const opt = document.createElement('option')
-              opt.value = i.id;
-              opt.text = i.title
-              types.options.add(opt)
-            }
-          })
+      .then(res => {
+        const types = document.getElementById('type')
+        types.innerHTML = ""
+        const opt = document.createElement('option')
+        opt.value = "";
+        opt.text = "Select"
+        opt.classList.add('d-none')
+        types.options.add(opt)
+        res.forEach(i => {
+          if (i.utility_id === utility) {
+            const opt = document.createElement('option')
+            opt.value = i.id;
+            opt.text = i.title
+            types.options.add(opt)
+          }
         })
+      })
   }
   refreshNewCostBreakdown();
 }
 
-function type_change(event){
+function type_change(event) {
   event.preventDefault();
   const type = event.target.value;
   document.getElementById('door-panel').innerHTML = ''
@@ -1221,36 +1222,33 @@ function type_change(event){
   shelve = 0
   document.getElementById('unit').value = 0
   document.getElementById('total').innerHTML = '0'
-  if(type !== "")
-  {
+  if (type !== "") {
     file_manager.loadFile(path.join(__dirname, `../db/.codes.json`))
-        .then(res => {
-          const codes = document.getElementById('code')
-          codes.innerHTML = ""
-          const opt = document.createElement('option')
-          opt.value = "";
-          opt.text = "Select"
-          opt.classList.add('d-none')
-          codes.options.add(opt)
-          res.forEach(i => {
-            if(i.utility_id === document.getElementById('utility').value && i.type_id === type)
-            {
-              const opt = document.createElement('option')
-              opt.value = i.id;
-              opt.text = i.title
-              codes.options.add(opt)
-            }
-          })
+      .then(res => {
+        const codes = document.getElementById('code')
+        codes.innerHTML = ""
+        const opt = document.createElement('option')
+        opt.value = "";
+        opt.text = "Select"
+        opt.classList.add('d-none')
+        codes.options.add(opt)
+        res.forEach(i => {
+          if (i.utility_id === document.getElementById('utility').value && i.type_id === type) {
+            const opt = document.createElement('option')
+            opt.value = i.id;
+            opt.text = i.title
+            codes.options.add(opt)
+          }
         })
+      })
   }
   refreshNewCostBreakdown();
 }
 
-function code_change(event){
+function code_change(event) {
   event.preventDefault();
   const code = event.target.value;
-  if(code === '')
-  {
+  if (code === '') {
     document.getElementById('additional').value = 0;
     custom_val = 0
     document.getElementById('unit').value = 0;
@@ -1271,21 +1269,19 @@ function code_change(event){
     document.getElementById('handle-new-rate').value = 0;
     document.getElementById('shelve-new-rate').value = 0;
   }
-  else
-  {
+  else {
     file_manager.loadFile(path.join(__dirname, `../db/.codes.json`))
-        .then(res => {
-          file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
+      .then(res => {
+        file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
           .then(rates => {
             res.forEach(i => {
-              if(i.id === code)
-              {
+              if (i.id === code) {
                 try {
                   document.getElementById("code-price").selectedIndex = 0;
                   document.getElementById('code-new-rate').value = rates.rate_codes
                   code_rate = computeCodeContribution(i, rates, "Box Sheet Price/PC", rates.rate_codes);
                 }
-                catch (e){
+                catch (e) {
                   code_rate = numValue(i.rate)
                 }
                 document.getElementById('unit').value = code_rate;
@@ -1294,7 +1290,7 @@ function code_change(event){
               }
             })
           })
-        })
+      })
     door = 0
     handler = 0
     hardware = 0
@@ -1304,84 +1300,80 @@ function code_change(event){
     document.getElementById('hardware').value = ''
     document.getElementById('shelves').value = ''
     file_manager.loadFile(path.join(__dirname, `../db/.doors.json`))
-        .then(res => {
-          const doors = document.getElementById('door-panel')
-          doors.innerHTML = ""
-          const opt = document.createElement('option')
-          opt.value = "";
-          opt.text = "Select"
-          opt.classList.add('d-none')
-          doors.options.add(opt)
-          res.forEach(i => {
-            if(i.utility_id === document.getElementById('utility').value && i.type_id === document.getElementById('type').value && i.code_id === code)
-            {
-              const opt = document.createElement('option')
-              opt.value = i.id;
-              opt.text = i.title
-              doors.options.add(opt)
-            }
-          })
+      .then(res => {
+        const doors = document.getElementById('door-panel')
+        doors.innerHTML = ""
+        const opt = document.createElement('option')
+        opt.value = "";
+        opt.text = "Select"
+        opt.classList.add('d-none')
+        doors.options.add(opt)
+        res.forEach(i => {
+          if (i.utility_id === document.getElementById('utility').value && i.type_id === document.getElementById('type').value && i.code_id === code) {
+            const opt = document.createElement('option')
+            opt.value = i.id;
+            opt.text = i.title
+            doors.options.add(opt)
+          }
         })
+      })
 
     file_manager.loadFile(path.join(__dirname, `../db/.handlers.json`))
-        .then(res => {
-          const doors = document.getElementById('handler')
-          doors.innerHTML = ""
-          const opt = document.createElement('option')
-          opt.value = "";
-          opt.text = "Select"
-          opt.classList.add('d-none')
-          doors.options.add(opt)
-          res.forEach(i => {
-            if(document.getElementById('utility').value && i.type_id === document.getElementById('type').value && i.code_id === code)
-            {
-              const opt = document.createElement('option')
-              opt.value = i.id;
-              opt.text = i.title
-              doors.options.add(opt)
-            }
-          })
+      .then(res => {
+        const doors = document.getElementById('handler')
+        doors.innerHTML = ""
+        const opt = document.createElement('option')
+        opt.value = "";
+        opt.text = "Select"
+        opt.classList.add('d-none')
+        doors.options.add(opt)
+        res.forEach(i => {
+          if (document.getElementById('utility').value && i.type_id === document.getElementById('type').value && i.code_id === code) {
+            const opt = document.createElement('option')
+            opt.value = i.id;
+            opt.text = i.title
+            doors.options.add(opt)
+          }
         })
+      })
 
     file_manager.loadFile(path.join(__dirname, `../db/.hardwares.json`))
-        .then(res => {
-          const doors = document.getElementById('hardware')
-          doors.innerHTML = ""
-          const opt = document.createElement('option')
-          opt.value = "";
-          opt.text = "Select"
-          opt.classList.add('d-none')
-          doors.options.add(opt)
-          res.forEach(i => {
-            if(i.utility_id === document.getElementById('utility').value && i.type_id === document.getElementById('type').value && i.code_id === code)
-            {
-              const opt = document.createElement('option')
-              opt.value = i.id;
-              opt.text = i.title
-              doors.options.add(opt)
-            }
-          })
+      .then(res => {
+        const doors = document.getElementById('hardware')
+        doors.innerHTML = ""
+        const opt = document.createElement('option')
+        opt.value = "";
+        opt.text = "Select"
+        opt.classList.add('d-none')
+        doors.options.add(opt)
+        res.forEach(i => {
+          if (i.utility_id === document.getElementById('utility').value && i.type_id === document.getElementById('type').value && i.code_id === code) {
+            const opt = document.createElement('option')
+            opt.value = i.id;
+            opt.text = i.title
+            doors.options.add(opt)
+          }
         })
+      })
 
     file_manager.loadFile(path.join(__dirname, `../db/.shelves.json`))
-        .then(res => {
-          const doors = document.getElementById('shelves')
-          doors.innerHTML = ""
-          const opt = document.createElement('option')
-          opt.value = "";
-          opt.text = "Select"
-          opt.classList.add('d-none')
-          doors.options.add(opt)
-          res.forEach(i => {
-            if(i.utility_id === document.getElementById('utility').value && i.type_id === document.getElementById('type').value && i.code_id === code)
-            {
-              const opt = document.createElement('option')
-              opt.value = i.id;
-              opt.text = i.title
-              doors.options.add(opt)
-            }
-          })
+      .then(res => {
+        const doors = document.getElementById('shelves')
+        doors.innerHTML = ""
+        const opt = document.createElement('option')
+        opt.value = "";
+        opt.text = "Select"
+        opt.classList.add('d-none')
+        doors.options.add(opt)
+        res.forEach(i => {
+          if (i.utility_id === document.getElementById('utility').value && i.type_id === document.getElementById('type').value && i.code_id === code) {
+            const opt = document.createElement('option')
+            opt.value = i.id;
+            opt.text = i.title
+            doors.options.add(opt)
+          }
         })
+      })
   }
   refreshNewCostBreakdown();
 }
@@ -1394,41 +1386,40 @@ document.getElementById("code-price").addEventListener("change", (event) => {
   document.getElementById("code-new-rate").value = event.target.value;
 })
 
-function discount_and_tax(){
-  if(document.getElementById('gross-amount').value.toString() === '0')
-  {
-    document.getElementById('discount').value = 0;
-    document.getElementById('tax').value = 0;
-    document.getElementById('calculated-tax').value = 0;
-    document.getElementById('net').value = document.getElementById('gross-amount').value;
-  }
-  else if( document.getElementById('discount').value !== "" && document.getElementById('tax').value !== "" ) {
-    const disc = Math.round(document.getElementById('discount').value)
-    const discounted_value =  Math.round(document.getElementById('gross-amount').value) - disc;
-    const tax = Math.round(document.getElementById('tax').value);
-    const calculated = (discounted_value * tax) / 100;
-    document.getElementById('net').value = Math.round(discounted_value + calculated)
-    document.getElementById('calculated-tax').value = Math.round(calculated);
-  }
-  else if( document.getElementById('discount').value !== "" && document.getElementById('tax').value === "" ) {
-    const disc = Math.round(document.getElementById('discount').value)
-    document.getElementById('net').value = Math.round(Math.round(document.getElementById('gross-amount').value) - disc);
-    document.getElementById('tax').value = 0;
-    document.getElementById('calculated-tax').value = 0;
-  }
-  else if(document.getElementById('discount').value === "" && document.getElementById('tax').value !== "") {
-    const tax = Math.round(document.getElementById('tax').value);
-    const calculated = Math.round(Math.round(document.getElementById('gross-amount').value) * tax) / 100;
-    document.getElementById('calculated-tax').value = Math.round(calculated);
-    document.getElementById('net').value = Math.round(Math.round(document.getElementById('gross-amount').value) + calculated);
+function recalcNetFromEnteredTotals() {
+  const gross = Math.round(Number(document.getElementById('gross-amount').value) || 0);
+  const showDiscount = shouldShowDiscountOnOutput();
+  const disc = showDiscount
+    ? Math.round(Number(document.getElementById('discount').value) || 0)
+    : 0;
+  const taxAmount = Math.round(Number(document.getElementById('calculated-tax').value) || 0);
+  const delivery = Math.round(Number(document.getElementById('delivery-charges').value) || 0);
+  document.getElementById('net').value = Math.round(Math.max(0, gross - disc) + taxAmount + delivery);
+}
+
+function discount_and_tax() {
+  const gross = Math.round(Number(document.getElementById('gross-amount').value) || 0);
+  const showDiscount = shouldShowDiscountOnOutput();
+  const disc = showDiscount
+    ? Math.round(Number(document.getElementById('discount').value) || 0)
+    : 0;
+  const taxPct = Math.round(Number(document.getElementById('tax').value) || 0);
+  const delivery = Math.round(Number(document.getElementById('delivery-charges').value) || 0);
+
+  if (!showDiscount) {
     document.getElementById('discount').value = 0;
   }
-  else {
-    document.getElementById('discount').value = 0;
-    document.getElementById('tax').value = 0;
+
+  if (gross === 0) {
     document.getElementById('calculated-tax').value = 0;
-    document.getElementById('net').value = document.getElementById('gross-amount').value;
+    document.getElementById('net').value = delivery;
+    return;
   }
+
+  const discounted_value = gross - disc;
+  const taxAmount = (discounted_value * taxPct) / 100;
+  document.getElementById('calculated-tax').value = Math.round(taxAmount);
+  document.getElementById('net').value = Math.round(discounted_value + taxAmount + delivery);
 }
 
 function populate_table() {
@@ -1440,15 +1431,14 @@ function populate_table() {
   const keys = Object.keys(pricing)
   let count = 1
   keys.forEach(i => {
-    if(pricing[i].length>0 && i !== "pinfo")
-    {
+    if (pricing[i].length > 0 && i !== "pinfo") {
       table.innerHTML += `<tr class="elevation-row-pricing"><td style=" font-size: large; text-align: center; padding: 0px; color: black; font-weight: bold; border-bottom: 1px solid black" colspan="12">${i}</td></tr>`;
       pricing[i].forEach((j, ind) => {
         table.innerHTML += `
           <tr class="tr-shadow" style=" ">
             <td class="p-1" style="width: 60px; border-right: 1px solid black; border-bottom: 1px solid black;">
               <label class="au-checkbox" style="margin-top: 2.5px"> 
-                <input type="checkbox" id="${i+'~'+j.item_id.toString()}" onchange="toggle(event);">
+                <input type="checkbox" id="${i + '~' + j.item_id.toString()}" onchange="toggle(event);">
                 <span class="au-checkmark" style="border: 1px solid green; width: 20px; height: 20px"></span>
               </label>
             </td>
@@ -1465,12 +1455,13 @@ function populate_table() {
             <td class="p-1" style="width: 70px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; color: black; border-bottom: 1px solid black; ">${Intl.NumberFormat('en-US').format(j && j.total != null ? j.total : 0)}</td>
           </tr>`;
         baseGrossAmount += Math.round(j && j.total != null ? Number(j.total) : 0);
-        count +=1
+        count += 1
       });
     }
   })
   refreshGrossAmount();
   discount_and_tax();
+  ensurePricingTotalsEnabled();
 }
 
 document.getElementById('form-pricing').addEventListener('submit', (event) => {
@@ -1478,10 +1469,10 @@ document.getElementById('form-pricing').addEventListener('submit', (event) => {
   document.getElementById('open').disabled = true;
   const select = document.getElementById("hardware-price");
   const selectedIndex = select.selectedIndex;
-  const selectedText = select.options[selectedIndex].text; 
+  const selectedText = select.options[selectedIndex].text;
   const select1 = document.getElementById("code-price");
   const selectedIndex1 = select1.selectedIndex;
-  const selectedText1 = select1.options[selectedIndex1].text; 
+  const selectedText1 = select1.options[selectedIndex1].text;
   item = {
     "item_id": items.length + 1,
     "elevation": document.getElementById('elevation-input').value,
@@ -1513,38 +1504,33 @@ document.getElementById('form-pricing').addEventListener('submit', (event) => {
     "code_rate_type": selectedText1,
     "shelve_rate": document.getElementById('shelve-new-rate').value,
   }
-  if(document.getElementById('is_shelve').value === 'no')
-  {
+  if (document.getElementById('is_shelve').value === 'no') {
     item.shelves_text = ''
   }
-  if(check_list.length === 0)
-  {
+  if (check_list.length === 0) {
     items.push(item);
   }
-  else
-  {
+  else {
     item.item_id = check_list[0].item_id;
     items.forEach((ii, ind) => {
-      if(ii.item_id === item.item_id)
+      if (ii.item_id === item.item_id)
         items[ind] = item
     })
   }
 
   let pinfo = ""
-  if("pinfo" in pricing)
-  {
+  if ("pinfo" in pricing) {
     pinfo = pricing["pinfo"]
   }
   pricing = {}
   items.forEach(kk => {
-    if(!(kk.elevation in pricing)){
+    if (!(kk.elevation in pricing)) {
       pricing[kk.elevation] = [kk]
     }
-    else
-    {
+    else {
       pricing[kk.elevation].push(kk)
     }
-    if(pinfo !== "")
+    if (pinfo !== "")
       pricing["pinfo"] = pinfo
     check_list = []
   })
@@ -1558,58 +1544,56 @@ document.getElementById('form-pricing').addEventListener('submit', (event) => {
 
 document.getElementById('additional').addEventListener('keyup', (event) => {
   var key = event.keyCode || event.charCode;
-  if( key == 8 || key == 46 ) {
-    if(parseFloat(document.getElementById('additional').value)){
+  if (key == 8 || key == 46) {
+    if (parseFloat(document.getElementById('additional').value)) {
       document.getElementById('unit').value = parseFloat(document.getElementById('unit').value) - custom_val;
       document.getElementById('unit').value = parseFloat(document.getElementById('unit').value).toFixed(2);
       document.getElementById('total').innerHTML = Math.round(parseFloat(document.getElementById('unit').value) * parseFloat(document.getElementById('qty').value), 0);
-  
+
       document.getElementById('unit').value = parseFloat(document.getElementById('additional').value) + parseFloat(document.getElementById('unit').value);
       document.getElementById('unit').value = parseFloat(document.getElementById('unit').value).toFixed(2)
       custom_val = parseFloat(document.getElementById('additional').value)
       document.getElementById('total').innerHTML = Math.round(parseFloat(document.getElementById('unit').value) * parseFloat(document.getElementById('qty').value), 0);
     }
-    else{
-      if(custom_val!==0)
-      {
+    else {
+      if (custom_val !== 0) {
         document.getElementById('unit').value = parseFloat(document.getElementById('unit').value) - custom_val;
         document.getElementById('unit').value = parseFloat(document.getElementById('unit').value).toFixed(2)
         document.getElementById('total').innerHTML = Math.round(parseFloat(document.getElementById('unit').value) * parseFloat(document.getElementById('qty').value), 0);
         custom_val = 0
         document.getElementById('additional').value = 0;
       }
-      
+
     }
   }
-  else{
-    if(parseFloat(document.getElementById('additional').value)){
+  else {
+    if (parseFloat(document.getElementById('additional').value)) {
       document.getElementById('unit').value = parseFloat(document.getElementById('unit').value) - custom_val;
       document.getElementById('unit').value = parseFloat(document.getElementById('unit').value).toFixed(2)
       document.getElementById('total').innerHTML = Math.round(parseFloat(document.getElementById('unit').value) * parseFloat(document.getElementById('qty').value), 0);
-  
+
       document.getElementById('unit').value = parseFloat(document.getElementById('additional').value) + parseFloat(document.getElementById('unit').value);
       document.getElementById('unit').value = parseFloat(document.getElementById('unit').value).toFixed(2)
       custom_val = parseFloat(document.getElementById('additional').value)
       document.getElementById('total').innerHTML = Math.round(parseFloat(document.getElementById('unit').value) * parseFloat(document.getElementById('qty').value), 0);
-      
+
     }
   }
 })
 
 document.getElementById('is_shelve').addEventListener('change', (event) => {
   const val = event.target.value;
-  if(val === "yes" && shelve === 0){
+  if (val === "yes" && shelve === 0) {
     // document.getElementById('unit').value = parseFloat(document.getElementById('unit').value) - shelve;
     // document.getElementById('total').innerHTML = (parseFloat(document.getElementById('qty').value) * parseFloat(document.getElementById('unit').value)).toFixed(2);
-      file_manager.loadFile(path.join(__dirname, `../db/.shelves.json`))
-          .then(res => {
-            file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
+    file_manager.loadFile(path.join(__dirname, `../db/.shelves.json`))
+      .then(res => {
+        file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
           .then(rates => {
             res.forEach(i => {
               const selectedShelveId = document.getElementById("shelves").value;
-              if(selectedShelveId && i.id === selectedShelveId)
-              {
-                try{
+              if (selectedShelveId && i.id === selectedShelveId) {
+                try {
                   shelve = parseFloat(i.rate)
                   document.getElementById('shelve-new-rate').value = rates.rate_shelve;
                   shelve = shelve * parseFloat(rates.rate_shelve);
@@ -1626,9 +1610,9 @@ document.getElementById('is_shelve').addEventListener('change', (event) => {
               }
             })
           })
-          })
+      })
   }
-  else if(val === "no" && shelve !== 0){
+  else if (val === "no" && shelve !== 0) {
     document.getElementById('unit').value = parseFloat(document.getElementById('unit').value) - shelve;
     document.getElementById('unit').value = parseFloat(document.getElementById('unit').value).toFixed(2)
     document.getElementById('total').innerHTML = Math.round(parseFloat(document.getElementById('qty').value) * parseFloat(document.getElementById('unit').value), 0);
@@ -1638,8 +1622,8 @@ document.getElementById('is_shelve').addEventListener('change', (event) => {
 })
 
 document.getElementById('qty').addEventListener('change', (event) => {
-  if(document.getElementById('unit').value !== '0' && document.getElementById('unit').value !== '')
-  document.getElementById('total').innerHTML = Math.round(parseFloat(event.target.value) * parseFloat(document.getElementById('unit').value), 0);
+  if (document.getElementById('unit').value !== '0' && document.getElementById('unit').value !== '')
+    document.getElementById('total').innerHTML = Math.round(parseFloat(event.target.value) * parseFloat(document.getElementById('unit').value), 0);
 })
 
 document.getElementById('door-panel').addEventListener('change', (event) => {
@@ -1648,20 +1632,17 @@ document.getElementById('door-panel').addEventListener('change', (event) => {
   document.getElementById('unit').value = parseFloat(document.getElementById('unit').value) - door;
   document.getElementById('unit').value = parseFloat(document.getElementById('unit').value).toFixed(2)
   document.getElementById('total').innerHTML = Math.round(parseFloat(document.getElementById('qty').value) * parseFloat(document.getElementById('unit').value), 0);
-  if(val === '')
-  {
+  if (val === '') {
     door = 0
   }
-  else
-  {
+  else {
     file_manager.loadFile(path.join(__dirname, `../db/.doors.json`))
-        .then(res => {
-          file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
+      .then(res => {
+        file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
           .then(rates => {
             res.forEach(i => {
-              if(i.id === val)
-              {
-                try{
+              if (i.id === val) {
+                try {
                   door = parseFloat(i.rate)
                   document.getElementById('finishing-new-rate').value = rates.rate_doors;
                   door = door * parseFloat(rates.rate_doors);
@@ -1677,8 +1658,8 @@ document.getElementById('door-panel').addEventListener('change', (event) => {
               }
             })
           })
-          
-        })
+
+      })
   }
   refreshNewCostBreakdown();
 })
@@ -1689,20 +1670,17 @@ document.getElementById('handler').addEventListener('change', (event) => {
   document.getElementById('unit').value = parseFloat(document.getElementById('unit').value) - handler;
   document.getElementById('unit').value = parseFloat(document.getElementById('unit').value).toFixed(2)
   document.getElementById('total').innerHTML = (parseFloat(document.getElementById('qty').value) * parseFloat(document.getElementById('unit').value));
-  if(val === '')
-  {
+  if (val === '') {
     handler = 0
   }
-  else
-  {
+  else {
     file_manager.loadFile(path.join(__dirname, `../db/.handlers.json`))
-        .then(res => {
-          file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
+      .then(res => {
+        file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
           .then(rates => {
             res.forEach(i => {
-              if(i.id === val)
-              {
-                try{
+              if (i.id === val) {
+                try {
                   handler = parseFloat(i.rate)
                   document.getElementById('handle-new-rate').value = rates.rate_handles;
                   handler = handler * parseFloat(rates.rate_handles);
@@ -1716,8 +1694,8 @@ document.getElementById('handler').addEventListener('change', (event) => {
               }
             })
           })
-         
-        })
+
+      })
   }
 })
 
@@ -1727,20 +1705,17 @@ document.getElementById('hardware').addEventListener('change', (event) => {
   document.getElementById('unit').value = parseFloat(document.getElementById('unit').value) - hardware;
   document.getElementById('unit').value = parseFloat(document.getElementById('unit').value).toFixed(2)
   document.getElementById('total').innerHTML = Math.round(parseFloat(document.getElementById('qty').value) * parseFloat(document.getElementById('unit').value), 0);
-  if(val === '')
-  {
+  if (val === '') {
     hardware = 0
   }
-  else
-  {
+  else {
     file_manager.loadFile(path.join(__dirname, `../db/.hardwares.json`))
-        .then(res => {
-          file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
+      .then(res => {
+        file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
           .then(rates => {
             res.forEach(i => {
-              if(i.id === val)
-              {
-                try{
+              if (i.id === val) {
+                try {
                   document.getElementById("hardware-price").selectedIndex = 0;
                   document.getElementById('harware-new-rate').value = rates.rate_hardware;
                   hardware = computeHardwareContribution(i, rates, "Hinges Price/SET", rates.rate_hardware);
@@ -1754,8 +1729,8 @@ document.getElementById('hardware').addEventListener('change', (event) => {
               }
             })
           })
-          
-        })
+
+      })
   }
 })
 
@@ -1764,20 +1739,17 @@ document.getElementById('shelves').addEventListener('change', (event) => {
   document.getElementById('unit').value = parseFloat(document.getElementById('unit').value) - shelve;
   document.getElementById('unit').value = parseFloat(document.getElementById('unit').value).toFixed(2)
   document.getElementById('total').innerHTML = Math.round(parseFloat(document.getElementById('qty').value) * parseFloat(document.getElementById('unit').value), 0);
-  if(val === '')
-  {
+  if (val === '') {
     shelve = 0
   }
-  else
-  {
+  else {
     file_manager.loadFile(path.join(__dirname, `../db/.shelves.json`))
-        .then(res => {
-          file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
+      .then(res => {
+        file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
           .then(rates => {
             res.forEach(i => {
-              if(i.id === val)
-              {
-                try{
+              if (i.id === val) {
+                try {
                   shelve = parseFloat(i.rate)
                   document.getElementById('shelve-new-rate').value = rates.rate_shelve;
                   shelve = shelve * parseFloat(rates.rate_shelve);
@@ -1795,19 +1767,44 @@ document.getElementById('shelves').addEventListener('change', (event) => {
               }
             })
           })
-          
-        })
+
+      })
   }
 })
 
-document.getElementById('tax').addEventListener('keyup', (event) => {
-  if(parseFloat(document.getElementById('gross-amount').value) !== 0)
-    discount_and_tax();
+document.getElementById('tax').addEventListener('keyup', () => {
+  discount_and_tax();
+})
+document.getElementById('tax').addEventListener('change', () => {
+  discount_and_tax();
 })
 
-document.getElementById('discount').addEventListener('keyup', (event) => {
-  if(parseFloat(document.getElementById('gross-amount').value) !== 0)
-    discount_and_tax();
+document.getElementById('gross-amount').addEventListener('keyup', () => {
+  discount_and_tax();
+})
+document.getElementById('gross-amount').addEventListener('change', () => {
+  discount_and_tax();
+})
+
+document.getElementById('discount').addEventListener('keyup', () => {
+  discount_and_tax();
+})
+document.getElementById('discount').addEventListener('change', () => {
+  discount_and_tax();
+})
+
+document.getElementById('calculated-tax').addEventListener('keyup', () => {
+  recalcNetFromEnteredTotals();
+})
+document.getElementById('calculated-tax').addEventListener('change', () => {
+  recalcNetFromEnteredTotals();
+})
+
+document.getElementById('delivery-charges').addEventListener('keyup', () => {
+  discount_and_tax();
+})
+document.getElementById('delivery-charges').addEventListener('change', () => {
+  discount_and_tax();
 })
 
 document.getElementById('apply-profit-margin').addEventListener('change', (event) => {
@@ -1821,213 +1818,199 @@ document.getElementById('apply-profit-margin').addEventListener('change', (event
 document.getElementById('confirm').addEventListener('click', (event) => {
   event.preventDefault();
   file_manager
-      .loadFile(path.join(__dirname, "../db/.credentials.json"))
-      .then((res) => {
-        if (res[0].password === document.getElementById("pass").value) {
-          file_manager.loadFile(path.join(__dirname, '../db/.pricings.json'))
-              .then(res => {
-                const old_pricing = res;
-                // let indd = -1;
-                // res.forEach((kk, ind) => {
-                //   if(kk["pinfo"].pricing_no === document.getElementById('pricing-no').value)
-                //   {
-                //     indd = ind;
-                //     return
-                //   }
-                // })
-                if(pricing["pinfo"] && pricing["pinfo"].manual_no === document.getElementById('manual-input').value)
-                {
-                  r = confirm("Want to save with same Reference number?")
-                  if (r)
-                  {
-                    old_pricing.forEach((l, ind) => {
-                      if(l['pinfo'].id == pricing["pinfo"].id)
-                      {
-                        pricing["pinfo"] = {
-                          "id": l['pinfo'].id ,
-                          "pricing_no": document.getElementById('pricing-no').value,
-                          "entry_date": document.getElementById("entry-date").valueAsDate,
-                          "delivery_days": document.getElementById('delivery-days').value,
-                          "manual_no": document.getElementById('manual-input').value,
-                          "client": document.getElementById('client-input').value,
-                          "client_name": document.getElementById('client-input').options[document.getElementById('client-input').selectedIndex].text,
-                          "product_type": document.getElementById('product-input').value,
-                          "sales_rp": document.getElementById('sales-input').value,
-                          "carcass": document.getElementById('carcass-input').value,
-                          "is_quotation": document.getElementById('is_quotation').checked,
-                          "gross_amount": document.getElementById('gross-amount').value,
-                          "discount": document.getElementById('discount').value,
-                          "show_discount": shouldShowDiscountOnOutput(),
-                          "tax": document.getElementById('tax').value,
-                          "calculated_tax": document.getElementById('calculated-tax').value,
-                          "net": document.getElementById('net').value,
-                          "profit_margin_percentage": profitMarginPercentage,
-                          "profit_margin_applied": isProfitMarginApplied(),
-                          "category": document.getElementById('category-input').value,
-                        }
-                        old_pricing[ind] = pricing
-                      }
-                    })
-                    file_manager.writeFile(path.join(__dirname, '../db/.pricings.json'), old_pricing)
-                        .then(res => {
-                          document.getElementById('cancel').click();
-                          if (res === 'success') {
-
-                            alert("Pricing Saved Successfully!")
-                            all_clear()
-                            document.getElementById('save').disabled = true;
-                            document.getElementById('print').classList.add("d-none");
-                            document.getElementById('delete').disabled = true;
-                          }
-                          else
-                          {
-                            alert("An Error Occurred While Saving!")
-                          }
-                        })
+    .loadFile(path.join(__dirname, "../db/.credentials.json"))
+    .then((res) => {
+      if (res[0].password === document.getElementById("pass").value) {
+        file_manager.loadFile(path.join(__dirname, '../db/.pricings.json'))
+          .then(res => {
+            const old_pricing = res;
+            // let indd = -1;
+            // res.forEach((kk, ind) => {
+            //   if(kk["pinfo"].pricing_no === document.getElementById('pricing-no').value)
+            //   {
+            //     indd = ind;
+            //     return
+            //   }
+            // })
+            if (pricing["pinfo"] && pricing["pinfo"].manual_no === document.getElementById('manual-input').value) {
+              r = confirm("Want to save with same Reference number?")
+              if (r) {
+                old_pricing.forEach((l, ind) => {
+                  if (l['pinfo'].id == pricing["pinfo"].id) {
+                    pricing["pinfo"] = {
+                      "id": l['pinfo'].id,
+                      "pricing_no": document.getElementById('pricing-no').value,
+                      "entry_date": document.getElementById("entry-date").valueAsDate,
+                      "delivery_days": document.getElementById('delivery-days').value,
+                      "manual_no": document.getElementById('manual-input').value,
+                      "client": document.getElementById('client-input').value,
+                      "client_name": document.getElementById('client-input').options[document.getElementById('client-input').selectedIndex].text,
+                      "product_type": document.getElementById('product-input').value,
+                      "sales_rp": document.getElementById('sales-input').value,
+                      "carcass": document.getElementById('carcass-input').value,
+                      "is_quotation": document.getElementById('is_quotation').checked,
+                      "gross_amount": document.getElementById('gross-amount').value,
+                      "discount": document.getElementById('discount').value,
+                      "show_discount": shouldShowDiscountOnOutput(),
+                      "tax": document.getElementById('tax').value,
+                      "calculated_tax": document.getElementById('calculated-tax').value,
+                      "delivery_charges": document.getElementById('delivery-charges').value,
+                      "net": document.getElementById('net').value,
+                      "profit_margin_percentage": profitMarginPercentage,
+                      "profit_margin_applied": isProfitMarginApplied(),
+                      "category": document.getElementById('category-input').value,
+                    }
+                    old_pricing[ind] = pricing
                   }
-                  else
-                  {
-                    document.getElementById("pass").value = ""
+                })
+                file_manager.writeFile(path.join(__dirname, '../db/.pricings.json'), old_pricing)
+                  .then(res => {
                     document.getElementById('cancel').click();
-                  }
-                }
-                else
-                {
-                  pricing["pinfo"] = {
-                    "id": Date.now().toString(),
-                    "pricing_no": document.getElementById('pricing-no').value,
-                    "entry_date": document.getElementById("entry-date").valueAsDate,
-                    "delivery_days": document.getElementById('delivery-days').value,
-                    "manual_no": document.getElementById('manual-input').value,
-                    "client": document.getElementById('client-input').value,
-                    "client_name": document.getElementById('client-input').options[document.getElementById('client-input').selectedIndex].text,
-                    "product_type": document.getElementById('product-input').value,
-                    "sales_rp": document.getElementById('sales-input').value,
-                    "carcass": document.getElementById('carcass-input').value,
-                    "is_quotation": document.getElementById('is_quotation').checked,
-                    "gross_amount": document.getElementById('gross-amount').value,
-                    "discount": document.getElementById('discount').value,
-                    "show_discount": shouldShowDiscountOnOutput(),
-                    "tax": document.getElementById('tax').value,
-                    "calculated_tax": document.getElementById('calculated-tax').value,
-                    "net": document.getElementById('net').value,
-                    "profit_margin_percentage": profitMarginPercentage,
-                    "profit_margin_applied": isProfitMarginApplied(),
-                    "category": document.getElementById('category-input').value,
-                  }
-                  // if(indd === -1)
-                  // {
-                  old_pricing.push(pricing);
-                  // }
-                  // else{
-                  //   old_pricing[indd] = pricing
-                  // }
-                  file_manager.writeFile(path.join(__dirname, '../db/.pricings.json'), old_pricing)
-                      .then(res => {
-                        document.getElementById('cancel').click();
-                        if (res === 'success') {
+                    if (res === 'success') {
 
-                          alert("Pricing Saved Successfully!")
-                          all_clear()
-                          document.getElementById('save').disabled = true;
-                          document.getElementById('print').classList.add("d-none");
-                          document.getElementById('delete').disabled = true;
-                        }
-                        else
-                        {
-                          alert("An Error Occurred While Saving!")
-                        }
-                      })
-                }
-              })
-        }
-        else
-        {
-          window.modalInputFix.showInvalid('pass', 'Invalid Password, Try Again!');
-        }
-      })
-  if(document.getElementById('checkbox-all-open').checked)
+                      alert("Pricing Saved Successfully!")
+                      all_clear()
+                      document.getElementById('save').disabled = true;
+                      document.getElementById('print').classList.add("d-none");
+                      document.getElementById('delete').disabled = true;
+                    }
+                    else {
+                      alert("An Error Occurred While Saving!")
+                    }
+                  })
+              }
+              else {
+                document.getElementById("pass").value = ""
+                document.getElementById('cancel').click();
+              }
+            }
+            else {
+              pricing["pinfo"] = {
+                "id": Date.now().toString(),
+                "pricing_no": document.getElementById('pricing-no').value,
+                "entry_date": document.getElementById("entry-date").valueAsDate,
+                "delivery_days": document.getElementById('delivery-days').value,
+                "manual_no": document.getElementById('manual-input').value,
+                "client": document.getElementById('client-input').value,
+                "client_name": document.getElementById('client-input').options[document.getElementById('client-input').selectedIndex].text,
+                "product_type": document.getElementById('product-input').value,
+                "sales_rp": document.getElementById('sales-input').value,
+                "carcass": document.getElementById('carcass-input').value,
+                "is_quotation": document.getElementById('is_quotation').checked,
+                "gross_amount": document.getElementById('gross-amount').value,
+                "discount": document.getElementById('discount').value,
+                "show_discount": shouldShowDiscountOnOutput(),
+                "tax": document.getElementById('tax').value,
+                "calculated_tax": document.getElementById('calculated-tax').value,
+                "delivery_charges": document.getElementById('delivery-charges').value,
+                "net": document.getElementById('net').value,
+                "profit_margin_percentage": profitMarginPercentage,
+                "profit_margin_applied": isProfitMarginApplied(),
+                "category": document.getElementById('category-input').value,
+              }
+              // if(indd === -1)
+              // {
+              old_pricing.push(pricing);
+              // }
+              // else{
+              //   old_pricing[indd] = pricing
+              // }
+              file_manager.writeFile(path.join(__dirname, '../db/.pricings.json'), old_pricing)
+                .then(res => {
+                  document.getElementById('cancel').click();
+                  if (res === 'success') {
+
+                    alert("Pricing Saved Successfully!")
+                    all_clear()
+                    document.getElementById('save').disabled = true;
+                    document.getElementById('print').classList.add("d-none");
+                    document.getElementById('delete').disabled = true;
+                  }
+                  else {
+                    alert("An Error Occurred While Saving!")
+                  }
+                })
+            }
+          })
+      }
+      else {
+        window.modalInputFix.showInvalid('pass', 'Invalid Password, Try Again!');
+      }
+    })
+  if (document.getElementById('checkbox-all-open').checked)
     document.getElementById('checkbox-all-open').checked = false
 })
 
-function toggle_open(event){
+function toggle_open(event) {
   const val = event.target.id
-  if(event.target.checked)
-  {
+  if (event.target.checked) {
     file_manager.loadFile(path.join(__dirname, `../db/.pricings.json`))
-        .then(res => {
-          res.forEach(i => {
-            if(i["pinfo"].id.toString() === val){
-              check_list2.push(i)
-              document.getElementById('delete-1').disabled = false;
-              document.getElementById('confirm-1').disabled = false;
-            }
-          })
-          if(check_list2.length === res.length)
-          {
-            if(!document.getElementById('checkbox-all-open').checked)
-              document.getElementById('checkbox-all-open').checked = true
-          }
-          if(check_list2.length > 1)
-          {
-            document.getElementById('confirm-1').disabled = true;
+      .then(res => {
+        res.forEach(i => {
+          if (i["pinfo"].id.toString() === val) {
+            check_list2.push(i)
+            document.getElementById('delete-1').disabled = false;
+            document.getElementById('confirm-1').disabled = false;
           }
         })
+        if (check_list2.length === res.length) {
+          if (!document.getElementById('checkbox-all-open').checked)
+            document.getElementById('checkbox-all-open').checked = true
+        }
+        if (check_list2.length > 1) {
+          document.getElementById('confirm-1').disabled = true;
+        }
+      })
 
   }
-  else
-  {
+  else {
     file_manager.loadFile(path.join(__dirname, `../db/.pricings.json`))
-        .then(res => {
-          res.forEach(i => {
-            if(i["pinfo"].id.toString() === val){
-              const ind = check_list2.indexOf(i)
-              check_list2.splice(ind, 1)
-            }
-          })
-          if(check_list2.length === 0)
-          {
-            document.getElementById('confirm-1').disabled = true;
-            document.getElementById('delete-1').disabled = true;
-            if(document.getElementById('checkbox-all-open').checked)
-              document.getElementById('checkbox-all-open').checked = false
+      .then(res => {
+        res.forEach(i => {
+          if (i["pinfo"].id.toString() === val) {
+            const ind = check_list2.indexOf(i)
+            check_list2.splice(ind, 1)
           }
-          if(check_list2.length === 1)
-          {
-            document.getElementById('confirm-1').disabled = false;
-            document.getElementById('delete-1').disabled = false;
-            if(document.getElementById('checkbox-all-open').checked)
-              document.getElementById('checkbox-all-open').checked = false
-          }
-          if(check_list2.length > 1)
-          {
-            document.getElementById('confirm-1').disabled = true;
-            document.getElementById('delete-1').disabled = false;
-          }
-          if(check_list2.length !== res.length)
-          {
-            if(document.getElementById('checkbox-all-open').checked)
-              document.getElementById('checkbox-all-open').checked = false
-          }
-
-
         })
+        if (check_list2.length === 0) {
+          document.getElementById('confirm-1').disabled = true;
+          document.getElementById('delete-1').disabled = true;
+          if (document.getElementById('checkbox-all-open').checked)
+            document.getElementById('checkbox-all-open').checked = false
+        }
+        if (check_list2.length === 1) {
+          document.getElementById('confirm-1').disabled = false;
+          document.getElementById('delete-1').disabled = false;
+          if (document.getElementById('checkbox-all-open').checked)
+            document.getElementById('checkbox-all-open').checked = false
+        }
+        if (check_list2.length > 1) {
+          document.getElementById('confirm-1').disabled = true;
+          document.getElementById('delete-1').disabled = false;
+        }
+        if (check_list2.length !== res.length) {
+          if (document.getElementById('checkbox-all-open').checked)
+            document.getElementById('checkbox-all-open').checked = false
+        }
+
+
+      })
   }
 }
 
 document.getElementById('open').addEventListener('click', (event) => {
   file_manager.loadFile(path.join(__dirname, '../db/.pricings.json'))
-      .then(res => {
-        check_list2 = []
-        document.getElementById('checkbox-all-open').checked = false;
-        document.getElementById('confirm-1').disabled = true;
-        const tb = document.getElementById('load-pricing-table');
-        tb.innerHTML = "";
-        res.forEach((i, ind) => {
-          let col = 'black'
-          if(i["pinfo"].is_quotation)
-            col = 'red'
-          tb.innerHTML += `
+    .then(res => {
+      check_list2 = []
+      document.getElementById('checkbox-all-open').checked = false;
+      document.getElementById('confirm-1').disabled = true;
+      const tb = document.getElementById('load-pricing-table');
+      tb.innerHTML = "";
+      res.forEach((i, ind) => {
+        let col = 'black'
+        if (i["pinfo"].is_quotation)
+          col = 'red'
+        tb.innerHTML += `
             <tr style="text-align: center">
                 <td>
                     <label class="au-checkbox">
@@ -2035,7 +2018,7 @@ document.getElementById('open').addEventListener('click', (event) => {
                        <span class="au-checkmark" style="border: 1px solid green"></span>
                     </label>
                 </td>
-                <td>${ind+1}</td>
+                <td>${ind + 1}</td>
                 <td class="d-none">${i["pinfo"].id}</td>
                 <td>${i["pinfo"].pricing_no}</td>
                 <td>${i["pinfo"].entry_date.split('T')[0]}</td>
@@ -2044,13 +2027,12 @@ document.getElementById('open').addEventListener('click', (event) => {
                 <td style="color: ${col}">${i["pinfo"].is_quotation ? "Quotation" : "Invoice"}</td>
             </tr>
           `;
-        })
       })
+    })
 })
 
 document.getElementById('form-pricing').addEventListener('input', (event) => {
-  if(items.length>0)
-  {
+  if (items.length > 0) {
     document.getElementById('save').disabled = false;
     document.getElementById('print').classList.add('d-none')
   }
@@ -2060,85 +2042,79 @@ document.getElementById('confirm-1').addEventListener('click', (event) => {
   event.preventDefault();
   document.getElementById('cancel-1').click();
   file_manager.loadFile(path.join(__dirname, '../db/.pricings.json'))
-      .then(res => {
-        document.getElementById('print').classList.remove('d-none')
-        res.forEach(i => {
-          if(document.getElementById(i["pinfo"].id) && document.getElementById(i["pinfo"].id).checked)
-          {
-            document.getElementById('save').innerHTML = "Update";
-            document.getElementById('pricing-no').value = i["pinfo"].pricing_no;
-            document.getElementById("entry-date").value = i["pinfo"].entry_date.split('T')[0];
-            document.getElementById('entry-date-backup').value = '';
-            document.getElementById('pricing-type').value = ''
-            document.getElementById('delivery-days').value = i["pinfo"].delivery_days;
-            document.getElementById('manual-input').value = i["pinfo"].manual_no;
-            document.getElementById('client-input').value = i["pinfo"].client;
-            document.getElementById('product-input').value = i["pinfo"].product_type;
-            document.getElementById('sales-input').value = i["pinfo"].sales_rp;
-            document.getElementById('carcass-input').value = i["pinfo"].carcass;
-            document.getElementById('is_quotation').checked = i["pinfo"].is_quotation;
+    .then(res => {
+      document.getElementById('print').classList.remove('d-none')
+      res.forEach(i => {
+        if (document.getElementById(i["pinfo"].id) && document.getElementById(i["pinfo"].id).checked) {
+          document.getElementById('save').innerHTML = "Update";
+          document.getElementById('pricing-no').value = i["pinfo"].pricing_no;
+          document.getElementById("entry-date").value = i["pinfo"].entry_date.split('T')[0];
+          document.getElementById('entry-date-backup').value = '';
+          document.getElementById('pricing-type').value = ''
+          document.getElementById('delivery-days').value = i["pinfo"].delivery_days;
+          document.getElementById('manual-input').value = i["pinfo"].manual_no;
+          document.getElementById('client-input').value = i["pinfo"].client;
+          document.getElementById('product-input').value = i["pinfo"].product_type;
+          document.getElementById('sales-input').value = i["pinfo"].sales_rp;
+          document.getElementById('carcass-input').value = i["pinfo"].carcass;
+          document.getElementById('is_quotation').checked = i["pinfo"].is_quotation;
 
-            if (i["pinfo"].profit_margin_percentage != null) {
-              const pct = Number(i["pinfo"].profit_margin_percentage);
-              profitMarginPercentage = isNaN(pct) ? profitMarginPercentage : pct;
-              setProfitMarginLabel();
-            }
-            if (i["pinfo"].profit_margin_applied != null) {
-              document.getElementById('apply-profit-margin').checked = !!i["pinfo"].profit_margin_applied;
-            }
-
-            document.getElementById('gross-amount').value = i["pinfo"].gross_amount;
-            document.getElementById('discount').value = i["pinfo"].discount;
-            setDiscountVisibilityToggle(i["pinfo"].show_discount);
-            document.getElementById('tax').value = i["pinfo"].tax;
-            document.getElementById('calculated-tax').value = i["pinfo"].calculated_tax;
-            document.getElementById('net').value = i["pinfo"].net;
-            document.getElementById('category-input').value = i["pinfo"].category;
-            document.getElementById('open').disabled = true
-            document.getElementById('confirm-1').disabled = true;
-            document.getElementById('print').disabled = false;
-            document.getElementById('delete-1').disabled = true;
-            check_list2 = []
-            item = null;
-            code_rate = 0;
-            door = 0;
-            handler = 0;
-            hardware = 0;
-            shelve = 0;
-            pricing = i
-            const keys = Object.keys(pricing)
-            keys.forEach(i => {
-              if(pricing[i].length>0 && i !== "pinfo")
-              {
-                pricing[i].forEach(j => {
-                  if (j && j.raw_base_cost == null) {
-                    const unitRaw = j.unit != null ? Number(j.unit) : 0;
-                    j.raw_base_cost = !isNaN(unitRaw) ? unitRaw : 0;
-                  }
-                  items.push(j)
-                });
-              }
-            })
-            if(document.getElementById('is_quotation').checked)
-            {
-              document.getElementById('discount').disabled = true;
-              document.getElementById('tax').disabled = true;
-            }
-            else {
-              document.getElementById('discount').disabled = false;
-              document.getElementById('tax').disabled = false;
-            }
-            populate_table();
+          if (i["pinfo"].profit_margin_percentage != null) {
+            const pct = Number(i["pinfo"].profit_margin_percentage);
+            profitMarginPercentage = isNaN(pct) ? profitMarginPercentage : pct;
+            setProfitMarginLabel();
           }
-        })
+          if (i["pinfo"].profit_margin_applied != null) {
+            document.getElementById('apply-profit-margin').checked = !!i["pinfo"].profit_margin_applied;
+          }
+
+          document.getElementById('gross-amount').value = i["pinfo"].gross_amount;
+          document.getElementById('discount').value = i["pinfo"].discount;
+          setDiscountVisibilityToggle(i["pinfo"].show_discount);
+          document.getElementById('tax').value = i["pinfo"].tax;
+          document.getElementById('calculated-tax').value = i["pinfo"].calculated_tax;
+          document.getElementById('delivery-charges').value = i["pinfo"].delivery_charges || 0;
+          document.getElementById('net').value = i["pinfo"].net;
+          document.getElementById('category-input').value = i["pinfo"].category;
+          document.getElementById('open').disabled = true
+          document.getElementById('confirm-1').disabled = true;
+          document.getElementById('print').disabled = false;
+          document.getElementById('delete-1').disabled = true;
+          check_list2 = []
+          item = null;
+          code_rate = 0;
+          door = 0;
+          handler = 0;
+          hardware = 0;
+          shelve = 0;
+          pricing = i
+          const keys = Object.keys(pricing)
+          keys.forEach(i => {
+            if (pricing[i].length > 0 && i !== "pinfo") {
+              pricing[i].forEach(j => {
+                if (j && j.raw_base_cost == null) {
+                  const unitRaw = j.unit != null ? Number(j.unit) : 0;
+                  j.raw_base_cost = !isNaN(unitRaw) ? unitRaw : 0;
+                }
+                items.push(j)
+              });
+            }
+          })
+          ensurePricingTotalsEnabled();
+          populate_table();
+        }
       })
+    })
 })
 
+document.getElementById('show-discount').addEventListener('change', () => {
+  syncDiscountFieldVisibility();
+});
+
 document.getElementById('is_quotation').addEventListener('change', (event) => {
-  if(event.target.checked)
-  {
-    document.getElementById('tax').disabled = true;
-    document.getElementById('discount').disabled = true;
+  ensurePricingTotalsEnabled();
+
+  if (event.target.checked) {
     if (document.getElementById('pricing-type').value == '') {
       document.getElementById('pricing-type').value = 'invoice';
     }
@@ -2152,9 +2128,6 @@ document.getElementById('is_quotation').addEventListener('change', (event) => {
 
   }
   else {
-    document.getElementById('tax').disabled = false;
-    document.getElementById('discount').disabled = false;
-
     var date = new Date();
     var day = date.getDate();
     var month = date.getMonth() + 1;
@@ -2178,7 +2151,7 @@ document.getElementById('is_quotation').addEventListener('change', (event) => {
     } else {
       document.getElementById("entry-date").value = today;
     }
-    
+
   }
 })
 
@@ -2190,45 +2163,93 @@ function close_modal(event) {
   // document.getElementById('confirm-1').disabled = true;
 }
 
-document.getElementById('print').addEventListener('click', async function (event)  {
+document.getElementById('print').addEventListener('click', async function (event) {
   let element = document.getElementById('my-table');
   const r = confirm("PDF report generated successfully!")
-  if (r)
-  {
+  if (r) {
     var opt = {
-      margin:       0.5,
-      filename:     'invoice.pdf',
-      image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 5 },
-      jsPDF:        { unit: 'in', format: 'A4', orientation: 'portrait' }
+      margin: 0.5,
+      filename: 'invoice.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 5 },
+      jsPDF: { unit: 'in', format: 'A4', orientation: 'portrait' }
     };
     file_manager.loadFile(path.join(__dirname, '../db/.firm.json'))
-        .then(res => {
-          // const header = element.rows[0]
-          // for (var i = 0; i < element.rows[0].cells.length; i++) {
-          //
-          //   // Getting the text of columnName
-          //   var str = element.rows[0].cells[i].innerHTML;
-          //
-          //   // If 'Geek_id' matches with the columnName 
-          //   if (str.search("All") != -1) {
-          //     for (var j = 0; j < element.rows.length; j++) {
-          //       if(element.rows[j].classList[0] !== "elevation-row-pricing")
-          //         element.rows[j].deleteCell(i);
-          //     }
-          //   }
-          // }
-          file_manager.loadFile(path.join(__dirname, '../db/.clients.json'))
-              .then(ress => {
-                ress.forEach(k => {
-                  let qout = ""
-                  let total = ""
-                  let name = ""
-                  let days_notice = ``
-                  if(document.getElementById('is_quotation').checked)
-                  {
-                    days_notice = `<div style="position: absolute; right: 0;"><p style="color: red; font-size: 9px;"><b>Notice: </b>This Quotation is valid for 15 days only.</p></div>`
-                    qout = `
+      .then(res => {
+        // const header = element.rows[0]
+        // for (var i = 0; i < element.rows[0].cells.length; i++) {
+        //
+        //   // Getting the text of columnName
+        //   var str = element.rows[0].cells[i].innerHTML;
+        //
+        //   // If 'Geek_id' matches with the columnName 
+        //   if (str.search("All") != -1) {
+        //     for (var j = 0; j < element.rows.length; j++) {
+        //       if(element.rows[j].classList[0] !== "elevation-row-pricing")
+        //         element.rows[j].deleteCell(i);
+        //     }
+        //   }
+        // }
+        file_manager.loadFile(path.join(__dirname, '../db/.clients.json'))
+          .then(ress => {
+            ress.forEach(k => {
+              let qout = ""
+              let total = ""
+              let name = ""
+              let days_notice = ``;
+              const showDiscountInOutput = shouldShowDiscountOnOutput();
+              const totalRows = [
+                {
+                  label: 'Total:',
+                  value: Math.round(numValue(document.getElementById('gross-amount').value)),
+                }
+              ];
+
+              if (showDiscountInOutput) {
+                totalRows.push({
+                  label: 'Discount:',
+                  value: Math.round(numValue(document.getElementById('discount').value)),
+                });
+              }
+
+              totalRows.push({
+                label: 'Taxes:',
+                value: Math.round(numValue(document.getElementById('calculated-tax').value)),
+              });
+
+              const deliveryVal = Math.round(numValue(document.getElementById('delivery-charges').value));
+              totalRows.push({
+                label: 'Delivery Charges:',
+                value: deliveryVal,
+              });
+
+              totalRows.push({
+                label: 'Net Value:',
+                value: Math.round(numValue(document.getElementById('net').value)),
+                isNet: true,
+              });
+
+              total = `
+                            <div style="color: black; width: 180px;">
+                              ${totalRows.map((row, index) => {
+                                const isBeforeNet = !row.isNet && totalRows[index + 1] && totalRows[index + 1].isNet;
+                                const labelBorder = row.isNet ? 'border-top: 1px solid black;' : '';
+                                const valueBorder = row.isNet
+                                  ? 'border-top: 1px solid black; border-bottom: 1px double black; font-weight: 700;'
+                                  : (isBeforeNet ? 'border-bottom: 1px solid black;' : '');
+                                return `
+                                  <div style="font-size: 0; white-space: nowrap; margin: 0; padding: 0;">
+                                    <span style="display: inline-block; width: 100px; font-size: 10px; font-weight: 700; text-align: right; padding: 2px 10px 2px 0; box-sizing: border-box; ${labelBorder}">${row.label}</span>
+                                    <span style="display: inline-block; width: 80px; font-size: 10px; font-weight: 500; text-align: right; padding: 2px 0; box-sizing: border-box; ${valueBorder}">${formatBreakdownNumber(row.value)}</span>
+                                  </div>
+                                `;
+                              }).join('')}
+                            </div>
+                        `;
+
+              if (document.getElementById('is_quotation').checked) {
+                days_notice = `<div style="position: absolute; right: 0;"><p style="color: red; font-size: 9px;"><b>Notice: </b>This Quotation is valid for 15 days only.</p></div>`
+                qout = `
                           <div style="display: flex; flex-direction: row; justify-content: space-between">
                                 <h3 style="color: black">${res[0].name}</h3>
                                 <div style="background-color: black; height: 30px; width: 100px; text-align: center; align-items: center; position: absolute; right: 0; border-radius: 20px">
@@ -2236,75 +2257,36 @@ document.getElementById('print').addEventListener('click', async function (event
                                 </div>
                             </div>
                         `
-                    total = `
-                           
-                          <div style="display: flex; flex-direction: column; text-align: right">
-                                <p style="color: black; font-size: 10px"><b>Total:</b></p>
-                            </div>
-                            <div style="display: flex; flex-direction: column; width: 100px; text-align: left; margin-left: 10px">
-                                <p style="color: black; font-size: 10px;"><b>${Intl.NumberFormat('en-US').format(document.getElementById('gross-amount').value)}.00</b></p>
-                                
-                            </div>
-                        `;
-                    name = " Quotation.pdf"
-                  }
-                  else
-                  {
-                    const showDiscountInOutput = shouldShowDiscountOnOutput();
-                    const invoiceTotalLabels = [
-                      `<p style="color: black; font-size: 10px;"><b>Total:</b></p>`
-                    ];
-                    const invoiceTotalValues = [
-                      `<p style="color: black; font-size: 10px; font-weight: 500">${Intl.NumberFormat('en-US').format(document.getElementById('gross-amount').value)}</p>`
-                    ];
-
-                    if (showDiscountInOutput) {
-                      invoiceTotalLabels.push(`<p style="color: black; font-size: 10px;"><b>Discount:</b></p>`);
-                      invoiceTotalValues.push(`<p style="color: black; font-size: 10px;font-weight: 500">${Intl.NumberFormat('en-US').format(document.getElementById('discount').value)}</p>`);
-                    }
-
-                    invoiceTotalLabels.push(`<p style="color: black; font-size: 10px;"><b>Taxes:</b></p>`);
-                    invoiceTotalLabels.push(`<p style="color: black; font-size: 10px;"><b>Net Value:</b></p>`);
-                    invoiceTotalValues.push(`<p style="color: black; font-size: 10px;font-weight: 500; border-bottom: 1px solid black;">${Intl.NumberFormat('en-US').format(document.getElementById('calculated-tax').value)}</p>`);
-                    invoiceTotalValues.push(`<p style="color: black; font-size: 10px; border-bottom: 1px black double;"><b>${Intl.NumberFormat('en-US').format(document.getElementById('net').value)}</b></p>`);
-
-                    qout = `<h3 style="color: black">${res[0].name}</h3>`
-                    total = `
-                              <div style="display: flex; flex-direction: column; text-align: right; ">
-                                ${invoiceTotalLabels.join("")}
-                            </div>
-                            <div style="display: flex; flex-direction: column; width: 60px; text-align: left; margin-left: 10px">
-                                ${invoiceTotalValues.join("")}
-                            </div>
-                          `;
-                    name = " Invoice.pdf"
-                  }
-                  if(k.id === document.getElementById('client-input').value)
-                  {
-                    file_manager.loadFile(path.join(__dirname, '../db/terms.json'))
-                        .then(obj => {
-                          let terms = ``;
-                          for (const key in obj) {
-                            terms += `
+                name = " Quotation.pdf"
+              }
+              else {
+                qout = `<h3 style="color: black">${res[0].name}</h3>`
+                name = " Invoice.pdf"
+              }
+              if (k.id === document.getElementById('client-input').value) {
+                file_manager.loadFile(path.join(__dirname, '../db/terms.json'))
+                  .then(obj => {
+                    let terms = ``;
+                    for (const key in obj) {
+                      terms += `
                             <p style="color: black; font-size: 10px"><b>${key}</b></p>
                           `
-                            obj[key].forEach(term => {
-                              terms += `
+                      obj[key].forEach(term => {
+                        terms += `
                               <ul>
                                 <li style="font-size: 8px; color: black">&#8226; ${term}</li>
                               </ul>
                             `
-                            })
-                          }
-                          let body = ``
-                          const keys = Object.keys(pricing)
-                          let count = 1
-                          keys.forEach(i => {
-                            if(pricing[i].length>0 && i !== "pinfo")
-                            {
-                              body += `<tr><td style="font-size: 11px; text-align: center; padding: 0px; color: black; font-weight: bold;" colspan="12">${i}</td></tr>`;
-                              pricing[i].forEach((j, ind) => {
-                                body += `
+                      })
+                    }
+                    let body = ``
+                    const keys = Object.keys(pricing)
+                    let count = 1
+                    keys.forEach(i => {
+                      if (pricing[i].length > 0 && i !== "pinfo") {
+                        body += `<tr><td style="font-size: 11px; text-align: center; padding: 0px; color: black; font-weight: bold;" colspan="12">${i}</td></tr>`;
+                        pricing[i].forEach((j, ind) => {
+                          body += `
                                 <tr style="padding-top: 3px; padding-bottom: 3px; font-weight: 500">
                                   <td style="text-align: center;width: 40px; color: black; font-size: 9px; padding-left: 3px; padding-top: 2.5px; padding-bottom: 2.5px;" >${count}</td>
                                   <td style="text-align: center;padding-left: 3px; width: 170px; text-overflow: ellipsis; white-space: nowrap; font-size: 9px; overflow: hidden; color: black; ">${j.utility_text}</td>
@@ -2318,11 +2300,11 @@ document.getElementById('print').addEventListener('click', async function (event
                                   <td  style="text-align: center;width: 95px; padding-left: 3px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-size: 9px; color: black;">${Intl.NumberFormat('en-US').format(j.unit)}</td>
                                   <td style="text-align: right; padding-right: 3px;width: 100px; padding-left: 3px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; color: black; font-size: 9px;">${Intl.NumberFormat('en-US').format(j.total)}</td>
                                 </tr>`;
-                                count +=1
-                              });
-                            }
-                          })
-                          let table = `
+                          count += 1
+                        });
+                      }
+                    })
+                    let table = `
                                     <table style="font-size: 12px; color: black;">
                                         <thead style="background-color: #C0C0C0; padding-top: 2px; padding-bottom: 2px">
                                             <tr style="padding-top: 2.5px; padding-bottom: 2.5px; ">
@@ -2343,14 +2325,14 @@ document.getElementById('print').addEventListener('click', async function (event
                                     </table>
                                     `
 
-                          let html = `
+                    let html = `
                    <div style="display: flex; flex-direction: row; margin-bottom: 5px">
                         <img alt="img" src="${res[0].logo}" style="height: 100px; width: 80px; margin-right: 10px" />
                         <div style="display: flex; flex-direction: column;">
                             ${qout}
                             <div style="display: flex; flex-direction: row; justify-content: space-between">
                                 <p style="color: black; font-size: 12px;">${res[0].address}, Ph # ${res[0].contact}</p>
-                                <p style="color: black; font-size: 13px; position: absolute; right: 0;">Date: ${document.getElementById('entry-date').valueAsDate.getDate()}-${document.getElementById('entry-date').valueAsDate.getMonth()+1}-${document.getElementById('entry-date').valueAsDate.getFullYear()}</p>
+                                <p style="color: black; font-size: 13px; position: absolute; right: 0;">Date: ${document.getElementById('entry-date').valueAsDate.getDate()}-${document.getElementById('entry-date').valueAsDate.getMonth() + 1}-${document.getElementById('entry-date').valueAsDate.getFullYear()}</p>
                             </div>
                            
                             <div style="width: 100%; border-bottom: 2px solid grey; padding-bottom: 10px; margin-bottom: 10px"></div>
@@ -2374,12 +2356,12 @@ document.getElementById('print').addEventListener('click', async function (event
                     </div>
                     ${table}
                     ${days_notice}
-                    <div style="display: flex; flex-direction: row; justify-content: space-between">
-                        <div style="display: flex; flex-direction: row; justify-content: space-between; padding-top: 60px; width: 470px;">
+                    <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; gap: 20px;">
+                        <div style="display: flex; flex: 1 1 auto; flex-direction: row; justify-content: space-between; padding-top: 60px; min-width: 0; max-width: 420px;">
                             <p style="color: black; font-size: 10px; width: 250px;"><b>Authorized By: -----------------------</b></p>
                             <p style="color: black; font-size: 10px; width: 300px; margin-left: 10px; "><b>Customer Signature: -----------------------</b></p>
                         </div>
-                          <div style="display: flex; flex-direction: row; width: 155px; margin-left: 95px; margin-top: 15px">
+                          <div style="display: flex; flex: 0 0 180px; flex-direction: row; justify-content: flex-end; width: 180px; margin-top: 15px">
                               ${total}
                           </div>
                     </div>
@@ -2393,13 +2375,13 @@ document.getElementById('print').addEventListener('click', async function (event
                             <p style="color: black; font-size: 10px; margin-left: 30px;"><b>Customer Signature: ------------------------------</b></p>
                     </div>
                     `
-                          html2pdf().set(opt).from(html).to('pdf').save(`${k.name}'s${name}`);
+                    html2pdf().set(opt).from(html).to('pdf').save(`${k.name}'s${name}`);
 
-                        })
-                  }
-                })
-              })
-        })
+                  })
+              }
+            })
+          })
+      })
   }
 
 })
@@ -2407,12 +2389,12 @@ document.getElementById('print').addEventListener('click', async function (event
 document.getElementById('filter-pricing').addEventListener('change', (event) => {
   const val = event.target.value
   file_manager.loadFile(path.join(__dirname, '../db/.pricings.json'))
-      .then(res => {
-        const tb = document.getElementById('load-pricing-table');
-        tb.innerHTML = "";
-        res.forEach((i, ind) => {
-          if(i["pinfo"].is_quotation && val === "qou"){
-            tb.innerHTML += `
+    .then(res => {
+      const tb = document.getElementById('load-pricing-table');
+      tb.innerHTML = "";
+      res.forEach((i, ind) => {
+        if (i["pinfo"].is_quotation && val === "qou") {
+          tb.innerHTML += `
             <tr>
                 <td>
                     <label class="au-checkbox">
@@ -2420,7 +2402,7 @@ document.getElementById('filter-pricing').addEventListener('change', (event) => 
                        <span class="au-checkmark" style="border: 1px solid green;"></span>
                     </label>
                 </td>
-                <td>${ind+1}</td>
+                <td>${ind + 1}</td>
                 <td class="d-none">${i["pinfo"].id}</td>
                 <td>${i["pinfo"].pricing_no}</td>
                 <td>${i["pinfo"].entry_date.split('T')[0]}</td>
@@ -2429,10 +2411,9 @@ document.getElementById('filter-pricing').addEventListener('change', (event) => 
                 <td>${i["pinfo"].is_quotation ? "Quotation" : "Invoice"}</td>
             </tr>
           `;
-          }
-          else if(!i["pinfo"].is_quotation && val === "inv")
-          {
-            tb.innerHTML += `
+        }
+        else if (!i["pinfo"].is_quotation && val === "inv") {
+          tb.innerHTML += `
             <tr>
                 <td>
                     <label class="au-checkbox">
@@ -2440,7 +2421,7 @@ document.getElementById('filter-pricing').addEventListener('change', (event) => 
                        <span class="au-checkmark" style="border: 1px solid green"></span>
                     </label>
                 </td>
-                <td>${ind+1}</td>
+                <td>${ind + 1}</td>
                 <td class="d-none">${i["pinfo"].id}</td>
                 <td>${i["pinfo"].pricing_no}</td>
                 <td>${i["pinfo"].entry_date.split('T')[0]}</td>
@@ -2449,10 +2430,9 @@ document.getElementById('filter-pricing').addEventListener('change', (event) => 
                 <td>${i["pinfo"].is_quotation ? "Quotation" : "Invoice"}</td>
             </tr>
           `;
-          }
-          else if(val === "")
-          {
-            tb.innerHTML += `
+        }
+        else if (val === "") {
+          tb.innerHTML += `
             <tr>
                 <td>
                     <label class="au-checkbox">
@@ -2460,7 +2440,7 @@ document.getElementById('filter-pricing').addEventListener('change', (event) => 
                        <span class="au-checkmark" style="border: 1px solid green"></span>
                     </label>
                 </td>
-                <td>${ind+1}</td>
+                <td>${ind + 1}</td>
                 <td class="d-none">${i["pinfo"].id}</td>
                 <td>${i["pinfo"].pricing_no}</td>
                 <td>${i["pinfo"].entry_date.split('T')[0]}</td>
@@ -2469,87 +2449,81 @@ document.getElementById('filter-pricing').addEventListener('change', (event) => 
                 <td>${i["pinfo"].is_quotation ? "Quotation" : "Invoice"}</td>
             </tr>
           `;
-          }
-        })
+        }
       })
+    })
 })
 
 function delete_pricing() {
   file_manager.loadFile(path.join(__dirname, '../db/.pricings.json'))
-      .then(res => {
-        let my_data = []
-        check_list2.forEach(i => {
-          res.forEach((j, ind) => {
-            if(j["pinfo"].id === i["pinfo"].id)
-            {
-              res.splice(ind, 1)
-              return
-            }
-          })
+    .then(res => {
+      let my_data = []
+      check_list2.forEach(i => {
+        res.forEach((j, ind) => {
+          if (j["pinfo"].id === i["pinfo"].id) {
+            res.splice(ind, 1)
+            return
+          }
         })
-        file_manager.writeFile(path.join(__dirname, '../db/.pricings.json'), res)
-            .then(res => {
-              document.getElementById('cancel-1').click();
-              document.getElementById('delete-1').disabled = true
-              if(document.getElementById('checkbox-all-open').checked)
-                document.getElementById('checkbox-all-open').click()
-              document.getElementById('filter-pricing').value = ""
-              document.getElementById('del-pass').value = ""
-              alert("Pricing Deleted!");
-              all_clear();
-            })
       })
+      file_manager.writeFile(path.join(__dirname, '../db/.pricings.json'), res)
+        .then(res => {
+          document.getElementById('cancel-1').click();
+          document.getElementById('delete-1').disabled = true
+          if (document.getElementById('checkbox-all-open').checked)
+            document.getElementById('checkbox-all-open').click()
+          document.getElementById('filter-pricing').value = ""
+          document.getElementById('del-pass').value = ""
+          alert("Pricing Deleted!");
+          all_clear();
+        })
+    })
   all_clear();
 }
 
 document.getElementById('checkbox-all-open').addEventListener('change', (event) => {
-  if(event.target.checked)
-  {
+  if (event.target.checked) {
     file_manager.loadFile(path.join(__dirname, `../db/.pricings.json`))
-        .then(res => {
-          res.forEach(i => {
-            if(document.getElementById(i["pinfo"].id) && !document.getElementById(i["pinfo"].id).checked)
-              document.getElementById(i["pinfo"].id).click()
-          })
+      .then(res => {
+        res.forEach(i => {
+          if (document.getElementById(i["pinfo"].id) && !document.getElementById(i["pinfo"].id).checked)
+            document.getElementById(i["pinfo"].id).click()
         })
+      })
   }
-  else
-  {
+  else {
     file_manager.loadFile(path.join(__dirname, `../db/.pricings.json`))
-        .then(res => {
-          res.forEach(i => {
-            if(document.getElementById(i["pinfo"].id) && document.getElementById(i["pinfo"].id).checked)
-              document.getElementById(i["pinfo"].id).click()
-          })
+      .then(res => {
+        res.forEach(i => {
+          if (document.getElementById(i["pinfo"].id) && document.getElementById(i["pinfo"].id).checked)
+            document.getElementById(i["pinfo"].id).click()
         })
+      })
   }
 })
 
 document.getElementById('delete-form').addEventListener('submit', (event) => {
   event.preventDefault();
   file_manager
-      .loadFile(path.join(__dirname, "../db/.credentials.json"))
-      .then((res) => {
-        if (res[1].pass === document.getElementById("del-pass").value) {
-          delete_pricing()
-        }
-        else
-        {
-          alert("Wrong Password!")
-        }
-      })
+    .loadFile(path.join(__dirname, "../db/.credentials.json"))
+    .then((res) => {
+      if (res[1].pass === document.getElementById("del-pass").value) {
+        delete_pricing()
+      }
+      else {
+        alert("Wrong Password!")
+      }
+    })
 })
 
 document.getElementById('checkbox-all').addEventListener('change', (event) => {
-  if(document.getElementById('checkbox-all').checked)
-  {
+  if (document.getElementById('checkbox-all').checked) {
     items.forEach(i => {
-      if(!(document.getElementById(`${i.elevation}~${i.item_id.toString()}`).checked))
+      if (!(document.getElementById(`${i.elevation}~${i.item_id.toString()}`).checked))
         document.getElementById(`${i.elevation}~${i.item_id.toString()}`).click()
     })
   }
-  else
-  {
+  else {
     items.forEach(i => {
       if (document.getElementById(`${i.elevation}~${i.item_id.toString()}`).checked)
         document.getElementById(`${i.elevation}~${i.item_id.toString()}`).click()
@@ -2576,10 +2550,10 @@ $(document).ready(() => {
   setDiscountVisibilityToggle(true);
   document.getElementById('net').value = 0;
   document.getElementById('tax').value = 0;
-  document.getElementById('tax').disabled = true;
-  document.getElementById('discount').disabled = true;
+  document.getElementById('delivery-charges').value = 0;
   refreshNewCostBreakdown();
   document.getElementById('is_quotation').checked = true;
+  ensurePricingTotalsEnabled();
   document.getElementById('calculated-tax').value = 0;
   document.getElementById('code-new-rate').value = 0;
   document.getElementById('finishing-new-rate').value = 0;
@@ -2587,13 +2561,12 @@ $(document).ready(() => {
   document.getElementById('handle-new-rate').value = 0;
   document.getElementById('shelve-new-rate').value = 0;
   file_manager.loadFile(path.join(__dirname, `../db/.pricings.json`))
-      .then(res => {
-        if(res.length === 0)
-        {
-          document.getElementById('pricing-no').value = "1"
-        }
-        else {
-          document.getElementById('pricing-no').value = parseFloat(res[res.length - 1]["pinfo"].pricing_no) + 1;
-        }
-      })
+    .then(res => {
+      if (res.length === 0) {
+        document.getElementById('pricing-no').value = "1"
+      }
+      else {
+        document.getElementById('pricing-no').value = parseFloat(res[res.length - 1]["pinfo"].pricing_no) + 1;
+      }
+    })
 });

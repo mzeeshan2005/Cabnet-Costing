@@ -73,6 +73,51 @@
 
     <!-- Main CSS-->
     <link href="../../css/theme.css" rel="stylesheet" media="all" />
+    <style>
+      .hardware-add-card .form-control-label,
+      .hardware-add-card .help-block,
+      .hardware-add-card .form-control,
+      .hardware-add-card select,
+      .hardware-add-card input {
+        font-size: 12px;
+        line-height: 1.2;
+      }
+
+      .hardware-add-card .form-control {
+        min-height: 34px;
+        padding: 0.25rem 0.5rem;
+      }
+
+      .hardware-add-card .btn {
+        font-size: 12px;
+        line-height: 1.2;
+      }
+
+      .hardware-all-header {
+        width: 82px;
+        min-width: 82px;
+      }
+
+      .hardware-all-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0;
+      }
+
+      .hardware-all-toggle .au-checkbox {
+        display: inline-block;
+        width: 22px;
+        min-width: 22px;
+        height: 22px;
+        margin: 0;
+      }
+
+      .hardware-all-toggle p {
+        margin: 0;
+        margin-left: 8px;
+      }
+    </style>
   </head>
 
   <body class="animsition" id="body" style="overflow: hidden">
@@ -464,7 +509,7 @@
             <div class="container-fluid">
               <div class="row">
                 <div class="col-lg-5 col-md-5 col-sm-12">
-                  <div class="card">
+                  <div class="card hardware-add-card">
                     <div class="card-header d-flex justify-content-between align-items-center">
                       <strong>Add Hardware</strong>
                       <button type="button" class="btn btn-sm btn-info" id="import-open">Import</button>
@@ -472,7 +517,7 @@
                     <div class="card-body card-block">
                       <form onsubmit="" id="form" class="form-horizontal">
                         <fieldset id="fieldset">
-                          <div class="mb-1 row form-group">
+                          <div class="mb-0 row form-group">
                             <div class="col col-md-3">
                               <label class="form-control-label">ID</label>
                             </div>
@@ -667,7 +712,7 @@
                           <div class="mb-1 row form-group mr-2">
                             <div class="col col-md-3">
                               <label for="hanger-pipe" class="form-control-label"
-                                >Hanger Pipe Qty.</label
+                                >Hanger Pipe Length</label
                               >
                             </div>
                             <div class="col-12 col-md-9">
@@ -675,7 +720,7 @@
                                 type="number"
                                 id="hanger-pipe"
                                 step="any"
-                                placeholder="Enter Hanger Pipe"
+                                placeholder="Enter Hanger Pipe Length"
                                 class="form-control"
                                 value="0"
                                 required
@@ -818,20 +863,22 @@
                     <table class="table table-data2" id="my-table">
                       <thead>
                         <tr style="text-align: center">
-                          <th class="py-2" style="border: 1px solid black; width: 80px">
-                            <label class="au-checkbox">
-                              <input
-                                type="checkbox"
-                                id="checkbox-all"
-                                style="border: 1px solid green"
-                              />
-                              <span
-                                class="au-checkmark"
-                                id="checkbox-all-box"
-                                style="border: 1px solid green"
-                              ></span>
-                            </label>
-                            <p style="margin-left: 15px; margin-top: -8px">All</p>
+                          <th class="py-2 hardware-all-header" style="border: 1px solid black">
+                            <div class="hardware-all-toggle">
+                              <label class="au-checkbox mb-0">
+                                <input
+                                  type="checkbox"
+                                  id="checkbox-all"
+                                  style="border: 1px solid green"
+                                />
+                                <span
+                                  class="au-checkmark"
+                                  id="checkbox-all-box"
+                                  style="border: 1px solid green"
+                                ></span>
+                              </label>
+                              <p>All</p>
+                            </div>
                           </th>
                           <th class="py-2"  style="border: 1px solid black; width: 50px">id</th>
                           <th class="py-2"  style="border: 1px solid black">title</th>
@@ -839,7 +886,7 @@
                           <th  class="py-2" style="border: 1px solid black; width: 120px">hinges set</th>
                           <th  class="py-2" style="border: 1px solid black; width: 120px">sliders set</th>
                           <th  class="py-2" style="border: 1px solid black; width: 120px">lift up set</th>
-                          <th  class="py-2" style="border: 1px solid black; width: 120px">hanger pipe</th>
+                          <th  class="py-2" style="border: 1px solid black; width: 120px">hanger pipe length</th>
                           <th  class="py-2" style="border: 1px solid black; width: 120px">pipe fitting</th>
                           <th  class="py-2" style="border: 1px solid black; width: 90px">locks</th>
                           <th  class="py-2" style="border: 1px solid black; width: 130px">drawer handles</th>

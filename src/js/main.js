@@ -1546,6 +1546,12 @@
     } catch (_) {}
   }
 
+  function clearSessionFlag(key) {
+    try {
+      window.sessionStorage.removeItem(key);
+    } catch (_) {}
+  }
+
   function getSessionFlag(key) {
     try {
       return window.sessionStorage.getItem(key);
@@ -1569,9 +1575,92 @@
     }, 300);
   }
 
+  function getCurrentProtectedSection() {
+    const path = String((window.location && window.location.pathname) || "").replace(/\\/g, "/");
+    if (/(^|\/)index\.html$/i.test(path) || path === "/" || path === "") return "home";
+    if (path.indexOf("/screens/tools/") !== -1) return "tools";
+    if (path.indexOf("/screens/settings/") !== -1) return "settings";
+    return "";
+  }
+
+  function isHeaderAuthAllowedOnCurrentRoute(key) {
+    const section = getCurrentProtectedSection();
+    if (key === "header-tools") return section === "home" || section === "tools";
+    if (key === "header-settings") return section === "home" || section === "settings";
+    return false;
+  }
+
+  function syncHeaderAuthScope() {
+    if (!isHeaderAuthAllowedOnCurrentRoute("header-tools")) {
+      clearSessionFlag("header-tools");
+    }
+    if (!isHeaderAuthAllowedOnCurrentRoute("header-settings")) {
+      clearSessionFlag("header-settings");
+    }
+  }
+
+  function isProtectedDropdownVisible(mode) {
+    if (String(mode) === "2") {
+      const toolsDropdown = document.getElementById("dpdb1");
+      return !!(toolsDropdown && !toolsDropdown.classList.contains("d-none"));
+    }
+    const settingsDropdown = document.getElementById("dpdb");
+    return !!(settingsDropdown && !settingsDropdown.classList.contains("d-none"));
+  }
+
+  function bindProtectedDropdownAccess(containerId, mode, key, triggerSelector) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const dropdownId = String(mode) === "2" ? "dpdb1" : "dpdb";
+
+    container.addEventListener("mouseenter", function () {
+      if (window.appUi && window.appUi.isHeaderAuthUnlocked(key)) {
+        showProtectedDropdown(mode);
+      }
+    });
+
+    container.addEventListener(
+      "click",
+      function (event) {
+        if (!(window.appUi && window.appUi.isHeaderAuthUnlocked(key))) return;
+        const dropdown = document.getElementById(dropdownId);
+        if (dropdown && event.target.closest("#" + dropdownId)) return;
+        if (triggerSelector && !event.target.closest(triggerSelector)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        showProtectedDropdown(mode);
+      },
+      true
+    );
+  }
+
+  function bindProtectedDropdownUnlockObserver(confirmId) {
+    const confirmBtn = document.getElementById(confirmId);
+    if (!confirmBtn) return;
+
+    confirmBtn.addEventListener("click", function () {
+      const modeEl = document.getElementById("numb");
+      const mode = modeEl ? String(modeEl.value) : "";
+      if (!mode) return;
+
+      window.setTimeout(function () {
+        if (!isProtectedDropdownVisible(mode)) return;
+        if (mode === "2") setSessionFlag("header-tools", "1");
+        if (mode === "1") setSessionFlag("header-settings", "1");
+      }, 350);
+    });
+  }
+
+  syncHeaderAuthScope();
+  bindProtectedDropdownAccess("dpd1", "2", "header-tools", "a");
+  bindProtectedDropdownAccess("dpd", "1", "header-settings", "i, a, .header-button-item");
+  bindProtectedDropdownUnlockObserver("confirm");
+  bindProtectedDropdownUnlockObserver("confirm2");
+
   window.appUi = window.appUi || {};
   window.appUi.notify = notify;
   window.appUi.isHeaderAuthUnlocked = function (key) {
+    if (!isHeaderAuthAllowedOnCurrentRoute(key)) return false;
     return getSessionFlag(key) === "1";
   };
   window.appUi.unlockHeaderAuth = function (key) {

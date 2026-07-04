@@ -43,38 +43,198 @@
 <body class="animsition" id="body" style="overflow: hidden">
     <input type="hidden" id="entry-date-backup" />
     <input type="hidden" id="pricing-type" />
-<div class="page-wrapper">
-    <!-- HEADER DESKTOP-->
-    <header class="header-desktop3 d-none d-lg-block">
-        <div class="section__content section__content--p35">
-            <div class="header3-wrap">
-                <div class="header__logo">
-                    <a href="../index.html">
-                        <h3 class="text-white"><b>CABINET COSTING</b></h3>
-                    </a>
+    <div class="page-wrapper">
+        <!-- HEADER DESKTOP-->
+        <header class="header-desktop3 d-none d-lg-block">
+            <div class="section__content section__content--p35">
+                <div class="header3-wrap">
+                    <div class="header__logo">
+                        <a href="../index.html">
+                            <h3 class="text-white"><b>CABINET COSTING</b></h3>
+                        </a>
+                    </div>
+                    <div class="header__navbar">
+                        <ul class="list-unstyled">
+                            <li>
+                                <a href="../index.html">
+                                    <i class="fa fa-home"></i>
+                                    <span class="bot-line"></span>Home</a>
+                            </li>
+                            <li class="has-sub">
+                                <a href="#">
+                                    <i class="fas fa-user"></i>
+                                    <span class="bot-line"></span>Clients</a>
+                                <ul class="header3-sub-list list-unstyled">
+                                    <li>
+                                        <div class="account-dropdown__item">
+                                            <a href="../screens/new_clients.html">
+                                                <i class="fas fa-plus"></i>New Clients</a>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <div class="account-dropdown__item">
+                                            <a href="../screens/registration.html">
+                                                <i class="zmdi zmdi-eye"></i>Previous Clients</a>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li>
+                                <a href="../screens/pricing.html">
+                                    <i class="fas fa-dollar-sign"></i>
+                                    <span class="bot-line"></span>Pricing</a>
+                            </li>
+                            <li id="dpd1" class="has-sub">
+                                <a href="#" onclick="openModal(2)">
+                                    <i class="fas fa-wrench"></i>
+                                    <span class="bot-line"></span>Tools</a>
+                                <ul id="dpdb1" class="header3-sub-list list-unstyled d-none">
+                                    <li>
+                                        <div class="account-dropdown__item">
+                                            <a href="../screens/tools/utility.html">
+                                                <i class="zmdi zmdi-puzzle-piece"></i>Utilities</a>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <div class="account-dropdown__item">
+                                            <a href="../screens/tools/type.html">
+                                                <i class="fas fa-cubes"></i>Descriptions</a>
+                                        </div>
+                                    </li>
+                                    <li style="border-bottom: 2px solid grey">
+                                        <div class="account-dropdown__item">
+                                            <a href="../screens/tools/code.html">
+                                                <i class="fas fa-tags"></i>Codes</a>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <div class="account-dropdown__item">
+                                            <a href="../screens/tools/door-panel.html">
+                                                <i class="fas fa-columns"></i>Finishing</a>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <div class="account-dropdown__item">
+                                            <a href="../screens/tools/hardware.html">
+                                                <i class="fab fa-elementor"></i>Hardware</a>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <div class="account-dropdown__item">
+                                            <a href="../screens/tools/handler.html">
+                                                <i class="fas fa-ellipsis-h"></i>Handles</a>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <div class="account-dropdown__item">
+                                            <a href="../screens/tools/adjustable-shelve.html">
+                                                <i class="fas fa-wrench"></i>Adjustable Shelves</a>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                    <!-- Settings-->
+                    <div class="header__tool">
+                        <div id="dpd" class="header-button-item js-item-menu">
+                            <i class="zmdi zmdi-settings" onclick="openModal(1)"></i>
+                            <div id="dpdb" class="setting-dropdown js-dropdown d-none">
+                                <div class="account-dropdown__body">
+                                    <div class="account-dropdown__item">
+                                        <a href="../screens/settings/firm-information.html">
+                                            <i class="zmdi zmdi-account"></i>Firm Information</a>
+                                    </div>
+                                    <div class="account-dropdown__item">
+                                        <a href="../screens/settings/password-change.html">
+                                            <i class="zmdi zmdi-settings"></i>Update Login Password</a>
+                                    </div>
+                                    <div class="account-dropdown__item">
+                                        <a href="../screens/settings/password1-change.html">
+                                            <i class="zmdi zmdi-key"></i>Update Primary Password</a>
+                                    </div>
+                                    <div class="account-dropdown__item">
+                                        <a href="../screens/settings/price-change.html">
+                                            <i class="zmdi zmdi-money-box"></i>Price Update</a>
+                                    </div>
+                                    <div class="account-dropdown__item">
+                                        <a href="../screens/settings/report.html">
+                                            <i class="fas fa-file-pdf"></i>Create Report</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Account-->
+                        <div class="account-wrap">
+                            <div class="account-item account-item--style2 clearfix js-item-menu">
+                                <div class="image">
+                                    <img src="../images/icon/admin-avatar.jpg" alt="John Doe" />
+                                </div>
+                                <div class="content">
+                                    <a class="js-acc-btn" href="#">Admin</a>
+                                </div>
+                                <div class="account-dropdown js-dropdown">
+                                    <div class="info clearfix">
+                                        <div class="image">
+                                            <a href="#">
+                                                <img src="../images/icon/admin-avatar.jpg" alt="John Doe" />
+                                            </a>
+                                        </div>
+                                        <div class="content">
+                                            <h5 class="name">
+                                                <a href="#">Administrator</a>
+                                            </h5>
+                                            <span class="email">CABINET COSTING</span>
+                                        </div>
+                                    </div>
+                                    <div class="account-dropdown__footer">
+                                        <a href="../screens/login.html">
+                                            <i class="zmdi zmdi-power"></i>Logout</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
                 </div>
-                <div class="header__navbar">
-                    <ul class="list-unstyled">
-                        <li>
-                            <a href="../index.html">
-                                <i class="fa fa-home"></i>
-                                <span class="bot-line"></span>Home</a>
-                        </li>
+            </div>
+        </header>
+        <!-- END HEADER DESKTOP-->
+        <!-- MOBILE HEADER -->
+        <header class="header-mobile header-mobile-2 d-block d-lg-none">
+            <div class="header-mobile__bar">
+                <div class="container-fluid">
+                    <div class="header-mobile-inner">
+                        <a href="../index.html">
+                            <h3 class="text-white"><b>CABINET</b>costing</h3>
+                        </a>
+                        <button class="hamburger hamburger--slider" type="button">
+                            <span class="hamburger-box">
+                                <span class="hamburger-inner"></span>
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <nav class="navbar-mobile">
+                <div class="container-fluid">
+                    <ul class="navbar-mobile__list list-unstyled">
                         <li class="has-sub">
-                            <a href="#">
-                                <i class="fas fa-user"></i>
-                                <span class="bot-line"></span>Clients</a>
-                            <ul class="header3-sub-list list-unstyled">
+                            <a class="js-arrow" href="#">
+
+                                <i class="fas fa-user"></i>Clients</a>
+                            <ul class="navbar-mobile-sub__list list-unstyled js-sub-list">
                                 <li>
                                     <div class="account-dropdown__item">
                                         <a href="../screens/new_clients.html">
-                                            <i class="fas fa-plus"></i>New Clients</a>
+                                            <i class="zmdi zmdi-plus"></i>New Clients</a>
                                     </div>
                                 </li>
                                 <li>
                                     <div class="account-dropdown__item">
                                         <a href="../screens/registration.html">
-                                            <i class="zmdi zmdi-eye"></i>Previous Clients</a>
+                                            <i class="fas fa-eye"></i>Previous Clients</a>
                                     </div>
                                 </li>
                             </ul>
@@ -84,11 +244,12 @@
                                 <i class="fas fa-dollar-sign"></i>
                                 <span class="bot-line"></span>Pricing</a>
                         </li>
-                        <li id="dpd1" class="has-sub">
-                            <a href="#" onclick="openModal(2)">
-                                <i class="fas fa-wrench"></i>
-                                <span class="bot-line"></span>Tools</a>
-                            <ul id="dpdb1" class="header3-sub-list list-unstyled d-none">
+
+                        <li class="has-sub">
+                            <a class="js-arrow" href="#">
+
+                                <i class="fas fa-wrench"></i>Tools</a>
+                            <ul class="navbar-mobile-sub__list list-unstyled js-sub-list">
                                 <li>
                                     <div class="account-dropdown__item">
                                         <a href="../screens/tools/utility.html">
@@ -135,721 +296,569 @@
                         </li>
                     </ul>
                 </div>
-                <!-- Settings-->
-                <div class="header__tool">
-                    <div id="dpd" class="header-button-item js-item-menu">
-                        <i class="zmdi zmdi-settings" onclick="openModal(1)"></i>
-                        <div id="dpdb" class="setting-dropdown js-dropdown d-none">
-                            <div class="account-dropdown__body">
-                                <div class="account-dropdown__item">
-                                    <a href="../screens/settings/firm-information.html">
-                                        <i class="zmdi zmdi-account"></i>Firm Information</a>
-                                </div>
-                                <div class="account-dropdown__item">
-                                    <a href="../screens/settings/password-change.html">
-                                        <i class="zmdi zmdi-settings"></i>Update Login Password</a>
-                                </div>
-                                <div class="account-dropdown__item">
-                                    <a href="../screens/settings/password1-change.html">
-                                        <i class="zmdi zmdi-key"></i>Update Primary Password</a>
-                                </div>
-                                <div class="account-dropdown__item">
-                                    <a href="../screens/settings/price-change.html">
-                                        <i class="zmdi zmdi-money-box"></i>Price Update</a>
-                                </div>
-                                <div class="account-dropdown__item">
-                                    <a href="../screens/settings/report.html">
-                                        <i class="fas fa-file-pdf"></i>Create Report</a>
-                                </div>
+            </nav>
+        </header>
+        <div class="sub-header-mobile-2 d-block d-lg-none">
+            <div class="header__tool">
+
+                <div class="header-button-item js-item-menu">
+                    <i class="zmdi zmdi-settings"></i>
+                    <div class="setting-dropdown js-dropdown">
+                        <div class="account-dropdown__body">
+                            <div class="account-dropdown__item">
+                                <a href="../screens/settings/firm-information.html">
+                                    <i class="zmdi zmdi-account"></i>Firm Information</a>
                             </div>
-                        </div>
-                    </div>
-
-                    <!-- Account-->
-                    <div class="account-wrap">
-                        <div class="account-item account-item--style2 clearfix js-item-menu">
-                            <div class="image">
-                                <img src="../images/icon/admin-avatar.jpg" alt="John Doe" />
+                            <div class="account-dropdown__item">
+                                <a href="../screens/settings/password-change.html">
+                                    <i class="zmdi zmdi-settings"></i>Password Change</a>
                             </div>
-                            <div class="content">
-                                <a class="js-acc-btn" href="#">Admin</a>
+                            <div class="account-dropdown__item">
+                                <a href="../screens/settings/price-change.html">
+                                    <i class="zmdi zmdi-money-box"></i>Price Change</a>
                             </div>
-                            <div class="account-dropdown js-dropdown">
-                                <div class="info clearfix">
-                                    <div class="image">
-                                        <a href="#">
-                                            <img src="../images/icon/admin-avatar.jpg" alt="John Doe" />
-                                        </a>
-                                    </div>
-                                    <div class="content">
-                                        <h5 class="name">
-                                            <a href="#">Administrator</a>
-                                        </h5>
-                                        <span class="email">CABINET COSTING</span>
-                                    </div>
-                                </div>
-                                <div class="account-dropdown__footer">
-                                    <a href="../screens/login.html">
-                                        <i class="zmdi zmdi-power"></i>Logout</a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-        </div>
-    </header>
-    <!-- END HEADER DESKTOP-->
-    <!-- MOBILE HEADER -->
-    <header class="header-mobile header-mobile-2 d-block d-lg-none">
-        <div class="header-mobile__bar">
-            <div class="container-fluid">
-                <div class="header-mobile-inner">
-                    <a href="../index.html">
-                        <h3 class="text-white"><b>CABINET</b>costing</h3>
-                    </a>
-                    <button class="hamburger hamburger--slider" type="button">
-                            <span class="hamburger-box">
-                                <span class="hamburger-inner"></span>
-                            </span>
-                    </button>
-                </div>
-            </div>
-        </div>
-        <nav class="navbar-mobile">
-            <div class="container-fluid">
-                <ul class="navbar-mobile__list list-unstyled">
-                    <li class="has-sub">
-                        <a class="js-arrow" href="#">
-
-                            <i class="fas fa-user"></i>Clients</a>
-                        <ul class="navbar-mobile-sub__list list-unstyled js-sub-list">
-                            <li>
-                                <div class="account-dropdown__item">
-                                    <a href="../screens/new_clients.html">
-                                        <i class="zmdi zmdi-plus"></i>New Clients</a>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="account-dropdown__item">
-                                    <a href="../screens/registration.html">
-                                        <i class="fas fa-eye"></i>Previous Clients</a>
-                                </div>
-                            </li>
-                        </ul>
-                    </li>
-                    <li>
-                        <a href="../screens/pricing.html">
-                            <i class="fas fa-dollar-sign"></i>
-                            <span class="bot-line"></span>Pricing</a>
-                    </li>
-
-                    <li class="has-sub">
-                        <a class="js-arrow" href="#">
-
-                            <i class="fas fa-wrench"></i>Tools</a>
-                        <ul class="navbar-mobile-sub__list list-unstyled js-sub-list">
-                            <li>
-                                <div class="account-dropdown__item">
-                                    <a href="../screens/tools/utility.html">
-                                        <i class="zmdi zmdi-puzzle-piece"></i>Utilities</a>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="account-dropdown__item">
-                                    <a href="../screens/tools/type.html">
-                                        <i class="fas fa-cubes"></i>Descriptions</a>
-                                </div>
-                            </li>
-                            <li style="border-bottom: 2px solid grey">
-                                <div class="account-dropdown__item">
-                                    <a href="../screens/tools/code.html">
-                                        <i class="fas fa-tags"></i>Codes</a>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="account-dropdown__item">
-                                    <a href="../screens/tools/door-panel.html">
-                                        <i class="fas fa-columns"></i>Finishing</a>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="account-dropdown__item">
-                                    <a href="../screens/tools/hardware.html">
-                                        <i class="fab fa-elementor"></i>Hardware</a>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="account-dropdown__item">
-                                    <a href="../screens/tools/handler.html">
-                                        <i class="fas fa-ellipsis-h"></i>Handles</a>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="account-dropdown__item">
-                                    <a href="../screens/tools/adjustable-shelve.html">
-                                        <i class="fas fa-wrench"></i>Adjustable Shelves</a>
-                                </div>
-                            </li>
-                        </ul>
-                    </li>
-                </ul>
-            </div>
-        </nav>
-    </header>
-    <div class="sub-header-mobile-2 d-block d-lg-none">
-        <div class="header__tool">
-
-            <div class="header-button-item js-item-menu">
-                <i class="zmdi zmdi-settings"></i>
-                <div class="setting-dropdown js-dropdown">
-                    <div class="account-dropdown__body">
-                        <div class="account-dropdown__item">
-                            <a href="../screens/settings/firm-information.html">
-                                <i class="zmdi zmdi-account"></i>Firm Information</a>
-                        </div>
-                        <div class="account-dropdown__item">
-                            <a href="../screens/settings/password-change.html">
-                                <i class="zmdi zmdi-settings"></i>Password Change</a>
-                        </div>
-                        <div class="account-dropdown__item">
-                            <a href="../screens/settings/price-change.html">
-                                <i class="zmdi zmdi-money-box"></i>Price Change</a>
                         </div>
                     </div>
                 </div>
-            </div>
-            <div class="account-wrap">
-                <div class="account-item account-item--style2 clearfix js-item-menu">
-                    <div class="image">
-                        <img src="../images/icon/admin-avatar.jpg" alt="John Doe" />
-                    </div>
-                    <div class="content">
-                        <a class="js-acc-btn" href="#">Admin</a>
-                    </div>
-                    <div class="account-dropdown js-dropdown">
-                        <div class="info clearfix">
-                            <div class="image">
-                                <a href="#">
-                                    <img src="../images/icon/admin-avatar.jpg" alt="John Doe" />
-                                </a>
-                            </div>
-                            <div class="content">
-                                <h5 class="name">
-                                    <a href="#">Administrator</a>
-                                </h5>
-                                <span class="email">CABINET COSTING</span>
-                            </div>
+                <div class="account-wrap">
+                    <div class="account-item account-item--style2 clearfix js-item-menu">
+                        <div class="image">
+                            <img src="../images/icon/admin-avatar.jpg" alt="John Doe" />
                         </div>
-                        <div class="account-dropdown__footer">
-                            <a href="./login.html">
-                                <i class="zmdi zmdi-power"></i>Logout</a>
+                        <div class="content">
+                            <a class="js-acc-btn" href="#">Admin</a>
+                        </div>
+                        <div class="account-dropdown js-dropdown">
+                            <div class="info clearfix">
+                                <div class="image">
+                                    <a href="#">
+                                        <img src="../images/icon/admin-avatar.jpg" alt="John Doe" />
+                                    </a>
+                                </div>
+                                <div class="content">
+                                    <h5 class="name">
+                                        <a href="#">Administrator</a>
+                                    </h5>
+                                    <span class="email">CABINET COSTING</span>
+                                </div>
+                            </div>
+                            <div class="account-dropdown__footer">
+                                <a href="./login.html">
+                                    <i class="zmdi zmdi-power"></i>Logout</a>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- PAGE CONTAINER-->
-    <div class="page-container--bgf7">
+        <!-- PAGE CONTAINER-->
+        <div class="page-container--bgf7">
 
-        <!-- BREADCRUMB-->
-        <section class="au-breadcrumb2">
-<!--            <div style="padding-left: 50px; padding-bottom: 10px">-->
-<!--                <div class="au-breadcrumb-content">-->
-<!--                    <div class="au-breadcrumb-left">-->
-<!--                        <span class="au-breadcrumb-span">You are here:</span>-->
-<!--                        <ul class="list-unstyled list-inline au-breadcrumb__list">-->
-<!--                            <li class="list-inline-item active">-->
-<!--                                <a href="#">Home</a>-->
-<!--                            </li>-->
-<!--                            <li class="list-inline-item seprate">-->
-<!--                                <span>/</span>-->
-<!--                            </li>-->
-<!--                            <li class="list-inline-item">Pricing</li>-->
+            <!-- BREADCRUMB-->
+            <section class="au-breadcrumb2">
+                <!--            <div style="padding-left: 50px; padding-bottom: 10px">-->
+                <!--                <div class="au-breadcrumb-content">-->
+                <!--                    <div class="au-breadcrumb-left">-->
+                <!--                        <span class="au-breadcrumb-span">You are here:</span>-->
+                <!--                        <ul class="list-unstyled list-inline au-breadcrumb__list">-->
+                <!--                            <li class="list-inline-item active">-->
+                <!--                                <a href="#">Home</a>-->
+                <!--                            </li>-->
+                <!--                            <li class="list-inline-item seprate">-->
+                <!--                                <span>/</span>-->
+                <!--                            </li>-->
+                <!--                            <li class="list-inline-item">Pricing</li>-->
 
 
-<!--                        </ul>-->
-<!--                    </div>-->
-<!--                </div>-->
-<!--            </div>-->
-        </section>
-        <!-- END BREADCRUMB-->
+                <!--                        </ul>-->
+                <!--                    </div>-->
+                <!--                </div>-->
+                <!--            </div>-->
+            </section>
+            <!-- END BREADCRUMB-->
 
-        <!-- MAIN CONTENT-->
-        <div class="main-content">
-            <div class="section__content section__content--p30" style="padding-left: 2px; padding-right: 2px">
-                <div class="container-fluid" style="display: flex; justify-content: center; padding-left: 0px; padding-right: 0px">
-                    <div class="card" style="width: 1300px" >
-                        <div class="card-header d-flex justify-content-lg-between px-2" style="padding-bottom: 0px; padding-top: 5px">
-                            <strong>Pricing</strong>
-                            <i class="zmdi zmdi-close " style="color: red; font-size: 32px; font-weight: bold; cursor: pointer" onclick="location.href='../index.html'"></i>
-                        </div>
-                        <div class="card-body" style="padding: 6px; padding-bottom: 0px" >
-                            <form id="form-pricing" class="form-horizontal" style="font-size: 14px">
-                                <div class="row" style="height: 40px; font-size: smaller">
-                                    <div class="form-group px-5">
-                                        <div class="row d-flex align-items-center">
-                                            <label for="pricing-no" class="form-control-label mr-3 my-auto" style="font-size: 13px">Pricing No.</label>
-                                            <input type="number" id="pricing-no" readonly class="form-control p-0 " style="width: 70px; text-align: center; font-size: small">
+            <!-- MAIN CONTENT-->
+            <div class="main-content">
+                <div class="section__content section__content--p30" style="padding-left: 5px; padding-right: 5px">
+                    <div class="container-fluid"
+                        style="display: flex; justify-content: center; padding-left: 0px; padding-right: 0px">
+                        <div class="card" style="width: 1320px">
+                            <div class="card-header d-flex justify-content-lg-between px-2"
+                                style="padding-bottom: 0px; padding-top: 5px">
+                                <strong>Pricing</strong>
+                                <i class="zmdi zmdi-close "
+                                    style="color: red; font-size: 32px; font-weight: bold; cursor: pointer"
+                                    onclick="location.href='../index.html'"></i>
+                            </div>
+                            <div class="card-body" style="padding: 6px 6px 0px 10px">
+                                <form id="form-pricing" class="form-horizontal" style="font-size: 14px">
+                                    <div class="row"
+                                        style="height: 40px; font-size: smaller; margin-left: 5px; margin-right: 0px ; margin-bottom: 5px;">
+                                        <div class="form-group" style="padding-left: 20px; padding-right: 20px">
+                                            <div class="row d-flex align-items-center">
+                                                <label for="pricing-no" class="form-control-label mr-3 my-auto"
+                                                    style="font-size: 13px">Pricing No.</label>
+                                                <input type="number" id="pricing-no" readonly class="form-control p-0 "
+                                                    style="width: 70px; text-align: center; font-size: small">
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="form-group px-3">
-                                        <div class="row">
-                                            <label for="delivery-days" class="mr-3 form-control-label my-auto" style="font-size: 13px">Delivery Days</label>
-                                            <input type="number" id="delivery-days" required class="form-control px-2" style="font-size: small; width: 80px; text-align: center">
-                                        </div>
+                                        <div class="form-group" style="padding-left: 20px; padding-right: 30px">
+                                            <div class="row">
+                                                <label for="delivery-days" class="mr-3 form-control-label my-auto"
+                                                    style="font-size: 13px">Delivery Days</label>
+                                                <input type="number" id="delivery-days" required
+                                                    class="form-control px-2"
+                                                    style="font-size: small; width: 80px; text-align: center">
+                                            </div>
 
-                                    </div>
-                                    <div class="form-group px-5">
-                                        <div class="row">
-                                            <label for="entry-date" class="mr-3 form-control-label my-auto" style="font-size: 13px">Entry Date</label>
-                                            <input type="date" id="entry-date" required class="form-control pl-1 pb-1" style="font-size: small;width: 145px" value="">
                                         </div>
+                                        <div class="form-group" style="padding-left: 10px; padding-right: 30px">
+                                            <div class="row">
+                                                <label for="entry-date" class="mr-3 form-control-label my-auto"
+                                                    style="font-size: 13px">Entry Date</label>
+                                                <input type="date" id="entry-date" required
+                                                    class="form-control pl-1 pb-1" style="font-size: small;width: 145px"
+                                                    value="">
+                                            </div>
 
-                                    </div>
-                                    <div class="form-group px-3">
-                                        <div class="d-flex flex-row">
-                                            <label for="manual-input"
-                                                   style="white-space: nowrap; font-size: 13px"
-                                                   class="mr-1 form-control-label my-auto">
-                                                Reference No.&ensp;&ensp;
-                                            </label>
+                                        </div>
+                                        <div class="form-group" style="padding-left: 10px; padding-right: 30px">
+                                            <div class="d-flex flex-row">
+                                                <label for="manual-input" style="white-space: nowrap; font-size: 13px"
+                                                    class="mr-1 form-control-label my-auto">
+                                                    Reference No.&ensp;&ensp;
+                                                </label>
                                                 <div class="input-group">
-                                                    <input
-                                                            onkeypress="save_dropdown(event, 'manuals', 'manual-input')"
-                                                            onkeydown="update_dropdown_del(event, 'manuals', 'manual-input')"
-                                                            class="form-control"
-                                                            list="manuals"
-                                                            id="manual-input"
-                                                            placeholder="Select"
-                                                            required
-                                                            style="font-weight: normal; font-size: small"
-                                                    />
+                                                    <input onkeypress="save_dropdown(event, 'manuals', 'manual-input')"
+                                                        onkeydown="update_dropdown_del(event, 'manuals', 'manual-input')"
+                                                        class="form-control" list="manuals" id="manual-input"
+                                                        placeholder="Select" required
+                                                        style="font-weight: normal; font-size: small" />
 
                                                 </div>
-                                                <i data-toggle="tooltip"
-                                                   data-placement="top"
-                                                   title="Press Enter/Delete to save or delete."
-                                                   class="zmdi zmdi-long-arrow-return ml-2 my-auto font-weight-bold text-danger">
+                                                <i data-toggle="tooltip" data-placement="top"
+                                                    title="Press Enter/Delete to save or delete."
+                                                    class="zmdi zmdi-long-arrow-return ml-2 my-auto font-weight-bold text-danger">
                                                 </i>
-                                            <datalist id="manuals">
-                                            </datalist>
+                                                <datalist id="manuals">
+                                                </datalist>
+
+                                            </div>
 
                                         </div>
-
-                                    </div>
-                                    <div style="margin-left: 30px">
-                                        <label class="au-checkbox">
-                                            <input
-                                                    type="checkbox"
-                                                    id="is_quotation"
-                                                    style="border: 1px solid green"
-                                            />
-                                            <span
-                                                    class="au-checkmark"
-                                                    id="is_quotation-box"
-                                                    style="border: 1px solid green; margin-top: 5px"
-                                            ></span>
-                                            <strong style="color: black; margin-left: 30px">Quotation</strong>
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="row" style="height: 40px; border-bottom: 1px black dashed; margin-bottom: 5px; font-size: small; height: 40px; margin-left: 0px; margin-right: 0px">
-                                    <div class="form-group" style="padding-right: 10px; padding-left: 0px">
-                                        <div class="d-flex flex-row">
-                                            <label
-                                                    for="product-input"
-                                                    style="color: black"
-                                                    class="mr-1 form-control-label my-auto">
-                                                Client &ensp;
+                                        <div style="margin-left: 20px; margin-top: 8px">
+                                            <label class="au-checkbox">
+                                                <input type="checkbox" id="is_quotation"
+                                                    style="border: 1px solid green" />
+                                                <span class="au-checkmark" id="is_quotation-box"
+                                                    style="border: 1px solid green; margin-top: 5px"></span>
+                                                <strong style="color: black; margin-left: 30px">Quotation</strong>
                                             </label>
-                                                <select
-                                                        class="form-control "
-                                                        required
-                                                        id="client-input"
-                                                        style="font-weight: normal; font-size: small; width: 150px; color: black">
+                                        </div>
+                                    </div>
+                                    <div class="row"
+                                        style="height: 40px; border-bottom: 1px black dashed; margin-bottom: 5px; font-size: small; height: 40px; margin-left: 0px; margin-right: 0px">
+                                        <div class="form-group" style="padding-right: 10px; padding-left: 8px">
+                                            <div class="d-flex flex-row">
+                                                <label for="product-input" style="color: black"
+                                                    class="mr-1 form-control-label my-auto">
+                                                    Client &ensp;
+                                                </label>
+                                                <select class="form-control " required id="client-input"
+                                                    style="font-weight: normal; font-size: small; width: 150px; color: black">
 
                                                 </select>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="form-group px-2 mr-1">
-                                        <div class="d-flex flex-row">
-                                            <label
-                                                    for="product-input"
-                                                    style="color: black; width: 160px"
+                                        <div class="form-group px-2 mr-1">
+                                            <div class="d-flex flex-row">
+                                                <label for="product-input" style="color: black; width: 160px"
                                                     class="mr-1 form-control-label my-auto">
-                                                Product Type&ensp;
-                                            </label>
-                                            <div class="input-group">
-                                                <input
+                                                    Product Type&ensp;
+                                                </label>
+                                                <div class="input-group">
+                                                    <input
                                                         onkeypress="save_dropdown(event, 'products', 'product-input')"
                                                         onkeydown="update_dropdown_del(event, 'products', 'product-input')"
-                                                        class="form-control"
-                                                        list="products"
-                                                        placeholder="Select"
-                                                        id="product-input"
-                                                        required
-                                                        style="font-weight: normal; font-size: small; width: 130px;  color: black"/>
-
-                                            </div>
-                                                <i data-toggle="tooltip"
-                                                   data-placement="top"
-                                                   title="Press Enter/Delete to save or delete."
-                                                   class="zmdi zmdi-long-arrow-return ml-2 my-auto font-weight-bold text-danger">
-                                                </i>
-                                            <datalist id="products" >
-
-                                            </datalist>
-                                        </div>
-
-                                    </div>
-                                    <div class="form-group">
-                                        <div class="d-flex flex-row">
-                                            <label
-                                                    for="sales-input"
-                                                    style="color: black; width: 85px"
-                                                    class="mr-1 form-control-label my-auto">
-                                                Sales RP
-                                            </label>
-                                            <div class="input-group">
-                                                <input
-                                                        onkeypress="save_dropdown(event, 'sales', 'sales-input')"
-                                                        onkeydown="update_dropdown_del(event, 'sales', 'sales-input')"
-                                                        class="form-control "
-                                                        list="sales"
-                                                        placeholder="Select"
-                                                        required
-                                                        id="sales-input"
-                                                        style="font-weight: normal; font-size: small; width: 130px; color: black"/>
-
-                                            </div>
-                                                <i data-toggle="tooltip"
-                                                   data-placement="top"
-                                                   title="Press Enter/Delete to save or delete."
-                                                   class="zmdi zmdi-long-arrow-return ml-2 my-auto font-weight-bold text-danger">
-                                                </i>
-                                            <datalist id="sales" >
-
-                                            </datalist>
-                                        </div>
-
-                                    </div>
-                                    <div class="form-group " style="padding-left: 15px">
-                                        <div class="d-flex flex-row">
-                                            <label
-                                                    for="category-input"
-                                                    style="color: black; width: 85px;"
-                                                    class="mr-1 form-control-label my-auto py-1">
-                                                Category
-                                            </label>
-                                                <div class="input-group">
-                                                    <input onkeypress="save_dropdown(event, 'category', 'category-input')"
-                                                           onkeydown="update_dropdown_del(event, 'category', 'category-input')"
-                                                           class="ml-1 form-control "
-                                                           list="category"
-                                                           placeholder="Select"
-                                                           id="category-input"
-                                                           required
-                                                           style="font-weight: normal; font-size: small; width: 120px; color: black"/>
+                                                        class="form-control" list="products" placeholder="Select"
+                                                        id="product-input" required
+                                                        style="font-weight: normal; font-size: small; width: 130px;  color: black" />
 
                                                 </div>
-                                                <i data-toggle="tooltip"
-                                                   data-placement="top"
-                                                   title="Press Enter/Delete to save or delete." style="margin-top: 12px"
-                                                   class="zmdi zmdi-long-arrow-return ml-2  font-weight-bold text-danger">
+                                                <i data-toggle="tooltip" data-placement="top"
+                                                    title="Press Enter/Delete to save or delete."
+                                                    class="zmdi zmdi-long-arrow-return ml-2 my-auto font-weight-bold text-danger">
                                                 </i>
-                                            <datalist id="category" >
+                                                <datalist id="products">
 
-                                            </datalist>
+                                                </datalist>
+                                            </div>
+
                                         </div>
-                                    </div>
-                                    <div class="form-group " style="padding-left: 15px">
-                                        <div class="d-flex flex-row">
-                                            <label
-                                                    for="carcass-input"
-                                                    style="color: black"
+                                        <div class="form-group">
+                                            <div class="d-flex flex-row">
+                                                <label for="sales-input" style="color: black; width: 85px"
+                                                    class="mr-1 form-control-label my-auto">
+                                                    Sales RP
+                                                </label>
+                                                <div class="input-group">
+                                                    <input onkeypress="save_dropdown(event, 'sales', 'sales-input')"
+                                                        onkeydown="update_dropdown_del(event, 'sales', 'sales-input')"
+                                                        class="form-control " list="sales" placeholder="Select" required
+                                                        id="sales-input"
+                                                        style="font-weight: normal; font-size: small; width: 130px; color: black" />
+
+                                                </div>
+                                                <i data-toggle="tooltip" data-placement="top"
+                                                    title="Press Enter/Delete to save or delete."
+                                                    class="zmdi zmdi-long-arrow-return ml-2 my-auto font-weight-bold text-danger">
+                                                </i>
+                                                <datalist id="sales">
+
+                                                </datalist>
+                                            </div>
+
+                                        </div>
+                                        <div class="form-group " style="padding-left: 15px">
+                                            <div class="d-flex flex-row">
+                                                <label for="category-input" style="color: black; width: 85px;"
                                                     class="mr-1 form-control-label my-auto py-1">
-                                                Carcass 
-                                            </label>
+                                                    Category
+                                                </label>
+                                                <div class="input-group">
+                                                    <input
+                                                        onkeypress="save_dropdown(event, 'category', 'category-input')"
+                                                        onkeydown="update_dropdown_del(event, 'category', 'category-input')"
+                                                        class="ml-1 form-control " list="category" placeholder="Select"
+                                                        id="category-input" required
+                                                        style="font-weight: normal; font-size: small; width: 120px; color: black" />
+
+                                                </div>
+                                                <i data-toggle="tooltip" data-placement="top"
+                                                    title="Press Enter/Delete to save or delete."
+                                                    style="margin-top: 12px"
+                                                    class="zmdi zmdi-long-arrow-return ml-2  font-weight-bold text-danger">
+                                                </i>
+                                                <datalist id="category">
+
+                                                </datalist>
+                                            </div>
+                                        </div>
+                                        <div class="form-group " style="padding-left: 15px">
+                                            <div class="d-flex flex-row">
+                                                <label for="carcass-input" style="color: black"
+                                                    class="mr-1 form-control-label my-auto py-1">
+                                                    Carcass
+                                                </label>
                                                 <div class="input-group">
                                                     <input onkeypress="save_dropdown(event, 'carcass', 'carcass-input')"
-                                                           onkeydown="update_dropdown_del(event, 'carcass', 'carcass-input')"
-                                                           class="ml-1 form-control "
-                                                           list="carcass"
-                                                           placeholder="Select"
-                                                           id="carcass-input"
-                                                           required
-                                                           style="font-weight: normal; font-size: small; width: 130px; color: black"/>
+                                                        onkeydown="update_dropdown_del(event, 'carcass', 'carcass-input')"
+                                                        class="ml-1 form-control " list="carcass" placeholder="Select"
+                                                        id="carcass-input" required
+                                                        style="font-weight: normal; font-size: small; width: 130px; color: black" />
 
                                                 </div>
-                                                <i data-toggle="tooltip"
-                                                   data-placement="top"
-                                                   title="Press Enter/Delete to save or delete." style="margin-top: 12px"
-                                                   class="zmdi zmdi-long-arrow-return ml-2  font-weight-bold text-danger">
+                                                <i data-toggle="tooltip" data-placement="top"
+                                                    title="Press Enter/Delete to save or delete."
+                                                    style="margin-top: 12px"
+                                                    class="zmdi zmdi-long-arrow-return ml-2  font-weight-bold text-danger">
                                                 </i>
-                                            <datalist id="carcass" >
+                                                <datalist id="carcass">
 
-                                            </datalist>
+                                                </datalist>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                                <div class="row" style="padding-top: 5px; padding-bottom: 0px; height: 45px; margin-left: 0px; margin-right: 0px; border: 1px solid black; background-color: gainsboro;">
-                                    <div class="form-group" style="padding-right: 13px; padding-left: 8px; ">
-                                        <div class="d-flex flex-row">
-                                            <select name="code-price" id="code-price" class="form-control p-0 mr-1" style="font-size: smaller; font-weight: bold; width: 170px; color: black">
-                                            </select>
-                                                <input
-                                                    class="form-control "
-                                                    required
-                                                    onkeypress="change_code_rate(event)"
-                                                    id="code-new-rate"
+                                    <div class="row"
+                                        style="padding-top: 5px; padding-bottom: 0px; height: 45px; margin-left: 0px; margin-right: 0px; border: 1px solid black; background-color: gainsboro;">
+                                        <div class="form-group" style="padding-right: 13px; padding-left: 8px; ">
+                                            <div class="d-flex flex-row">
+                                                <select name="code-price" id="code-price" class="form-control p-0 mr-1"
+                                                    style="font-size: smaller; font-weight: bold; width: 170px; color: black">
+                                                </select>
+                                                <input class="form-control " required
+                                                    onkeypress="change_code_rate(event)" id="code-new-rate"
                                                     style="font-weight: normal; font-size: small; width: 70px; color: black; height: 30px;" />
-                                                <i data-toggle="tooltip"
-                                                    data-placement="top"
+                                                <i data-toggle="tooltip" data-placement="top"
                                                     title="Press Enter to update rate."
                                                     class="zmdi zmdi-long-arrow-return ml-2 my-auto font-weight-bold text-danger">
                                                 </i>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="form-group" style="padding-right: 13px; padding-left: 8px">
-                                        <div class="d-flex flex-row">
-                                            <label
-                                                    for="finishing-new-rate"
+                                        <div class="form-group" style="padding-right: 13px; padding-left: 8px">
+                                            <div class="d-flex flex-row">
+                                                <label for="finishing-new-rate"
                                                     style="color: black; font-size: 12px; font-weight: bold;"
                                                     class="mr-1 form-control-label my-auto">
-                                                Panel Sheet Price / PC &ensp;&ensp;
-                                            </label>
-                                                <input
-                                                        class="form-control "
-                                                        required
-                                                        id="finishing-new-rate"
-                                                        onkeypress="change_finishing_rate(event)"
-                                                        style="font-weight: normal; font-size: small; width: 70px; color: black; height: 30px;" />
-                                                    <i data-toggle="tooltip"
-                                                        data-placement="top"
-                                                        title="Press Enter to update rate."
-                                                        class="zmdi zmdi-long-arrow-return ml-2 my-auto font-weight-bold text-danger">
-                                                    </i>
+                                                    Panel Sheet Price / PC &ensp;&ensp;
+                                                </label>
+                                                <input class="form-control " required id="finishing-new-rate"
+                                                    onkeypress="change_finishing_rate(event)"
+                                                    style="font-weight: normal; font-size: small; width: 70px; color: black; height: 30px;" />
+                                                <i data-toggle="tooltip" data-placement="top"
+                                                    title="Press Enter to update rate."
+                                                    class="zmdi zmdi-long-arrow-return ml-2 my-auto font-weight-bold text-danger">
+                                                </i>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="form-group" style="padding-right: 13px; padding-left: 8px">
-                                        <div class="d-flex flex-row">
-                                            <label
-                                                    for="handle-new-rate"
+                                        <div class="form-group" style="padding-right: 13px; padding-left: 8px">
+                                            <div class="d-flex flex-row">
+                                                <label for="handle-new-rate"
                                                     style="color: black; font-size: 12px; font-weight: bold;"
                                                     class="mr-1 form-control-label my-auto">
-                                                Handle Price / PC &ensp;&ensp;
-                                            </label>
-                                                <input
-                                                        class="form-control "
-                                                        required
-                                                        id="handle-new-rate"
-                                                        onkeypress="change_handles_rate(event)"
-                                                        style="font-weight: normal; font-size: small; width: 70px; color: black; height: 30px;" />
-                                                    <i  data-toggle="tooltip"
-                                                        data-placement="top"
-                                                        title="Press Enter to update rate."
-                                                        class="zmdi zmdi-long-arrow-return ml-2 my-auto font-weight-bold text-danger">
-                                                    </i>
+                                                    Handle Price / PC &ensp;&ensp;
+                                                </label>
+                                                <input class="form-control " required id="handle-new-rate"
+                                                    onkeypress="change_handles_rate(event)"
+                                                    style="font-weight: normal; font-size: small; width: 70px; color: black; height: 30px;" />
+                                                <i data-toggle="tooltip" data-placement="top"
+                                                    title="Press Enter to update rate."
+                                                    class="zmdi zmdi-long-arrow-return ml-2 my-auto font-weight-bold text-danger">
+                                                </i>
+                                            </div>
+                                        </div>
+                                        <div class="form-group" style="padding-right: 13px; padding-left: 8px">
+                                            <div class="d-flex flex-row">
+                                                <select name="hardware-price" id="hardware-price"
+                                                    class="form-control p-0 mr-1"
+                                                    style="font-size: smaller; font-weight: bold; width: 125px; color: black">
+                                                </select>
+                                                <input class="form-control " required id="harware-new-rate"
+                                                    onkeypress="change_hardware_rate(event)"
+                                                    style="font-weight: normal; font-size: small; width: 70px; color: black; height: 30px;" />
+                                                <i data-toggle="tooltip" data-placement="top"
+                                                    title="Press Enter to update rate."
+                                                    class="zmdi zmdi-long-arrow-return ml-2 my-auto font-weight-bold text-danger">
+                                                </i>
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group" style="padding-right: 13px; padding-left: 8px">
+                                            <div class="d-flex flex-row">
+                                                <label for="shelve-new-rate"
+                                                    style="color: black; font-size: 12px; font-weight: bold;"
+                                                    class="mr-1 form-control-label my-auto">
+                                                    Shelve Area Price / SFT &ensp;&ensp;
+                                                </label>
+                                                <input class="form-control " required id="shelve-new-rate"
+                                                    onkeypress="change_shelve_rate(event)"
+                                                    style="font-weight: normal; font-size: small; width: 65px; color: black; height: 30px;" />
+                                                <i data-toggle="tooltip" data-placement="top"
+                                                    title="Press Enter to update rate."
+                                                    class="zmdi zmdi-long-arrow-return ml-2 my-auto font-weight-bold text-danger">
+                                                </i>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div class="form-group" style="padding-right: 13px; padding-left: 8px">
-                                        <div class="d-flex flex-row">
-                                            <select name="hardware-price" id="hardware-price" class="form-control p-0 mr-1" style="font-size: smaller; font-weight: bold; width: 125px; color: black">
+
+                                    <div class="row"
+                                        style="margin-left: 0px; font-size: smaller; color: black; margin-right: -6px; margin-bottom: -10px">
+                                        <div class="form-group px-1">
+                                            <label for="elevation-input" class="form-control-label ">Title&ensp;&ensp;<i
+                                                    data-toggle="tooltip" data-placement="top"
+                                                    title="Press Enter/Delete to save or delete."
+                                                    class="zmdi zmdi-long-arrow-return ml-2 font-weight-bold text-danger">
+                                                </i>
+                                            </label>
+                                            <div class="input-group">
+                                                <input placeholder="Select" required
+                                                    onkeypress="save_dropdown(event, 'elevations', 'elevation-input')"
+                                                    onkeydown="update_dropdown_del(event, 'elevations', 'elevation-input')"
+                                                    class="form-control p-1" list="elevations" id="elevation-input"
+                                                    style="font-weight: normal; font-size: small; width: 105px; color: black" />
+                                            </div>
+                                            <datalist id="elevations">
+
+                                            </datalist>
+                                        </div>
+                                        <div class="form-group px-1">
+                                            <label for="utility" class="form-control-label">Utility</label>
+                                            <select name="carcass" id="utility" class="form-control p-0" required
+                                                onchange="utility_change(event)"
+                                                style="font-size: small; width: 105px; color: black">
+
                                             </select>
-                                                <input
-                                                        class="form-control "
-                                                        required
-                                                        id="harware-new-rate"
-                                                        onkeypress="change_hardware_rate(event)"
-                                                        style="font-weight: normal; font-size: small; width: 70px; color: black; height: 30px;" />
-                                                        <i data-toggle="tooltip"
-                                                        data-placement="top"
-                                                        title="Press Enter to update rate."
-                                                        class="zmdi zmdi-long-arrow-return ml-2 my-auto font-weight-bold text-danger">
-                                                    </i>
+                                        </div>
+                                        <div class="form-group px-1">
+                                            <label for="type" class="form-control-label">Description</label>
+                                            <select name="carcass" id="type" required class="form-control p-0"
+                                                onchange="type_change(event)"
+                                                style="font-size: small; width: 140px; color: black">
+
+                                            </select>
+                                        </div>
+                                        <div class="form-group px-1">
+                                            <label for="code" class="form-control-label ">Code</label>
+                                            <select name="carcass" id="code" required class="form-control p-0"
+                                                onchange="code_change(event)"
+                                                style="font-size: small; width: 75px; color: black">
+
+                                            </select>
+                                        </div>
+                                        <div class="form-group px-1">
+                                            <label for="qty" class="form-control-label ">Qty.</label>
+                                            <select name="carcass" required id="qty" class="form-control p-0"
+                                                style="font-size: small; width: 40px; color: black">
+
+                                            </select>
+                                        </div>
+                                        <div class="form-group px-1">
+                                            <label for="door-panel" class="form-control-label ">Finishing</label>
+                                            <select name="carcass" id="door-panel" class="form-control p-0"
+                                                style="font-size: small; width: 115px; color: black">
+
+                                            </select>
+                                        </div>
+                                        <div class="form-group px-1">
+                                            <label for="handler" class="form-control-label ">Handles</label>
+                                            <select name="carcass" id="handler" class="form-control p-0"
+                                                style="font-size: small; width: 90px; color: black">
+
+                                            </select>
+                                        </div>
+                                        <div class="form-group px-1">
+                                            <label for="hardware" class="form-control-label ">Hardware</label>
+                                            <select name="carcass" id="hardware" class="form-control p-0"
+                                                style="font-size: small; width: 100px; color: black">
+
+                                            </select>
+                                        </div>
+                                        <div class="form-group px-1">
+                                            <label for="shelves" class="form-control-label ">Adj. Shelves</label>
+                                            <select name="carcass" id="shelves" class="form-control p-0"
+                                                style="font-size: small; width: 85px; color: black">
+
+                                            </select>
+                                        </div>
+                                        <div class="form-group px-1">
+                                            <label for="is_shelve" class="form-control-label ">.</label>
+                                            <select name="drop" id="is_shelve" class="form-control p-0"
+                                                style="font-size: small; width: 45px; color: black">
+                                                <option value="yes">YES</option>
+                                                <option value="no">NO</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group px-1" style="width: 46px;">
+                                            <label for="apply-profit-margin"
+                                                class="form-control-label text-center d-block">PM</label>
+                                            <div class="d-flex justify-content-center align-items-center"
+                                                style="height: 33.5px;">
+                                                <label class="au-checkbox"
+                                                    style="margin-bottom: 0px; width: 33.5px; height: 33.5px; position: relative;">
+                                                    <input type="checkbox" id="apply-profit-margin" checked
+                                                        style="border: 1px solid green" />
+                                                    <span class="au-checkmark" id="apply-profit-margin-box"
+                                                        style="border: 1px solid green; width: 33.5px; height: 33.5px; position: absolute; top: 0; left: 0;"></span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="form-group px-1">
+                                            <label for="additional" class="form-control-label ">Additional</label>
+                                            <input type="number" step="any" name="custom" value="0" id="additional"
+                                                class="form-control p-0"
+                                                style="padding-left: 5px; font-size: 12.7px; width: 60px; color: black; text-align: center; background-color: gainsboro;">
+                                        </div>
+                                        <style>
+                                            input[type=number]::-webkit-inner-spin-button,
+                                            input[type=number]::-webkit-outer-spin-button {
+                                                -webkit-appearance: none;
+                                                margin: 0;
+                                            }
+
+                                            #apply-profit-margin-box:after {
+                                                left: 10px;
+                                                top: 3px;
+                                                width: 10px;
+                                                height: 19px;
+                                            }
+                                        </style>
+                                        <div class="form-group px-1" style="display: flex; flex-direction: column">
+                                            <label for="unit" class="form-control-label ">Unit Price</label>
+                                            <input type="number" id="unit" step='0.01' value='0' placeholder='0'
+                                                class="form-control" readonly
+                                                style="padding: 0px; width: 65px; font-size: 11.6px; height: 33.5px; padding-left: 10px; text-align: center; background-color: gainsboro"
+                                                min="0"
+                                                oninput="this.value = !!this.value && Math.abs(this.value) >= 0 ? Math.abs(this.value) : null" />
+                                            <!--                                        <span style="background: gainsboro; padding: 5px; width: 50px" id="unit">0</span>-->
+                                        </div>
+                                        <div class="form-group px-1" style="display: flex; flex-direction: column">
+                                            <label for="total" class="form-control-label ">Total</label>
+                                            <span
+                                                style="background: gainsboro; padding: 5px; width: 65px; height: 33.5px; text-align: center;  padding-top: 8px;  vertical-align: center"
+                                                id="total">0</span>
+                                        </div>
+                                        <div class="px-1"
+                                            style="width: 100px; padding-top: 30px;text-align: center; display: flex; flex-direction: row;">
+                                            <button id="add" type="submit" class="btn btn-primary px-2"
+                                                style="width: 50px; height: 30px; font-size: smaller; float: left; margin-right: 5px">ADD</button>
+                                            <button id="clear" class="btn btn-warning px-2"
+                                                style="width: 55px; height: 30px; font-size: smaller; float: right; color: black; text-align: center">CLEAR</button>
                                         </div>
                                     </div>
-                                    
-                                    <div class="form-group" style="padding-right: 13px; padding-left: 8px">
-                                        <div class="d-flex flex-row">
-                                            <label
-                                                    for="shelve-new-rate"
-                                                    style="color: black; font-size: 12px; font-weight: bold;"
-                                                    class="mr-1 form-control-label my-auto">
-                                                Shelve Area Price / SFT &ensp;&ensp;
-                                            </label>
-                                                <input
-                                                        class="form-control "
-                                                        required
-                                                        id="shelve-new-rate"
-                                                        onkeypress="change_shelve_rate(event)"
-                                                        style="font-weight: normal; font-size: small; width: 65px; color: black; height: 30px;" />
-                                                        <i data-toggle="tooltip"
-                                                        data-placement="top"
-                                                        title="Press Enter to update rate."
-                                                        class="zmdi zmdi-long-arrow-return ml-2 my-auto font-weight-bold text-danger">
-                                                    </i>
-                                        </div>
-                                    </div>
-                                </div>
-                            
-                                <div class="row" style="margin-left: -6px; font-size: smaller; color: black; margin-right: -6px; margin-bottom: -10px">
-                                    <div class="form-group px-1">
-                                        <label for="elevation-input"  class="form-control-label ">Title&ensp;&ensp;<i data-toggle="tooltip"
-                                                                                                                          data-placement="top"
-                                                                                                                          title="Press Enter/Delete to save or delete."
-                                                                                                                          class="zmdi zmdi-long-arrow-return ml-2 font-weight-bold text-danger">
-                                        </i>
-                                        </label>
-                                        <div class="input-group">
-                                            <input placeholder="Select" required onkeypress="save_dropdown(event, 'elevations', 'elevation-input')" onkeydown="update_dropdown_del(event, 'elevations', 'elevation-input')"
-                                                   class="form-control p-1" list="elevations" id="elevation-input" style="font-weight: normal; font-size: small; width: 105px; color: black"/>
-                                        </div>
-                                        <datalist id="elevations" >
-
-                                        </datalist>
-                                    </div>
-                                    <div class="form-group px-1">
-                                        <label for="utility" class="form-control-label" >Utility</label>
-                                        <select name="carcass" id="utility" class="form-control p-0" required onchange="utility_change(event)"  style="font-size: small; width: 105px; color: black">
-
-                                        </select>
-                                    </div>
-                                    <div class="form-group px-1">
-                                        <label for="type" class="form-control-label">Description</label>
-                                        <select name="carcass" id="type" required class="form-control p-0" onchange="type_change(event)" style="font-size: small; width: 140px; color: black">
-
-                                        </select>
-                                    </div>
-                                    <div class="form-group px-1">
-                                        <label for="code" class="form-control-label ">Code</label>
-                                        <select name="carcass" id="code" required class="form-control p-0" onchange="code_change(event)" style="font-size: small; width: 75px; color: black">
-
-                                        </select>
-                                    </div>
-                                    <div class="form-group px-1">
-                                        <label for="qty" class="form-control-label ">Qty.</label>
-                                        <select name="carcass" required id="qty" class="form-control p-0" style="font-size: small; width: 40px; color: black">
-
-                                        </select>
-                                    </div>
-                                    <div class="form-group px-1">
-                                        <label for="door-panel" class="form-control-label ">Finishing</label>
-                                        <select name="carcass"  id="door-panel" class="form-control p-0" style="font-size: small; width: 115px; color: black">
-
-                                        </select>
-                                    </div>
-                                    <div class="form-group px-1">
-                                        <label for="handler" class="form-control-label ">Handles</label>
-                                        <select name="carcass"  id="handler" class="form-control p-0" style="font-size: small; width: 90px; color: black">
-
-                                        </select>
-                                    </div>
-                                    <div class="form-group px-1">
-                                        <label for="hardware" class="form-control-label ">Hardware</label>
-                                        <select name="carcass"  id="hardware" class="form-control p-0" style="font-size: small; width: 100px; color: black">
-
-                                        </select>
-                                    </div>
-                                    <div class="form-group px-1">
-                                        <label for="shelves" class="form-control-label ">Adj. Shelves</label>
-                                        <select name="carcass" id="shelves" class="form-control p-0" style="font-size: small; width: 85px; color: black">
-
-                                        </select>
-                                    </div>
-                                    <div class="form-group px-1">
-                                        <label for="is_shelve" class="form-control-label ">.</label>
-                                        <select name="drop" id="is_shelve" class="form-control p-0" style="font-size: small; width: 45px; color: black">
-                                            <option value="yes">YES</option>
-                                            <option value="no">NO</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group px-0 mx-0 mb-0" style="display: flex; flex-direction: column; align-items: bottom; width: 46px;">
-                                        <label for="apply-profit-margin" class="form-control-label" style="margin-bottom: 4px;padding-bottom:0px">PM</label>
-                                        <label class="au-checkbox" style="margin-bottom: 0px; width: 33.5px; height: 33.5px">
-                                            <input type="checkbox" id="apply-profit-margin" checked style="border: 1px solid green"/>
-                                            <span class="au-checkmark" id="apply-profit-margin-box" style="border: 1px solid green; width: 33.5px; height: 33.5px"></span>
-                                        </label>
-                                    </div>
-                                    <div class="form-group px-1" >
-                                        <label for="additional" class="form-control-label ">Additional</label>
-                                        <input type="number" step="any" name="custom" value="0" id="additional" class="form-control p-0" style="padding-left: 5px; font-size: 12.7px; width: 60px; color: black; text-align: center; background-color: gainsboro;">
-                                    </div>
-                                    <style>
-                                        input[type=number]::-webkit-inner-spin-button,
-                                        input[type=number]::-webkit-outer-spin-button {
-                                            -webkit-appearance: none;
-                                            margin: 0;
-                                        }
-
-                                        #apply-profit-margin-box:after {
-                                            left: 10px;
-                                            top: 3px;
-                                            width: 10px;
-                                            height: 19px;
-                                        }
-                                    </style>
-                                    <div class="form-group px-1" style="display: flex; flex-direction: column">
-                                        <label for="unit" class="form-control-label ">Unit Price</label>
-                                        <input type="number" id="unit" step='0.01' value='0' placeholder='0' class="form-control" readonly style="padding: 0px; width: 65px; font-size: 11.6px; height: 33.5px; padding-left: 10px; text-align: center; background-color: gainsboro" min="0" oninput="this.value = !!this.value && Math.abs(this.value) >= 0 ? Math.abs(this.value) : null" />
-<!--                                        <span style="background: gainsboro; padding: 5px; width: 50px" id="unit">0</span>-->
-                                    </div>
-                                    <div class="form-group px-1" style="display: flex; flex-direction: column">
-                                        <label for="total" class="form-control-label ">Total</label>
-                                        <span style="background: gainsboro; padding: 5px; width: 65px; height: 33.5px; text-align: center;  padding-top: 8px;  vertical-align: center" id="total">0</span>
-                                    </div>
-                                    <div class="px-1" style="width: 100px; padding-top: 30px;text-align: center; display: flex; flex-direction: row;">
-                                        <button id="add" type="submit" class="btn btn-primary px-2"  style="width: 50px; height: 30px; font-size: smaller; float: left; margin-right: 5px">ADD</button>
-                                        <button id="clear" class="btn btn-warning px-2" style="width: 55px; height: 30px; font-size: smaller; float: right; color: black; text-align: center">CLEAR</button>
-                                    </div>
-                                </div>
-                            </form>
-                                <div class="table-responsive table-responsive-data2" style="height: 250px; overflow: auto">
-                                    <table class="table table-data2 pricing-tble" id="my-table" style="border: 1px solid black; border-collapse: separate; border-spacing: 0px" >
+                                </form>
+                                <div class="table-responsive table-responsive-data2"
+                                    style="height: 250px; overflow: auto">
+                                    <table class="table table-data2 pricing-tble" id="my-table"
+                                        style="border: 1px solid black; border-collapse: separate; border-spacing: 0px">
                                         <thead>
                                             <tr style="text-align: center; background-color: darkgrey">
-                                                <th class="p-1" style="width: 60px; border: 1px solid black; color: black;">
+                                                <th class="p-1"
+                                                    style="width: 60px; border: 1px solid black; color: black;">
                                                     <label class="au-checkbox">
-                                                        <input
-                                                                type="checkbox"
-                                                                id="checkbox-all"
-                                                                style="border: 1px solid green"
-                                                        />
-                                                        <span
-                                                                class="au-checkmark"
-                                                                id="checkbox-all-box"
-                                                                style="border: 1px solid green"
-                                                        ></span>
+                                                        <input type="checkbox" id="checkbox-all"
+                                                            style="border: 1px solid green" />
+                                                        <span class="au-checkmark" id="checkbox-all-box"
+                                                            style="border: 1px solid green"></span>
                                                     </label>
                                                     <p style="margin-left: 20px; margin-top: -8px">All</p>
 
                                                 </th>
-                                                <th class="p-1" style="width: 40px; color: black; border: 1px solid black;">No.</th>
-                                                <th class="p-1" style="width: 150px; border: 1px solid black; color: black;">Utility</th>
-                                                <th class="p-1" style="width: 185px; border: 1px solid black; color: black; ">Description</th>
-                                                <th class="p-1" style="width: 70px; border: 1px solid black; color: black;">Code</th>
-                                                <th class="p-1" style="width: 35px; border: 1px solid black; color: black;">Qty</th>
-                                                <th class="p-1" style="width: 175px; border: 1px solid black; color: black; ">Finishing</th>
-                                                <th class="p-1" style="width: 100px; border: 1px solid black; color: black; ">Handles</th>
-                                                <th class="p-1" style="width: 120px; border: 1px solid black; color: black; ">Hardware</th>
-                                                <th class="p-1" style="width: 105px; border: 1px solid black; color: black;">Adj. Shelves</th>
-                                                <th class="p-1" style="width: 85px; border: 1px solid black; color: black; ">Unit Price</th>
-                                                <th class="p-1" style="width: 70px; border: 1px solid black; color: black;">Total</th>
+                                                <th class="p-1"
+                                                    style="width: 40px; color: black; border: 1px solid black;">No.</th>
+                                                <th class="p-1"
+                                                    style="width: 150px; border: 1px solid black; color: black;">Utility
+                                                </th>
+                                                <th class="p-1"
+                                                    style="width: 185px; border: 1px solid black; color: black; ">
+                                                    Description</th>
+                                                <th class="p-1"
+                                                    style="width: 70px; border: 1px solid black; color: black;">Code
+                                                </th>
+                                                <th class="p-1"
+                                                    style="width: 35px; border: 1px solid black; color: black;">Qty</th>
+                                                <th class="p-1"
+                                                    style="width: 175px; border: 1px solid black; color: black; ">
+                                                    Finishing</th>
+                                                <th class="p-1"
+                                                    style="width: 100px; border: 1px solid black; color: black; ">
+                                                    Handles</th>
+                                                <th class="p-1"
+                                                    style="width: 120px; border: 1px solid black; color: black; ">
+                                                    Hardware</th>
+                                                <th class="p-1"
+                                                    style="width: 105px; border: 1px solid black; color: black;">Adj.
+                                                    Shelves</th>
+                                                <th class="p-1"
+                                                    style="width: 85px; border: 1px solid black; color: black; ">Unit
+                                                    Price</th>
+                                                <th class="p-1"
+                                                    style="width: 70px; border: 1px solid black; color: black;">Total
+                                                </th>
                                             </tr>
                                         </thead>
-                                        <tbody id="table-body-div" >
+                                        <tbody id="table-body-div">
 
                                         </tbody>
                                     </table>
                                 </div>
-                                <div class="row d-flex justify-content-lg-between" style="border-top: 1px solid grey; padding-top: 10px; margin-right: 0px; margin-left: 0px">
-                                    <div class="col-lg-4 d-flex justify-content-sm-around mt-2" style="height: 80px; max-height: 60px; padding-top: 20px">
-                                        <button type="submit" class="btn btn-sm btn-primary" id="save" data-toggle="modal" disabled
-                                                data-target="#staticModal" onclick="save_func(event)">
+                                <div class="row d-flex justify-content-lg-between"
+                                    style="border-top: 1px solid grey; padding-top: 10px; margin-right: 0px; margin-left: 0px">
+                                    <div class="col-lg-4 d-flex justify-content-sm-around mt-2"
+                                        style="height: 80px; max-height: 60px; padding-top: 20px">
+                                        <button type="submit" class="btn btn-sm btn-primary" id="save"
+                                            data-toggle="modal" disabled data-target="#staticModal"
+                                            onclick="save_func(event)">
                                             Save
                                         </button>
                                         <button class="btn btn-sm btn-warning" id="edit" disabled>
@@ -858,47 +867,73 @@
                                         <button class="btn btn-sm btn-danger" id="delete" disabled>
                                             Delete
                                         </button>
-                                        <button class="btn btn-sm btn-info" id="open" data-toggle="modal" data-target="#staticModal-1">
+                                        <button class="btn btn-sm btn-info" id="open" data-toggle="modal"
+                                            data-target="#staticModal-1">
                                             Open
                                         </button>
                                         <button class="btn btn-sm btn-success d-none" id="print">
                                             Print
                                         </button>
-                                        <button class="btn btn-sm btn-warning mb-2" style="height: 40px" onclick="all_clear()">Clear</button>
+                                        <button class="btn btn-sm btn-warning mb-2" style="height: 40px"
+                                            onclick="all_clear()">Clear</button>
                                     </div>
                                     <div class="col-lg-8">
                                         <div class="row" style="font-size: small">
                                             <div class="form-group col mx-1">
                                                 <div class="row">
-                                                    <label for="gross-amount" class="pr-1 form-control-label" style="white-space: nowrap">Gross Amount</label>
-                                                    <input type="number" id="gross-amount" readonly class="form-control" style="width: 80%">
+                                                    <label for="gross-amount" class="pr-1 form-control-label"
+                                                        style="white-space: nowrap">Gross Amount</label>
+                                                    <input type="number" id="gross-amount" class="form-control"
+                                                        style="width: 80%" min="0"
+                                                        oninput="this.value = !!this.value && Math.abs(this.value) >= 0 ? Math.abs(this.value) : 0">
                                                 </div>
                                             </div>
                                             <div class="form-group col mx-1">
-                                                <div class="row align-items-center">
-                                                    <label for="discount" class="px-1 form-control-label mb-0">Discount</label>
-                                                    <div class="d-flex align-items-center ml-2" style="gap: 4px;">
+                                                <div class="row">
+                                                    <div class="d-flex align-items-center px-1" style="gap: 6px; margin-top: 4px;">
                                                         <input type="checkbox" id="show-discount" checked>
-                                                        <label for="show-discount" class="form-control-label mb-0" style="font-size: 11px;">Show</label>
+                                                        <label for="show-discount" class="form-control-label mb-0">Show
+                                                            Discount</label>
                                                     </div>
-                                                    <input type="number" id="discount" required class="form-control mt-1" min="0" oninput="this.value = !!this.value && Math.abs(this.value) >= 0 ? Math.abs(this.value) : null" style="width: 80%">
+                                                    <div id="discount-wrapper">
+                                                        <input type="number" id="discount" required
+                                                            class="form-control mt-1" min="0"
+                                                            oninput="this.value = !!this.value && Math.abs(this.value) >= 0 ? Math.abs(this.value) : null"
+                                                            style="width: 80%">
+                                                    </div>
                                                 </div>
 
                                             </div>
                                             <div class="form-group col mx-1">
                                                 <div class="row">
-                                                    <label for="tax" class="px-1  form-control-label ">Duties & Taxes</label>
+                                                    <label for="tax" class="px-1  form-control-label ">Duties &
+                                                        Taxes</label>
                                                     <div class="row">
-                                                        <input type="number" id="tax" required class="form-control col-lg-4" min="0" oninput="this.value = !!this.value && Math.abs(this.value) >= 0 ? Math.abs(this.value) : null" >
-                                                        <input type="number" id="calculated-tax" readonly class="form-control col-lg-6" value="">
+                                                        <input type="number" id="tax" required
+                                                            class="form-control col-lg-4" min="0"
+                                                            oninput="this.value = !!this.value && Math.abs(this.value) >= 0 ? Math.abs(this.value) : null">
+                                                        <input type="number" id="calculated-tax"
+                                                            class="form-control col-lg-6" value="" min="0"
+                                                            oninput="this.value = !!this.value && Math.abs(this.value) >= 0 ? Math.abs(this.value) : 0">
                                                     </div>
+                                                </div>
+
+                                            </div>
+                                            <div class="form-group col mx-1">
+                                                <div class="row">
+                                                    <label for="delivery-charges" class="px-1  form-control-label">Delivery Charges</label>
+                                                    <input type="number" id="delivery-charges" required class="form-control"
+                                                        style="width: 100%" value="0" min="0"
+                                                        oninput="this.value = !!this.value && Math.abs(this.value) >= 0 ? Math.abs(this.value) : 0">
                                                 </div>
 
                                             </div>
                                             <div class="form-group col mx-1">
                                                 <div class="row">
                                                     <label for="net" class="px-1  form-control-label">Net Value</label>
-                                                    <input type="number" id="net" required class="form-control" style="width: 100%" readonly value="">
+                                                    <input type="number" id="net" required class="form-control"
+                                                        style="width: 100%" value="" min="0"
+                                                        oninput="this.value = !!this.value && Math.abs(this.value) >= 0 ? Math.abs(this.value) : 0">
                                                 </div>
 
                                             </div>
@@ -906,208 +941,209 @@
                                         </div>
                                     </div>
                                 </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- END MAIN CONTENT-->
-        <div class="modal fade" id="staticModal" tabindex="-1" role="dialog" aria-labelledby="staticModalLabel"
-             aria-hidden="true" data-backdrop="static">
-            <div class="modal-dialog modal-sm" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="staticModalLabel">Enter Password</h5>
-                        <button type="button" class="close" data-dismiss="modal" onclick="document.getElementById('pass').value=''" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="row form-group">
-                            <div class="col-10 mr-auto ml-auto">
-                                <input type="password" id="pass" placeholder="Password..." class="form-control"
-                                       required />
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal"
-                                id="cancel" onclick="document.getElementById('pass').value = ''">Cancel</button>
-                        <button type="button" class="btn btn-primary" id="confirm">Confirm</button>
-                    </div>
                 </div>
             </div>
-        </div>
-
-        <div class="modal fade" id="staticModal-1" tabindex="-1" role="dialog" aria-labelledby="staticModalLabel"
-             aria-hidden="true" data-backdrop="static">
-            <div class="modal-dialog " role="document" style="position: absolute;right: 40%">
-                <div class="modal-content" style="width: 735px">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="staticModalLabel-1">Choose a Pricing</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true" onclick="close_modal(event)">&times;</span>
-                        </button>
-                    </div>
-                    <div class="modal-body" style="max-height: 300px; overflow-y: auto;">
-                        <div class="d-flex flex-row justify-content-end">
-                            <select id="filter-pricing" class="form-control mb-1" style="width: 150px">
-                                <option value="">___All___</option>
-                                <option value="qou">Quotations</option>
-                                <option value="inv">Invoices</option>
-                            </select>
+            <!-- END MAIN CONTENT-->
+            <div class="modal fade" id="staticModal" tabindex="-1" role="dialog" aria-labelledby="staticModalLabel"
+                aria-hidden="true" data-backdrop="static">
+                <div class="modal-dialog modal-sm" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="staticModalLabel">Enter Password</h5>
+                            <button type="button" class="close" data-dismiss="modal"
+                                onclick="document.getElementById('pass').value=''" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
                         </div>
-                        <table id="table" class="table table-sm" style="width: 700px">
-                            <thead style="background-color: darkgrey">
-                                <tr style="text-align: center">
-                                    <th class="py-2" style="border: 1px solid black; width: 70px">
-                                        <label class="au-checkbox my-auto">
-                                            <input type="checkbox" id="checkbox-all-open"
-                                                   style="border: 1px solid green">
-                                            <span class="au-checkmark" id="checkbox-all-box-open"
-                                                  style="border: 1px solid green"></span>
-                                        </label>
-                                        <p style="margin-left: 20px; ">All</p>
-                                    </th>
-                                    <th class="py-2" style="border: 1px solid black">No.</th>
-                                    <th class="d-none" style=" border: 1px solid black">id</th>
-                                    <th class="py-2" style=" border: 1px solid black">Pricing No.</th>
-                                    <th class="py-2" style=" border: 1px solid black">Date</th>
-                                    <th class="py-2" style=" border: 1px solid black">Customer</th>
-                                    <th class="py-2" style=" border: 1px solid black">Reference No</th>
-                                    <th class="py-2" style=" border: 1px solid black">Type</th>
-                                </tr>
-                            </thead>
-                            <tbody id="load-pricing-table">
-
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="modal-footer d-flex">
-                        <form id="delete-form" class="d-flex" style="position: absolute; left: 0; margin-left: 15px">
-                            <input type="password" id="del-pass" class="form-control mr-2" style="width: 150px" placeholder="Password..." required />
-                            <button type="submit" class="btn btn-danger"
-                                    id="delete-1" disabled>Delete</button>
-                        </form>
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="close_modal(event)"
-                                id="cancel-1">Close</button>
-                        <button type="button" class="btn btn-primary" id="confirm-1" disabled>Open</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <button class="d-none" data-toggle="modal" data-target="#staticModal-2" id="show-modal"></button>
-        <div class="modal fade" id="staticModal-2" tabindex="-1" role="dialog" aria-labelledby="staticModalLabel"
-             aria-hidden="true" data-backdrop="static">
-            <div class="modal-dialog modal-sm" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="">Enter Password</h5>
-                        <button type="button" class="close" data-dismiss="modal" onclick="document.getElementById('pass2').value=''" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="row form-group">
-                            <div class="col-10 mr-auto ml-auto">
-                                <input type="password" id="pass2" placeholder="Password..." class="form-control"
-                                       required />
-                                <input id="numb" placeholder="Password..." class="d-none"/>
+                        <div class="modal-body">
+                            <div class="row form-group">
+                                <div class="col-10 mr-auto ml-auto">
+                                    <input type="password" id="pass" placeholder="Password..." class="form-control"
+                                        required />
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal"
-                                id="cancel2" onclick="document.getElementById('pass2').value = ''">Cancel</button>
-                        <button type="button" class="btn btn-primary" id="confirm2">Confirm</button>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal" id="cancel"
+                                onclick="document.getElementById('pass').value = ''">Cancel</button>
+                            <button type="button" class="btn btn-primary" id="confirm">Confirm</button>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <div class="modal fade" id="staticModal-1" tabindex="-1" role="dialog" aria-labelledby="staticModalLabel"
+                aria-hidden="true" data-backdrop="static">
+                <div class="modal-dialog " role="document" style="position: absolute;right: 40%">
+                    <div class="modal-content" style="width: 735px">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="staticModalLabel-1">Choose a Pricing</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true" onclick="close_modal(event)">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body" style="max-height: 300px; overflow-y: auto;">
+                            <div class="d-flex flex-row justify-content-end">
+                                <select id="filter-pricing" class="form-control mb-1" style="width: 150px">
+                                    <option value="">___All___</option>
+                                    <option value="qou">Quotations</option>
+                                    <option value="inv">Invoices</option>
+                                </select>
+                            </div>
+                            <table id="table" class="table table-sm" style="width: 700px">
+                                <thead style="background-color: darkgrey">
+                                    <tr style="text-align: center">
+                                        <th class="py-2" style="border: 1px solid black; width: 70px">
+                                            <label class="au-checkbox my-auto">
+                                                <input type="checkbox" id="checkbox-all-open"
+                                                    style="border: 1px solid green">
+                                                <span class="au-checkmark" id="checkbox-all-box-open"
+                                                    style="border: 1px solid green"></span>
+                                            </label>
+                                            <p style="margin-left: 20px; ">All</p>
+                                        </th>
+                                        <th class="py-2" style="border: 1px solid black">No.</th>
+                                        <th class="d-none" style=" border: 1px solid black">id</th>
+                                        <th class="py-2" style=" border: 1px solid black">Pricing No.</th>
+                                        <th class="py-2" style=" border: 1px solid black">Date</th>
+                                        <th class="py-2" style=" border: 1px solid black">Customer</th>
+                                        <th class="py-2" style=" border: 1px solid black">Reference No</th>
+                                        <th class="py-2" style=" border: 1px solid black">Type</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="load-pricing-table">
+
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="modal-footer d-flex">
+                            <form id="delete-form" class="d-flex"
+                                style="position: absolute; left: 0; margin-left: 15px">
+                                <input type="password" id="del-pass" class="form-control mr-2" style="width: 150px"
+                                    placeholder="Password..." required />
+                                <button type="submit" class="btn btn-danger" id="delete-1" disabled>Delete</button>
+                            </form>
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal"
+                                onclick="close_modal(event)" id="cancel-1">Close</button>
+                            <button type="button" class="btn btn-primary" id="confirm-1" disabled>Open</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="d-none" data-toggle="modal" data-target="#staticModal-2" id="show-modal"></button>
+            <div class="modal fade" id="staticModal-2" tabindex="-1" role="dialog" aria-labelledby="staticModalLabel"
+                aria-hidden="true" data-backdrop="static">
+                <div class="modal-dialog modal-sm" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="">Enter Password</h5>
+                            <button type="button" class="close" data-dismiss="modal"
+                                onclick="document.getElementById('pass2').value=''" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row form-group">
+                                <div class="col-10 mr-auto ml-auto">
+                                    <input type="password" id="pass2" placeholder="Password..." class="form-control"
+                                        required />
+                                    <input id="numb" placeholder="Password..." class="d-none" />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal" id="cancel2"
+                                onclick="document.getElementById('pass2').value = ''">Cancel</button>
+                            <button type="button" class="btn btn-primary" id="confirm2">Confirm</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- END PAGE CONTAINER-->
         </div>
-        <!-- END PAGE CONTAINER-->
+
     </div>
 
-</div>
-
-<script>
-  const path1 = require('path')
-  const file_manager1 = require(path1.join(__dirname, '../scripts/file_manager.js'));
-  function openModal(a) {
-        if (String(a) === '2' && window.appUi && window.appUi.isHeaderAuthUnlocked('header-tools')) {
-          window.appUi.showProtectedDropdown('2');
-          return;
+    <script>
+        const path1 = require('path')
+        const file_manager1 = require(path1.join(__dirname, '../scripts/file_manager.js'));
+        function openModal(a) {
+            if (String(a) === '2' && window.appUi && window.appUi.isHeaderAuthUnlocked('header-tools')) {
+                window.appUi.showProtectedDropdown('2');
+                return;
+            }
+            window.modalInputFix.showModal('#staticModal-2');
+            document.getElementById('numb').value = a;
         }
-    window.modalInputFix.showModal('#staticModal-2');
-    document.getElementById('numb').value = a;
-  }
 
-  document.getElementById('confirm2').addEventListener('click', (event) => {
-    file_manager1
-        .loadFile(path1.join(__dirname, "../db/.credentials.json"))
-        .then((res) => {
-          if (res[1].pass === document.getElementById("pass2").value) {
-            if(document.getElementById('numb').value === '2')
-            {
-              if (window.appUi) window.appUi.unlockHeaderAuth('header-tools');
+        document.getElementById('confirm2').addEventListener('click', (event) => {
+            file_manager1
+                .loadFile(path1.join(__dirname, "../db/.credentials.json"))
+                .then((res) => {
+                    if (res[1].pass === document.getElementById("pass2").value) {
+                        if (document.getElementById('numb').value === '2') {
+                            if (window.appUi) window.appUi.unlockHeaderAuth('header-tools');
 
-              if (window.appUi) window.appUi.showProtectedDropdown('2');
+                            if (window.appUi) window.appUi.showProtectedDropdown('2');
 
-              else document.getElementById('dpdb1').classList.remove('d-none')
-              document.getElementById('cancel2').click();
-            }
-            else
-            {
-              document.getElementById('dpdb').classList.remove('d-none')
-              setTimeout(() => {document.getElementById('dpd').classList.add('show-dropdown')}, 300)
-              document.getElementById('cancel2').click();
-            }
-          }
-          else {
-            window.modalInputFix.showInvalid('pass2', 'Invalid Password!')
-          }
+                            else document.getElementById('dpdb1').classList.remove('d-none')
+                            document.getElementById('cancel2').click();
+                        }
+                        else {
+                            document.getElementById('dpdb').classList.remove('d-none')
+                            setTimeout(() => { document.getElementById('dpd').classList.add('show-dropdown') }, 300)
+                            document.getElementById('cancel2').click();
+                        }
+                    }
+                    else {
+                        window.modalInputFix.showInvalid('pass2', 'Invalid Password!')
+                    }
+                })
         })
-  })
 
-  document.getElementById('dpdb').addEventListener('mouseleave', (event) => {
-    document.getElementById('dpdb').classList.add('d-none')
-  })
-  document.getElementById('dpdb1').addEventListener('mouseleave', (event) => {
-    document.getElementById('dpdb1').classList.add('d-none')
-  })
-  document.getElementById('dpd1').addEventListener('mouseleave', (event) => {
-    document.getElementById('dpdb1').classList.add('d-none')
-  })
-</script>
+        document.getElementById('dpdb').addEventListener('mouseleave', (event) => {
+            document.getElementById('dpdb').classList.add('d-none')
+        })
+        document.getElementById('dpdb1').addEventListener('mouseleave', (event) => {
+            document.getElementById('dpdb1').classList.add('d-none')
+        })
+        document.getElementById('dpd1').addEventListener('mouseleave', (event) => {
+            document.getElementById('dpdb1').classList.add('d-none')
+        })
+    </script>
 
-<script>
-  window.jQuery = window.$ = require('jquery');
-</script>
-<script src="../../node_modules/bootstrap/dist/js/bootstrap.bundle.js"></script>
-<script src="../scripts/modal_input_fix.js"></script>
-<script src="../vendor/bootstrap-4.1/popper.min.js"></script>
-<!--    <script src="vendor/bootstrap-4.1/bootstrap.min.js"></script>-->
-<!-- Vendor JS       -->
-<script src="../vendor/slick/slick.min.js">
-</script>
-<script src="../vendor/wow/wow.min.js"></script>
-<script src="../vendor/animsition/animsition.min.js"></script>
-<script src="../vendor/bootstrap-progressbar/bootstrap-progressbar.min.js">
-</script>
-<script src="../vendor/counter-up/jquery.waypoints.min.js"></script>
-<script src="../vendor/counter-up/jquery.counterup.min.js">
-</script>
-<script src="../vendor/circle-progress/circle-progress.min.js"></script>
-<script src="../vendor/perfect-scrollbar/perfect-scrollbar.js"></script>
-<script src="../vendor/chartjs/Chart.bundle.min.js"></script>
-<script src="../vendor/select2/select2.min.js">
-</script>
-<script src="../vendor/html2pdf.bundle.min.js"></script>
-<!--<script src="../vendor/datatable/datatable.min.js"></script>-->
-<script src="../scripts/pricing.js"></script>
+    <script>
+        window.jQuery = window.$ = require('jquery');
+    </script>
+    <script src="../../node_modules/bootstrap/dist/js/bootstrap.bundle.js"></script>
+    <script src="../scripts/modal_input_fix.js"></script>
+    <script src="../vendor/bootstrap-4.1/popper.min.js"></script>
+    <!--    <script src="vendor/bootstrap-4.1/bootstrap.min.js"></script>-->
+    <!-- Vendor JS       -->
+    <script src="../vendor/slick/slick.min.js">
+    </script>
+    <script src="../vendor/wow/wow.min.js"></script>
+    <script src="../vendor/animsition/animsition.min.js"></script>
+    <script src="../vendor/bootstrap-progressbar/bootstrap-progressbar.min.js">
+    </script>
+    <script src="../vendor/counter-up/jquery.waypoints.min.js"></script>
+    <script src="../vendor/counter-up/jquery.counterup.min.js">
+    </script>
+    <script src="../vendor/circle-progress/circle-progress.min.js"></script>
+    <script src="../vendor/perfect-scrollbar/perfect-scrollbar.js"></script>
+    <script src="../vendor/chartjs/Chart.bundle.min.js"></script>
+    <script src="../vendor/select2/select2.min.js">
+    </script>
+    <script src="../vendor/html2pdf.bundle.min.js"></script>
+    <!--<script src="../vendor/datatable/datatable.min.js"></script>-->
+    <script src="../scripts/pricing.js"></script>
 
-<!-- Main JS-->
-<script src="../js/main.js"></script>
+    <!-- Main JS-->
+    <script src="../js/main.js"></script>
 </body>
 
 </html>

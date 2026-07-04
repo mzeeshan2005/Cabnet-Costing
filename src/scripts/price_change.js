@@ -75,7 +75,7 @@ document.getElementById('cancel').addEventListener('click', (event) => {
 document.getElementById("confirm").addEventListener("click", (event) => {
   event.preventDefault();
   file_manager
-      .loadFile(path.join(__dirname, "../../db/.credentials.json"))
+      .loadFile(path.join(__dirname, "../db/.credentials.json"))
       .then((res) => {
         if (res[1].pass === document.getElementById("pass").value) {
           const prices = {
@@ -142,7 +142,7 @@ document.getElementById("confirm").addEventListener("click", (event) => {
 document.getElementById("confirm3").addEventListener("click", (event) => {
   event.preventDefault();
   file_manager
-      .loadFile(path.join(__dirname, "../../db/.credentials.json"))
+      .loadFile(path.join(__dirname, "../db/.credentials.json"))
       .then((ress) => {
         if (ress[1].pass === document.getElementById("passs").value) {
           const res = {

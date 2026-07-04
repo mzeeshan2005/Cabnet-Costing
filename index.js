@@ -59,6 +59,8 @@ ipcMain.on("store:rpc", (event, message) => {
     else if (action === "config:get") result = storage.getSystemConfig();
     else if (action === "config:set") result = storage.setSystemConfig(data);
     else if (action === "tools:excel:export") result = storage.exportToolsExcel(data && data.outPath ? data.outPath : "");
+    else if (action === "db:backup") result = storage.backupDatabase(data && data.outPath ? data.outPath : "");
+    else if (action === "db:restore") result = storage.restoreDatabase(data && data.inPath ? data.inPath : "");
     else throw new Error("Unknown action");
 
     event.sender.send("store:rpc:reply", { requestId, ok: true, result });
@@ -87,7 +89,17 @@ ipcMain.handle("dialog:openExcelFile", async (event) => {
 });
 
 app.on("ready", async () => {
-  storage.migrateAllLegacyFiles();
+  try {
+    const seedResult = storage.seedDatabaseFromBundledBackupIfNeeded();
+    if (seedResult && seedResult.seeded) {
+      console.log(`Seeded SQLite database from bundled backup: ${seedResult.sourcePath}`);
+    }
+    storage.initializeDatabase();
+  } catch (e) {
+    console.error("Failed to initialize SQLite database:", e && e.message ? e.message : e);
+    app.quit();
+    return;
+  }
 
   const excelPath = getExcelPath(app);
   if (!fs.existsSync(excelPath)) {

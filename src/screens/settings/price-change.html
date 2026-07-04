@@ -35,12 +35,40 @@
     <link href="../../vendor/perfect-scrollbar/perfect-scrollbar.css" rel="stylesheet" media="all">
     <!--    <link href="../vendor/datatable/datatable.min.css" rel="stylesheet" media="all">-->
 
+
     <!-- Main CSS-->
     <link href="../../css/theme.css" rel="stylesheet" media="all">
 
+    <style>
+      #fieldset h3 {
+        font-size: 17px !important;
+        font-weight: bold;
+        color: #333;
+        margin-top: 12px !important;
+        margin-bottom: 10px !important;
+        text-transform: uppercase;
+        border-bottom: 1px solid #ccc;
+        padding-bottom: 2px;
+      }
+      #fieldset .form-group {
+        margin-bottom: 10px !important;
+      }
+      #fieldset .form-control-label {
+        font-size: 14px !important;
+        line-height: 1.2;
+        margin-bottom: 0 !important;
+        padding-top: 6px !important;
+      }
+      #fieldset .form-control {
+        font-size: 14px !important;
+        height: 34px !important;
+        padding: 6px 10px !important;
+      }
+    </style>
+
 </head>
 
-<body class="animsition" id="body" style="overflow-x: hidden; overflow-y: auto;">
+<body class="animsition" id="body" style="overflow: hidden;">
 <div class="page-wrapper">
     <!-- HEADER DESKTOP-->
     <header class="header-desktop3 d-none d-lg-block">
@@ -371,402 +399,216 @@
                         >
                           <fieldset id="fieldset">
 
-                            <div class="mb-1 form-group" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                              <label for="profit-margin-percentage" style="margin-top: 0; margin-bottom: 0;" class="form-control-label">Global Profit Margin (%)</label>
-                              <input type="number" id="profit-margin-percentage" step="any" min="0" placeholder="Enter %" class="form-control" style="width: 160px;" value="0" required />
+                            <!-- Profit margin aligned to the grid -->
+                            <div class="row mb-1 mt-2">
+                              <div class="col-md-4 col-sm-12">
+                                <div class="mb-1 row form-group align-items-center">
+                                  <div class="col col-md-8">
+                                    <label for="profit-margin-percentage" style="margin-top: 5px;" class="form-control-label">Global Profit Margin (%)</label>
+                                  </div>
+                                  <div class="col-12 col-md-4">
+                                    <input type="number" id="profit-margin-percentage" step="any" min="0" placeholder="Enter %" class="form-control" value="0" required />
+                                  </div>
+                                </div>
+                              </div>
                             </div>
 
                             <div class="row">
 
-                              <div class="col-md-6 col-sm-12 col-lg-6">
-                                <h3 class="my-2">Box Details</h2>
-                                  <div class="mb-1 row form-group">
-                                    <div class="col col-md-7 ">
-                                      <label
-                                        for="client-name"
-                                        style="margin-top: 5px;"
-                                        class="form-control-label"
-                                        >Box Sheet Price / PC</label
-                                      >
-                                    </div>
-                                    <div class="col-12 col-md-5">
-                                      <input
-                                        type="number"
-                                        id="rate-codes"
-                                        step="any"
-                                        placeholder="Enter Unit Rate"
-                                        class="form-control"
-                                        value="0"
-                                        required
-                                      />
-                                    </div>
-                                  </div>
-  
-                                  <div class="mb-1 row form-group">
-                                    <div class="col col-md-7">
-                                      <label for="rate" class="form-control-label" style="margin-top: 5px;"
-                                        >Box Back Sheet Price / PC</label
-                                      >
-                                    </div>
-                                    <div class="col-12 col-md-5">
-                                      <input
-                                        type="number"
-                                        id="back-area-codes"
-                                        placeholder="Enter Unit Rate"
-                                        class="form-control"
-                                        value="0"
-                                        step="any"
-                                        required
-                                      />
-                                    </div>
-                                  </div>
-      
-                                  <div class="mb-1 row form-group">
-                                    <div class="col col-md-7">
-                                      <label for="rate" class="form-control-label" style="margin-top: 5px;"
-                                        >Secondary Top Sheet Price / PC</label
-                                      >
-                                    </div>
-                                    <div class="col-12 col-md-5">
-                                      <input
-                                        type="number"
-                                        id="secondary-top-codes"
-                                        placeholder="Enter Unit Rate"
-                                        class="form-control"
-                                        value="0"
-                                        step="any"
-                                        required
-                                      />
-                                    </div>
-                                  </div>
-      
-                                  <div class="mb-1 row form-group">
-                                    <div class="col col-md-7">
-                                      <label for="rate" class="form-control-label" style="margin-top: 5px;"
-                                        >Edging, Trimming Price / RFT</label
-                                      >
-                                    </div>
-                                    <div class="col-12 col-md-5">
-                                      <input
-                                        type="number"
-                                        id="edging-codes"
-                                        placeholder="Enter Unit Rate"
-                                        class="form-control"
-                                        value="0"
-                                        step="any"
-                                        required
-                                      />
-                                    </div>
-                                  </div>
-      
-                                  <div class="mb-1 row form-group">
-                                    <div class="col col-md-7">
-                                      <label for="rate" class="form-control-label" style="margin-top: 5px;"
-                                        >Screws Price / PC</label
-                                      >
-                                    </div>
-                                    <div class="col-12 col-md-5">
-                                      <input
-                                        type="number"
-                                        id="screws-codes"
-                                        placeholder="Enter Unit Rate"
-                                        class="form-control"
-                                        value="0"
-                                        step="any"
-                                        required
-                                      />
-                                    </div>
-                                  </div>
+                              <!-- Column 1: Box Details -->
+                              <div class="col-md-4 col-sm-12">
+                                <h3 class="my-2">Box Details</h3>
 
-                                  <div class="mb-1 row form-group">
-                                    <div class="col col-md-7">
-                                      <label for="rate" class="form-control-label" style="margin-top: 5px;"
-                                        >Wall Bracket Price / PC</label
-                                      >
-                                    </div>
-                                    <div class="col-12 col-md-5">
-                                      <input
-                                        type="number"
-                                        id="wall-bracket-codes"
-                                        placeholder="Enter Unit Rate"
-                                        class="form-control"
-                                        value="0"
-                                        step="any"
-                                        required
-                                      />
-                                    </div>
+                                <div class="mb-1 row form-group">
+                                  <div class="col col-md-8">
+                                    <label class="form-control-label" style="margin-top: 5px;">Box Sheet Price / PC</label>
                                   </div>
-      
-                                  <h3 class="my-2">Finishings</h2>
-      
-                                  <div class="mb-1 row form-group">
-                                    <div class="col col-md-7">
-                                      <label for="rate" class="form-control-label" style="margin-top: 5px;"
-                                        >Front Panel Sheet Price / PC</label
-                                      >
-                                    </div>
-                                    <div class="col-12 col-md-5">
-                                      <input
-                                        type="number"
-                                        id="rate-doors"
-                                        placeholder="Enter Unit Rate"
-                                        class="form-control"
-                                        value="0"
-                                        step="any"
-                                        required
-                                      />
-                                    </div>
+                                  <div class="col-12 col-md-4">
+                                    <input type="number" id="rate-codes" step="any" placeholder="Rate" class="form-control" value="0" required />
                                   </div>
-      
-                                  <div class="mb-1 row form-group">
-                                    <div class="col col-md-7">
-                                      <label for="rate" class="form-control-label" style="margin-top: 5px;"
-                                        >Edging, Trimming Price / RFT</label
-                                      >
-                                    </div>
-                                    <div class="col-12 col-md-5">
-                                      <input
-                                        type="number"
-                                        id="edging-doors"
-                                        placeholder="Enter Unit Rate"
-                                        class="form-control"
-                                        value="0"
-                                        step="any"
-                                        required
-                                      />
-                                    </div>
+                                </div>
+
+                                <div class="mb-1 row form-group">
+                                  <div class="col col-md-8">
+                                    <label class="form-control-label" style="margin-top: 5px;">Box Back Sheet Price / PC</label>
                                   </div>
-      
-                                  
+                                  <div class="col-12 col-md-4">
+                                    <input type="number" id="back-area-codes" step="any" placeholder="Rate" class="form-control" value="0" required />
+                                  </div>
+                                </div>
+
+                                <div class="mb-1 row form-group">
+                                  <div class="col col-md-8">
+                                    <label class="form-control-label" style="margin-top: 5px;">Secondary Top Sheet Price / PC</label>
+                                  </div>
+                                  <div class="col-12 col-md-4">
+                                    <input type="number" id="secondary-top-codes" step="any" placeholder="Rate" class="form-control" value="0" required />
+                                  </div>
+                                </div>
+
+                                <div class="mb-1 row form-group">
+                                  <div class="col col-md-8">
+                                    <label class="form-control-label" style="margin-top: 5px;">Edging, Trimming Price / RFT</label>
+                                  </div>
+                                  <div class="col-12 col-md-4">
+                                    <input type="number" id="edging-codes" step="any" placeholder="Rate" class="form-control" value="0" required />
+                                  </div>
+                                </div>
+
+                                <div class="mb-1 row form-group">
+                                  <div class="col col-md-8">
+                                    <label class="form-control-label" style="margin-top: 5px;">Screws Price / PC</label>
+                                  </div>
+                                  <div class="col-12 col-md-4">
+                                    <input type="number" id="screws-codes" step="any" placeholder="Rate" class="form-control" value="0" required />
+                                  </div>
+                                </div>
+
+                                <div class="mb-1 row form-group">
+                                  <div class="col col-md-8">
+                                    <label class="form-control-label" style="margin-top: 5px;">Wall Bracket Price / PC</label>
+                                  </div>
+                                  <div class="col-12 col-md-4">
+                                    <input type="number" id="wall-bracket-codes" step="any" placeholder="Rate" class="form-control" value="0" required />
+                                  </div>
+                                </div>
+
+                                <h3 class="my-2">Finishings</h3>
+
+                                <div class="mb-1 row form-group">
+                                  <div class="col col-md-8">
+                                    <label class="form-control-label" style="margin-top: 5px;">Front Panel Sheet Price / PC</label>
+                                  </div>
+                                  <div class="col-12 col-md-4">
+                                    <input type="number" id="rate-doors" step="any" placeholder="Rate" class="form-control" value="0" required />
+                                  </div>
+                                </div>
+
+                                <div class="mb-1 row form-group">
+                                  <div class="col col-md-8">
+                                    <label class="form-control-label" style="margin-top: 5px;">Edging, Trimming Price / RFT</label>
+                                  </div>
+                                  <div class="col-12 col-md-4">
+                                    <input type="number" id="edging-doors" step="any" placeholder="Rate" class="form-control" value="0" required />
+                                  </div>
+                                </div>
                               </div>
-  
-                              <div class="col-md-6 col-sm-12 col-lg-6">
 
-                                <h3 class="my-2">Hardwares</h2>
-      
-                                  <div class="mb-1 row form-group">
-                                    <div class="col col-md-7">
-                                      <label for="rate" class="form-control-label" style="margin-top: 5px;"
-                                        >Hinges Price / SET</label
-                                      >
-                                    </div>
-                                    <div class="col-12 col-md-5">
-                                      <input
-                                        type="number"
-                                        id="rate-hardware"
-                                        placeholder="Enter Unit Rate"
-                                        class="form-control"
-                                        value="0"
-                                        step="any"
-                                        required
-                                      />
-                                    </div>
-                                  </div>
+                              <!-- Column 2: Hardwares -->
+                              <div class="col-md-4 col-sm-12">
+                                <h3 class="my-2">Hardwares</h3>
 
-                                  <div class="mb-1 row form-group">
-                                    <div class="col col-md-7">
-                                      <label for="rate" class="form-control-label" style="margin-top: 5px;"
-                                        >Slider Price / SET</label
-                                      >
-                                    </div>
-                                    <div class="col-12 col-md-5">
-                                      <input
-                                        type="number"
-                                        id="slider-hardware"
-                                        placeholder="Enter Unit Rate"
-                                        class="form-control"
-                                        value="0"
-                                        step="any"
-                                        required
-                                      />
-                                    </div>
+                                <div class="mb-1 row form-group">
+                                  <div class="col col-md-8">
+                                    <label class="form-control-label" style="margin-top: 5px;">Hinges Price / SET</label>
                                   </div>
+                                  <div class="col-12 col-md-4">
+                                    <input type="number" id="rate-hardware" step="any" placeholder="Rate" class="form-control" value="0" required />
+                                  </div>
+                                </div>
 
-                                  <div class="mb-1 row form-group">
-                                    <div class="col col-md-7">
-                                      <label for="rate" class="form-control-label" style="margin-top: 5px;"
-                                        >Lift Up Price / SET</label
-                                      >
-                                    </div>
-                                    <div class="col-12 col-md-5">
-                                      <input
-                                        type="number"
-                                        id="lift-hardware"
-                                        placeholder="Enter Unit Rate"
-                                        class="form-control"
-                                        value="0"
-                                        step="any"
-                                        required
-                                      />
-                                    </div>
+                                <div class="mb-1 row form-group">
+                                  <div class="col col-md-8">
+                                    <label class="form-control-label" style="margin-top: 5px;">Slider Price / SET</label>
                                   </div>
+                                  <div class="col-12 col-md-4">
+                                    <input type="number" id="slider-hardware" step="any" placeholder="Rate" class="form-control" value="0" required />
+                                  </div>
+                                </div>
 
-                                  <div class="mb-1 row form-group">
-                                    <div class="col col-md-7">
-                                      <label for="rate" class="form-control-label" style="margin-top: 5px;"
-                                        >Hanger Pipe Price / PC</label
-                                      >
-                                    </div>
-                                    <div class="col-12 col-md-5">
-                                      <input
-                                        type="number"
-                                        id="hanger-pipe-hardware"
-                                        placeholder="Enter Unit Rate"
-                                        class="form-control"
-                                        value="0"
-                                        step="any"
-                                        required
-                                      />
-                                    </div>
+                                <div class="mb-1 row form-group">
+                                  <div class="col col-md-8">
+                                    <label class="form-control-label" style="margin-top: 5px;">Lift Up Price / SET</label>
                                   </div>
+                                  <div class="col-12 col-md-4">
+                                    <input type="number" id="lift-hardware" step="any" placeholder="Rate" class="form-control" value="0" required />
+                                  </div>
+                                </div>
 
-                                  <div class="mb-1 row form-group">
-                                    <div class="col col-md-7">
-                                      <label for="rate" class="form-control-label" style="margin-top: 5px;"
-                                        >Pipe Fitting Price / PC</label
-                                      >
-                                    </div>
-                                    <div class="col-12 col-md-5">
-                                      <input
-                                        type="number"
-                                        id="hanger-pipe-fitting-hardware"
-                                        placeholder="Enter Unit Rate"
-                                        class="form-control"
-                                        value="0"
-                                        step="any"
-                                        required
-                                      />
-                                    </div>
+                                <div class="mb-1 row form-group">
+                                  <div class="col col-md-8">
+                                    <label class="form-control-label" style="margin-top: 5px;">Hanger Pipe Price / PC</label>
                                   </div>
+                                  <div class="col-12 col-md-4">
+                                    <input type="number" id="hanger-pipe-hardware" step="any" placeholder="Rate" class="form-control" value="0" required />
+                                  </div>
+                                </div>
 
-                                  <div class="mb-1 row form-group">
-                                    <div class="col col-md-7">
-                                      <label for="rate" class="form-control-label" style="margin-top: 5px;"
-                                        >Locks Price / PC</label
-                                      >
-                                    </div>
-                                    <div class="col-12 col-md-5">
-                                      <input
-                                        type="number"
-                                        id="locks-hardware"
-                                        placeholder="Enter Unit Rate"
-                                        class="form-control"
-                                        value="0"
-                                        step="any"
-                                        required
-                                      />
-                                    </div>
+                                <div class="mb-1 row form-group">
+                                  <div class="col col-md-8">
+                                    <label class="form-control-label" style="margin-top: 5px;">Pipe Fitting Price / PC</label>
                                   </div>
+                                  <div class="col-12 col-md-4">
+                                    <input type="number" id="hanger-pipe-fitting-hardware" step="any" placeholder="Rate" class="form-control" value="0" required />
+                                  </div>
+                                </div>
 
-                                <h3 class="my-2">Handles</h2>
-  
-                                  <div class="mb-1 row form-group">
-                                    <div class="col col-md-7">
-                                      <label for="rate" class="form-control-label" style="margin-top: 5px;"
-                                        >Handles Price / PC / Length</label
-                                      >
-                                    </div>
-                                    <div class="col-12 col-md-5">
-                                      <input
-                                        type="number"
-                                        id="rate-handles"
-                                        placeholder="Enter Unit Rate"
-                                        class="form-control"
-                                        value="0"
-                                        step="any"
-                                        required
-                                      />
-                                    </div>
+                                <div class="mb-1 row form-group">
+                                  <div class="col col-md-8">
+                                    <label class="form-control-label" style="margin-top: 5px;">Locks Price / PC</label>
                                   </div>
+                                  <div class="col-12 col-md-4">
+                                    <input type="number" id="locks-hardware" step="any" placeholder="Rate" class="form-control" value="0" required />
+                                  </div>
+                                </div>
+                              </div>
 
-                                  <div class="mb-1 row form-group">
-                                    <div class="col col-md-7">
-                                      <label for="rate" class="form-control-label" style="margin-top: 5px;"
-                                        >Drawer Handle Price / PC</label
-                                      >
-                                    </div>
-                                    <div class="col-12 col-md-5">
-                                      <input
-                                        type="number"
-                                        id="drawer-handle-rate"
-                                        placeholder="Enter Unit Rate"
-                                        class="form-control"
-                                        value="0"
-                                        step="any"
-                                        required
-                                      />
-                                    </div>
-                                  </div>
-      
-                                  <h3 class="my-2">Shelves</h2>
-      
-                                  <div class="mb-1 row form-group">
-                                    <div class="col col-md-7">
-                                      <label for="rate" class="form-control-label" style="margin-top: 5px;"
-                                        >Shelves Sheet Price / SFT</label
-                                      >
-                                    </div>
-                                    <div class="col-12 col-md-5">
-                                      <input
-                                        type="number"
-                                        id="rate-shelve"
-                                        placeholder="Enter Unit Rate"
-                                        class="form-control"
-                                        value="0"
-                                        step="any"
-                                        required
-                                      />
-                                    </div>
-                                  </div>
-      
-      
-                                  <div class="mb-1 row form-group">
-                                    <div class="col col-md-7">
-                                      <label for="rate" class="form-control-label" style="margin-top: 5px;"
-                                        >Shelve Pin Price / PC</label
-                                      >
-                                    </div>
-                                    <div class="col-12 col-md-5">
-                                      <input
-                                        type="number"
-                                        id="pin-shelve"
-                                        placeholder="Enter Unit Rate"
-                                        class="form-control"
-                                        value="0"
-                                        step="any"
-                                        required
-                                      />
-                                    </div>
-                                  </div>
+                              <!-- Column 3: Handles + Shelves -->
+                              <div class="col-md-4 col-sm-12">
+                                <h3 class="my-2">Handles</h3>
 
-                                  <div class="mb-1 row form-group">
-                                    <div class="col col-md-7">
-                                      <label for="rate" class="form-control-label" style="margin-top: 5px;"
-                                        >Edging, Trimming Price / RFT / Length</label
-                                      >
-                                    </div>
-                                    <div class="col-12 col-md-5">
-                                      <input
-                                        type="number"
-                                        id="edging-shelve"
-                                        placeholder="Enter Unit Rate"
-                                        class="form-control"
-                                        value="0"
-                                        step="any"
-                                        required
-                                      />
-                                    </div>
+                                <div class="mb-1 row form-group">
+                                  <div class="col col-md-8">
+                                    <label class="form-control-label" style="margin-top: 5px;">Handles Price / PC / Length</label>
                                   </div>
+                                  <div class="col-12 col-md-4">
+                                    <input type="number" id="rate-handles" step="any" placeholder="Rate" class="form-control" value="0" required />
+                                  </div>
+                                </div>
+
+                                <div class="mb-1 row form-group">
+                                  <div class="col col-md-8">
+                                    <label class="form-control-label" style="margin-top: 5px;">Drawer Handle Price / PC</label>
+                                  </div>
+                                  <div class="col-12 col-md-4">
+                                    <input type="number" id="drawer-handle-rate" step="any" placeholder="Rate" class="form-control" value="0" required />
+                                  </div>
+                                </div>
+
+                                <h3 class="my-2">Shelves</h3>
+
+                                <div class="mb-1 row form-group">
+                                  <div class="col col-md-8">
+                                    <label class="form-control-label" style="margin-top: 5px;">Shelves Sheet Price / SFT</label>
+                                  </div>
+                                  <div class="col-12 col-md-4">
+                                    <input type="number" id="rate-shelve" step="any" placeholder="Rate" class="form-control" value="0" required />
+                                  </div>
+                                </div>
+
+                                <div class="mb-1 row form-group">
+                                  <div class="col col-md-8">
+                                    <label class="form-control-label" style="margin-top: 5px;">Shelve Pin Price / PC</label>
+                                  </div>
+                                  <div class="col-12 col-md-4">
+                                    <input type="number" id="pin-shelve" step="any" placeholder="Rate" class="form-control" value="0" required />
+                                  </div>
+                                </div>
+
+                                <div class="mb-1 row form-group">
+                                  <div class="col col-md-8">
+                                    <label class="form-control-label" style="margin-top: 5px;">Edging, Trimming Price / RFT / Length</label>
+                                  </div>
+                                  <div class="col-12 col-md-4">
+                                    <input type="number" id="edging-shelve" step="any" placeholder="Rate" class="form-control" value="0" required />
+                                  </div>
+                                </div>
                               </div>
 
                             </div>
 
-                            
-                            
-
-                            
-
                           </fieldset>
+
                           <div
                             class="d-flex justify-content-sm-around mt-2"
                             style="border-top: 1px solid grey; padding-top: 10px"

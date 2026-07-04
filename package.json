@@ -9,7 +9,10 @@
     "pack:win": "node scripts/pack-win.js",
     "build:win": "electron-builder --win --x64",
     "start": "electron index.js --no-sandbox",
-    "start:linux": "env -u WAYLAND_DISPLAY -u XDG_SESSION_TYPE GDK_BACKEND=x11 ELECTRON_DISABLE_SANDBOX=1 ./node_modules/.bin/electron index.js --no-sandbox > electron_output.log 2>&1"
+    "start:linux": "env -u WAYLAND_DISPLAY -u XDG_SESSION_TYPE GDK_BACKEND=x11 ELECTRON_DISABLE_SANDBOX=1 ./node_modules/.bin/electron index.js --no-sandbox > electron_output.log 2>&1",
+    "seed:db": "env ELECTRON_DISABLE_SANDBOX=1 ./node_modules/.bin/electron --no-sandbox scripts/seed-db.js",
+    "db:backup": "electron --no-sandbox scripts/db-backup.js",
+    "db:restore": "electron --no-sandbox scripts/db-restore.js"
   },
   "author": "Faizan Ali",
   "license": "ISC",
@@ -30,6 +33,18 @@
     "directories": {
       "output": "release"
     },
+    "extraResources": [
+      {
+        "from": "seed/cabinet_costing.db.bak",
+        "to": "seed/cabinet_costing.db.bak"
+      }
+    ],
+    "files": [
+      "**/*",
+      "!src/db/.*.json",
+      "!src/db/.*.json.bak",
+      "!src/db/*.json.bak"
+    ],
     "win": {
       "target": [
         {

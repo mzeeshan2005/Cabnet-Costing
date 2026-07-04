@@ -94,6 +94,203 @@ function getDb() {
   return db;
 }
 
+function requireDbOrThrow() {
+  const database = getDb();
+  if (database) return database;
+  throw new Error("SQLite database is required. JSON fallback is disabled.");
+}
+
+function closeDb() {
+  if (!db) return;
+  try {
+    db.close();
+  } catch (e) {
+    return;
+  } finally {
+    db = null;
+  }
+}
+
+function getDefaultBackupPath() {
+  return `${getDbPath()}.bak`;
+}
+
+function getBundledSeedBackupPath() {
+  const candidates = [];
+
+  if (app && app.isPackaged) {
+    candidates.push(path.join(process.resourcesPath, "seed", "cabinet_costing.db.bak"));
+  }
+
+  candidates.push(path.join(__dirname, "../../seed/cabinet_costing.db.bak"));
+
+  for (let i = 0; i < candidates.length; i += 1) {
+    const candidate = candidates[i];
+    try {
+      if (fs.existsSync(candidate)) return candidate;
+    } catch (e) {
+      continue;
+    }
+  }
+
+  return "";
+}
+
+function ensureSqliteFileOrThrow(filePath, label) {
+  const targetLabel = label || "SQLite database";
+
+  let stats;
+  try {
+    stats = fs.statSync(filePath);
+  } catch (e) {
+    throw new Error(`${targetLabel} not found: ${filePath}`);
+  }
+
+  if (!stats.isFile()) {
+    throw new Error(`${targetLabel} is not a file: ${filePath}`);
+  }
+
+  if (stats.size < 16) {
+    throw new Error(`${targetLabel} is invalid or truncated: ${filePath}`);
+  }
+
+  const header = Buffer.alloc(16);
+  const fd = fs.openSync(filePath, "r");
+  try {
+    fs.readSync(fd, header, 0, header.length, 0);
+  } finally {
+    fs.closeSync(fd);
+  }
+
+  if (header.toString("utf8") !== "SQLite format 3\u0000") {
+    throw new Error(`${targetLabel} is not a valid SQLite file: ${filePath}`);
+  }
+}
+
+function openStandaloneDatabase(dbPath) {
+  if (!Database) {
+    try {
+      Database = require("better-sqlite3");
+    } catch (e) {
+      throw new Error("SQLite database is required. JSON fallback is disabled.");
+    }
+  }
+
+  const database = new Database(dbPath);
+  database.pragma("journal_mode = WAL");
+  database.pragma("synchronous = NORMAL");
+  database.pragma("foreign_keys = ON");
+  database.pragma("busy_timeout = 5000");
+  initSchema(database);
+  return database;
+}
+
+function cleanupDbSidecars(dbPath) {
+  [`${dbPath}-wal`, `${dbPath}-shm`].forEach((sidecarPath) => {
+    try {
+      if (fs.existsSync(sidecarPath)) fs.unlinkSync(sidecarPath);
+    } catch (e) {
+      return;
+    }
+  });
+}
+
+function initializeDatabase() {
+  const database = requireDbOrThrow();
+  ensureToolUniqueness(database);
+  return { dbPath: getDbPath() };
+}
+
+function seedDatabaseFromBundledBackupIfNeeded() {
+  if (!(app && app.isPackaged)) {
+    return { seeded: false, reason: "not-packaged" };
+  }
+
+  const dbPath = getDbPath();
+  if (fs.existsSync(dbPath)) {
+    return { seeded: false, reason: "db-exists", dbPath };
+  }
+
+  const bundledBackupPath = getBundledSeedBackupPath();
+  if (!bundledBackupPath) {
+    return { seeded: false, reason: "seed-backup-missing", dbPath };
+  }
+
+  const defaultBackupPath = getDefaultBackupPath();
+  ensureDir(path.dirname(defaultBackupPath));
+  fs.copyFileSync(bundledBackupPath, defaultBackupPath);
+
+  const result = restoreDatabase(defaultBackupPath);
+  return {
+    seeded: true,
+    dbPath: result.dbPath,
+    backupPath: result.backupPath,
+    sourcePath: bundledBackupPath,
+  };
+}
+
+function repairToolDatabases() {
+  const repaired = [];
+  const livePath = getDbPath();
+  const liveDb = requireDbOrThrow();
+  ensureToolUniqueness(liveDb);
+  repaired.push(livePath);
+
+  const backupPath = getDefaultBackupPath();
+  if (fs.existsSync(backupPath)) {
+    const backupDb = openStandaloneDatabase(backupPath);
+    try {
+      ensureToolUniqueness(backupDb);
+      repaired.push(backupPath);
+    } finally {
+      backupDb.close();
+    }
+  }
+
+  return { repaired };
+}
+
+function backupDatabase(outPath) {
+  const database = requireDbOrThrow();
+  const dbPath = getDbPath();
+  const targetPath = outPath != null && String(outPath).trim() ? String(outPath).trim() : getDefaultBackupPath();
+  if (path.resolve(targetPath) === path.resolve(dbPath)) {
+    throw new Error(`Backup path must be different from the live database: ${targetPath}`);
+  }
+
+  ensureToolUniqueness(database);
+  ensureDir(path.dirname(targetPath));
+  database.pragma("wal_checkpoint(TRUNCATE)");
+  fs.copyFileSync(dbPath, targetPath);
+
+  return {
+    dbPath,
+    backupPath: targetPath,
+  };
+}
+
+function restoreDatabase(inPath) {
+  const backupPath = inPath != null && String(inPath).trim() ? String(inPath).trim() : getDefaultBackupPath();
+  const dbPath = getDbPath();
+  if (path.resolve(backupPath) === path.resolve(dbPath)) {
+    throw new Error(`Restore source must be different from the live database: ${backupPath}`);
+  }
+  ensureSqliteFileOrThrow(backupPath, "SQLite backup");
+
+  closeDb();
+  ensureDir(path.dirname(dbPath));
+  cleanupDbSidecars(dbPath);
+  fs.copyFileSync(backupPath, dbPath);
+  cleanupDbSidecars(dbPath);
+  const database = requireDbOrThrow();
+  ensureToolUniqueness(database);
+
+  return {
+    dbPath,
+    backupPath,
+  };
+}
+
 function getDefaultToolsExcelPath() {
   if (app && app.isPackaged) {
     const exeDir = path.dirname(process.execPath);
@@ -123,7 +320,7 @@ function exportToolsExcel(outPath) {
 
   ensureDir(path.dirname(targetPath));
 
-  const database = getDb();
+  const database = requireDbOrThrow();
 
   let utilities = [];
   let types = [];
@@ -133,48 +330,37 @@ function exportToolsExcel(outPath) {
   let handlers = [];
   let shelves = [];
 
-  if (database) {
-    utilities = database.prepare("SELECT id, title FROM utilities ORDER BY id").all();
-    types = database
-      .prepare(
-        "SELECT t.id, t.title, t.utility_id, u.title AS utility FROM types t LEFT JOIN utilities u ON u.id = t.utility_id ORDER BY t.id"
-      )
-      .all();
-    codes = database
-      .prepare(
-        "SELECT c.id, c.title, c.utility_id, u.title AS utility, c.type_id, t.title AS type, c.rate, c.back_area, c.secondary_top, c.edging, c.screws FROM codes c LEFT JOIN utilities u ON u.id = c.utility_id LEFT JOIN types t ON t.id = c.type_id ORDER BY c.id"
-      )
-      .all();
-    doors = database
-      .prepare(
-        "SELECT d.id, d.title, d.utility_id, u.title AS utility, d.type_id, t.title AS type, d.code_id, c.title AS code, d.rate, d.edging FROM doors d LEFT JOIN utilities u ON u.id = d.utility_id LEFT JOIN types t ON t.id = d.type_id LEFT JOIN codes c ON c.id = d.code_id ORDER BY d.id"
-      )
-      .all();
-    hardwares = database
-      .prepare(
-        "SELECT h.id, h.title, h.utility_id, u.title AS utility, h.type_id, t.title AS type, h.code_id, c.title AS code, h.rate, h.slider, h.lift, h.hanger_pipe, h.hanger_pipe_fitting, h.locks, h.drawer_handles FROM hardwares h LEFT JOIN utilities u ON u.id = h.utility_id LEFT JOIN types t ON t.id = h.type_id LEFT JOIN codes c ON c.id = h.code_id ORDER BY h.id"
-      )
-      .all();
-    handlers = database
-      .prepare(
-        "SELECT h.id, h.title, h.utility_id, u.title AS utility, h.type_id, t.title AS type, h.code_id, c.title AS code, h.rate FROM handlers h LEFT JOIN utilities u ON u.id = h.utility_id LEFT JOIN types t ON t.id = h.type_id LEFT JOIN codes c ON c.id = h.code_id ORDER BY h.id"
-      )
-      .all();
-    shelves = database
-      .prepare(
-        "SELECT s.id, s.title, s.utility_id, u.title AS utility, s.type_id, t.title AS type, s.code_id, c.title AS code, s.rate, s.pin, s.edging FROM shelves s LEFT JOIN utilities u ON u.id = s.utility_id LEFT JOIN types t ON t.id = s.type_id LEFT JOIN codes c ON c.id = s.code_id ORDER BY s.id"
-      )
-      .all();
-  } else {
-    const dbDir = path.join(__dirname, "../db");
-    utilities = safeReadJsonFile(path.join(dbDir, ".utilities.json")) || [];
-    types = safeReadJsonFile(path.join(dbDir, ".types.json")) || [];
-    codes = safeReadJsonFile(path.join(dbDir, ".codes.json")) || [];
-    doors = safeReadJsonFile(path.join(dbDir, ".doors.json")) || [];
-    hardwares = safeReadJsonFile(path.join(dbDir, ".hardwares.json")) || [];
-    handlers = safeReadJsonFile(path.join(dbDir, ".handlers.json")) || [];
-    shelves = safeReadJsonFile(path.join(dbDir, ".shelves.json")) || [];
-  }
+  utilities = database.prepare("SELECT id, title FROM utilities ORDER BY id").all();
+  types = database
+    .prepare(
+      "SELECT t.id, t.title, t.utility_id, u.title AS utility FROM types t LEFT JOIN utilities u ON u.id = t.utility_id ORDER BY t.id"
+    )
+    .all();
+  codes = database
+    .prepare(
+      "SELECT c.id, c.title, c.utility_id, u.title AS utility, c.type_id, t.title AS type, c.rate, c.back_area, c.secondary_top, c.edging, c.screws FROM codes c LEFT JOIN utilities u ON u.id = c.utility_id LEFT JOIN types t ON t.id = c.type_id ORDER BY c.id"
+    )
+    .all();
+  doors = database
+    .prepare(
+      "SELECT d.id, d.title, d.utility_id, u.title AS utility, d.type_id, t.title AS type, d.code_id, c.title AS code, d.rate, d.edging FROM doors d LEFT JOIN utilities u ON u.id = d.utility_id LEFT JOIN types t ON t.id = d.type_id LEFT JOIN codes c ON c.id = d.code_id ORDER BY d.id"
+    )
+    .all();
+  hardwares = database
+    .prepare(
+      "SELECT h.id, h.title, h.utility_id, u.title AS utility, h.type_id, t.title AS type, h.code_id, c.title AS code, h.rate, h.slider, h.lift, h.hanger_pipe, h.hanger_pipe_fitting, h.locks, h.drawer_handles FROM hardwares h LEFT JOIN utilities u ON u.id = h.utility_id LEFT JOIN types t ON t.id = h.type_id LEFT JOIN codes c ON c.id = h.code_id ORDER BY h.id"
+    )
+    .all();
+  handlers = database
+    .prepare(
+      "SELECT h.id, h.title, h.utility_id, u.title AS utility, h.type_id, t.title AS type, h.code_id, c.title AS code, h.rate FROM handlers h LEFT JOIN utilities u ON u.id = h.utility_id LEFT JOIN types t ON t.id = h.type_id LEFT JOIN codes c ON c.id = h.code_id ORDER BY h.id"
+    )
+    .all();
+  shelves = database
+    .prepare(
+      "SELECT s.id, s.title, s.utility_id, u.title AS utility, s.type_id, t.title AS type, s.code_id, c.title AS code, s.rate, s.pin, s.edging FROM shelves s LEFT JOIN utilities u ON u.id = s.utility_id LEFT JOIN types t ON t.id = s.type_id LEFT JOIN codes c ON c.id = s.code_id ORDER BY s.id"
+    )
+    .all();
 
   function toStr(v) {
     return v != null ? String(v) : "";
@@ -550,6 +736,12 @@ function scopedToolPart(value) {
   return value != null ? String(value).trim() : "";
 }
 
+function visibleCodeToolPart(row) {
+  const code = row && row.code != null ? String(row.code).trim().toLowerCase() : "";
+  if (code) return code;
+  return scopedToolPart(row && row.code_id);
+}
+
 function duplicateToolKey(base, row) {
   const title = normalizedToolTitle(row && row.title);
   if (!title) return "";
@@ -572,7 +764,7 @@ function duplicateToolKey(base, row) {
     base === ".handlers.json" ||
     base === ".shelves.json"
   ) {
-    return `${scopedToolPart(row && row.utility_id)}::${scopedToolPart(row && row.type_id)}::${scopedToolPart(row && row.code_id)}::${title}`;
+    return `${scopedToolPart(row && row.utility_id)}::${visibleCodeToolPart(row)}::${title}`;
   }
 
   return "";
@@ -625,7 +817,130 @@ function mergeDuplicateIds(database, table, groupByColumns, childRefs) {
   }
 }
 
-function mergeAndConstrainToolTables(database) {
+function remapPricingPayloadToolIds(database, fieldName, idMap) {
+  if (!idMap || idMap.size === 0) return;
+
+  const rows = database.prepare("SELECT id, payload_json FROM pricings").all();
+  const update = database.prepare("UPDATE pricings SET payload_json = ? WHERE id = ?");
+
+  for (const row of rows) {
+    if (!row || row.payload_json == null) continue;
+
+    let payload = null;
+    try {
+      payload = JSON.parse(row.payload_json);
+    } catch (e) {
+      continue;
+    }
+
+    if (!payload || typeof payload !== "object") continue;
+
+    let changed = false;
+    Object.keys(payload).forEach((key) => {
+      if (key === "pinfo") return;
+      const items = payload[key];
+      if (!Array.isArray(items)) return;
+
+      items.forEach((item) => {
+        if (!item || item[fieldName] == null || item[fieldName] === "") return;
+        const currentId = String(item[fieldName]);
+        const mappedId = idMap.get(currentId);
+        if (mappedId == null || String(mappedId) === currentId) return;
+        item[fieldName] = String(mappedId);
+        changed = true;
+      });
+    });
+
+    if (changed) {
+      update.run(JSON.stringify(payload), row.id);
+    }
+  }
+}
+
+function mergeVisibleCodeDuplicates(database, table, pricingField) {
+  const rows = database
+    .prepare(
+      `
+        SELECT MIN(t.id) AS keep_id, GROUP_CONCAT(t.id) AS ids
+        FROM ${table} t
+        LEFT JOIN codes c ON c.id = t.code_id
+        GROUP BY
+          COALESCE(t.utility_id, -1),
+          LOWER(TRIM(t.title)),
+          LOWER(TRIM(COALESCE(c.title, '')))
+        HAVING COUNT(*) > 1
+      `
+    )
+    .all();
+
+  if (!rows || rows.length === 0) return;
+
+  const idMap = new Map();
+  const del = database.prepare(`DELETE FROM ${table} WHERE id = ?`);
+
+  for (const row of rows) {
+    const keepId = row && row.keep_id != null ? Number(row.keep_id) : null;
+    const ids = row && row.ids != null ? String(row.ids).split(",").map((v) => Number(v)) : [];
+    if (keepId == null || !ids.length) continue;
+
+    for (const id of ids) {
+      if (id === keepId || Number.isNaN(id)) continue;
+      idMap.set(String(id), String(keepId));
+      del.run(id);
+    }
+  }
+
+  remapPricingPayloadToolIds(database, pricingField, idMap);
+}
+
+function createVisibleCodeUniquenessTriggers(database, table) {
+  const insertTrigger = `trg_${table}_visible_code_unique_insert`;
+  const updateTrigger = `trg_${table}_visible_code_unique_update`;
+
+  database.exec(`
+    DROP TRIGGER IF EXISTS ${insertTrigger};
+    DROP TRIGGER IF EXISTS ${updateTrigger};
+
+    CREATE TRIGGER ${insertTrigger}
+    BEFORE INSERT ON ${table}
+    FOR EACH ROW
+    BEGIN
+      SELECT CASE
+        WHEN EXISTS (
+          SELECT 1
+          FROM ${table} existing
+          LEFT JOIN codes existing_code ON existing_code.id = existing.code_id
+          LEFT JOIN codes new_code ON new_code.id = NEW.code_id
+          WHERE COALESCE(existing.utility_id, -1) = COALESCE(NEW.utility_id, -1)
+            AND LOWER(TRIM(existing.title)) = LOWER(TRIM(NEW.title))
+            AND LOWER(TRIM(COALESCE(existing_code.title, ''))) = LOWER(TRIM(COALESCE(new_code.title, '')))
+        )
+        THEN RAISE(ABORT, 'Duplicate title and code already exists.')
+      END;
+    END;
+
+    CREATE TRIGGER ${updateTrigger}
+    BEFORE UPDATE ON ${table}
+    FOR EACH ROW
+    BEGIN
+      SELECT CASE
+        WHEN EXISTS (
+          SELECT 1
+          FROM ${table} existing
+          LEFT JOIN codes existing_code ON existing_code.id = existing.code_id
+          LEFT JOIN codes new_code ON new_code.id = NEW.code_id
+          WHERE existing.id != OLD.id
+            AND COALESCE(existing.utility_id, -1) = COALESCE(NEW.utility_id, -1)
+            AND LOWER(TRIM(existing.title)) = LOWER(TRIM(NEW.title))
+            AND LOWER(TRIM(COALESCE(existing_code.title, ''))) = LOWER(TRIM(COALESCE(new_code.title, '')))
+        )
+        THEN RAISE(ABORT, 'Duplicate title and code already exists.')
+      END;
+    END;
+  `);
+}
+
+function ensureToolUniqueness(database) {
   const tx = database.transaction(() => {
     mergeDuplicateIds(database, "utilities", [], [
       { table: "types", column: "utility_id" },
@@ -651,10 +966,10 @@ function mergeAndConstrainToolTables(database) {
       { table: "shelves", column: "code_id" },
     ]);
 
-    mergeDuplicateIds(database, "doors", ["COALESCE(utility_id, -1)", "COALESCE(type_id, -1)", "COALESCE(code_id, -1)"], []);
-    mergeDuplicateIds(database, "hardwares", ["COALESCE(utility_id, -1)", "COALESCE(type_id, -1)", "COALESCE(code_id, -1)"], []);
-    mergeDuplicateIds(database, "handlers", ["COALESCE(utility_id, -1)", "COALESCE(type_id, -1)", "COALESCE(code_id, -1)"], []);
-    mergeDuplicateIds(database, "shelves", ["COALESCE(utility_id, -1)", "COALESCE(type_id, -1)", "COALESCE(code_id, -1)"], []);
+    mergeVisibleCodeDuplicates(database, "doors", "door_panel");
+    mergeVisibleCodeDuplicates(database, "hardwares", "hardware");
+    mergeVisibleCodeDuplicates(database, "handlers", "handler");
+    mergeVisibleCodeDuplicates(database, "shelves", "shelves");
 
     database.exec(`
       CREATE UNIQUE INDEX IF NOT EXISTS idx_utilities_unique_title_nocase
@@ -666,53 +981,34 @@ function mergeAndConstrainToolTables(database) {
       CREATE UNIQUE INDEX IF NOT EXISTS idx_codes_unique_scope_title
       ON codes(COALESCE(utility_id, -1), COALESCE(type_id, -1), LOWER(TRIM(title)));
 
+      DROP INDEX IF EXISTS idx_doors_unique_scope_title;
       CREATE UNIQUE INDEX IF NOT EXISTS idx_doors_unique_scope_title
-      ON doors(COALESCE(utility_id, -1), COALESCE(type_id, -1), COALESCE(code_id, -1), LOWER(TRIM(title)));
+      ON doors(COALESCE(utility_id, -1), COALESCE(code_id, -1), LOWER(TRIM(title)));
 
+      DROP INDEX IF EXISTS idx_hardwares_unique_scope_title;
       CREATE UNIQUE INDEX IF NOT EXISTS idx_hardwares_unique_scope_title
-      ON hardwares(COALESCE(utility_id, -1), COALESCE(type_id, -1), COALESCE(code_id, -1), LOWER(TRIM(title)));
+      ON hardwares(COALESCE(utility_id, -1), COALESCE(code_id, -1), LOWER(TRIM(title)));
 
+      DROP INDEX IF EXISTS idx_handlers_unique_scope_title;
       CREATE UNIQUE INDEX IF NOT EXISTS idx_handlers_unique_scope_title
-      ON handlers(COALESCE(utility_id, -1), COALESCE(type_id, -1), COALESCE(code_id, -1), LOWER(TRIM(title)));
+      ON handlers(COALESCE(utility_id, -1), COALESCE(code_id, -1), LOWER(TRIM(title)));
 
+      DROP INDEX IF EXISTS idx_shelves_unique_scope_title;
       CREATE UNIQUE INDEX IF NOT EXISTS idx_shelves_unique_scope_title
-      ON shelves(COALESCE(utility_id, -1), COALESCE(type_id, -1), COALESCE(code_id, -1), LOWER(TRIM(title)));
+      ON shelves(COALESCE(utility_id, -1), COALESCE(code_id, -1), LOWER(TRIM(title)));
     `);
+
+    createVisibleCodeUniquenessTriggers(database, "doors");
+    createVisibleCodeUniquenessTriggers(database, "hardwares");
+    createVisibleCodeUniquenessTriggers(database, "handlers");
+    createVisibleCodeUniquenessTriggers(database, "shelves");
   });
 
   tx();
 }
 
-function getMeta(database, key) {
-  const row = database.prepare("SELECT value FROM meta WHERE key = ?").get(key);
-  return row ? row.value : null;
-}
-
-function setMeta(database, key, value) {
-  database
-    .prepare("INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value")
-    .run(key, value);
-}
-
 function getSystemConfig() {
-  const database = getDb();
-  if (!database) {
-    try {
-      const dbDir = path.join(__dirname, "../db");
-      const ratesPath = path.join(dbDir, ".rates.json");
-      const rates = safeReadJsonFile(ratesPath) || {};
-      const pctRaw = rates && rates.profit_margin_percentage != null ? Number(rates.profit_margin_percentage) : 0;
-      return {
-        master_excel_path: "",
-        profit_margin_percentage: isNaN(pctRaw) ? 0 : pctRaw,
-      };
-    } catch (e) {
-      return {
-        master_excel_path: "",
-        profit_margin_percentage: 0,
-      };
-    }
-  }
+  const database = requireDbOrThrow();
 
   const row = database.prepare("SELECT master_excel_path, profit_margin_percentage FROM system_config WHERE id = 1").get();
   return {
@@ -722,25 +1018,7 @@ function getSystemConfig() {
 }
 
 function setSystemConfig(data) {
-  const database = getDb();
-  if (!database) {
-    try {
-      const dbDir = path.join(__dirname, "../db");
-      const ratesPath = path.join(dbDir, ".rates.json");
-      const currentRates = safeReadJsonFile(ratesPath) || {};
-      const nextRates = currentRates && typeof currentRates === "object" ? currentRates : {};
-
-      if (data && data.profit_margin_percentage != null) {
-        const pct = Number(data.profit_margin_percentage);
-        nextRates.profit_margin_percentage = isNaN(pct) ? 0 : pct;
-      }
-
-      fs.writeFileSync(ratesPath, JSON.stringify(nextRates));
-      return getSystemConfig();
-    } catch (e) {
-      return "success";
-    }
-  }
+  const database = requireDbOrThrow();
 
   const current = getSystemConfig();
   const masterExcelPath =
@@ -761,71 +1039,6 @@ function safeReadJsonFile(filePath) {
   const targetPath = fs.existsSync(filePath) ? filePath : `${filePath}.bak`;
   const raw = fs.readFileSync(targetPath, { encoding: "utf8" });
   return JSON.parse(raw);
-}
-
-function safeArchiveLegacyFile(filePath) {
-  try {
-    if (filePath.includes(`${path.sep}src${path.sep}db${path.sep}`)) return;
-    if (!fs.existsSync(filePath)) return;
-    const bakPath = `${filePath}.bak`;
-    if (fs.existsSync(bakPath)) return;
-    fs.renameSync(filePath, bakPath);
-  } catch (e) {
-    return;
-  }
-}
-
-function normalizeDbBasename(filePath) {
-  const base = path.basename(filePath);
-  return base.endsWith(".bak") ? base.slice(0, -4) : base;
-}
-
-function ensureMigratedForFile(database, filePath) {
-  const base = normalizeDbBasename(filePath);
-  if (!SQLITE_TARGET_BASENAMES.has(base)) return;
-
-  const structuredV2 =
-    base === ".doors.json" ||
-    base === ".hardwares.json" ||
-    base === ".handlers.json" ||
-    base === ".shelves.json";
-  const metaKey = structuredV2 ? `migrated2:${base}` : `migrated:${base}`;
-  if (getMeta(database, metaKey) === "1") return;
-
-  const resolvedPath = fs.existsSync(filePath) ? filePath : `${filePath}.bak`;
-  if (!fs.existsSync(resolvedPath)) {
-    setMeta(database, metaKey, "1");
-    return;
-  }
-
-  const json = safeReadJsonFile(resolvedPath);
-
-  const tx = database.transaction(() => {
-    if (base === ".credentials.json") migrateCredentials(database, json);
-    else if (base === ".clients.json") migrateClients(database, json);
-    else if (base === ".pricings.json") migratePricings(database, json);
-    else if (base === ".utilities.json") migrateUtilities(database, json);
-    else if (base === ".types.json") migrateTypes(database, json);
-    else if (base === ".codes.json") migrateCodes(database, json);
-    else if (base === ".rates.json") migrateRates(database, json);
-    else if (base === ".doors.json") migrateDoors(database, json);
-    else if (base === ".hardwares.json") migrateHardwares(database, json);
-    else if (base === ".handlers.json") migrateHandlers(database, json);
-    else if (base === ".shelves.json") migrateShelves(database, json);
-    else migrateGenericJson(database, base, json);
-  });
-
-  tx();
-  setMeta(database, metaKey, "1");
-  safeArchiveLegacyFile(resolvedPath);
-}
-
-function migrateGenericJson(database, base, json) {
-  database
-    .prepare(
-      "INSERT INTO json_store (key, payload_json) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET payload_json=excluded.payload_json"
-    )
-    .run(base, JSON.stringify(json));
 }
 
 function migrateCredentials(database, json) {
@@ -1554,11 +1767,7 @@ function load(filePath) {
     return safeReadJsonFile(filePath);
   }
 
-  const database = getDb();
-  if (!database) {
-    return safeReadJsonFile(filePath);
-  }
-  ensureMigratedForFile(database, filePath);
+  const database = requireDbOrThrow();
   return loadFromSqlite(database, base);
 }
 
@@ -1572,29 +1781,10 @@ function write(filePath, data) {
     return "success";
   }
 
-  const database = getDb();
-  if (!database) {
-    fs.writeFileSync(filePath, JSON.stringify(data));
-    scheduleToolsExcelSync(base, data);
-    return "success";
-  }
-  ensureMigratedForFile(database, filePath);
+  const database = requireDbOrThrow();
   const res = writeToSqlite(database, base, data);
   if (res === "success" || res == null) scheduleToolsExcelSync(base, data);
   return res || "success";
-}
-
-function migrateAllLegacyFiles() {
-  const database = getDb();
-  if (!database) return;
-
-  const dbDir = path.join(__dirname, "../db");
-  for (const base of SQLITE_TARGET_BASENAMES) {
-    const filePath = path.join(dbDir, base);
-    ensureMigratedForFile(database, filePath);
-  }
-
-  mergeAndConstrainToolTables(database);
 }
 
 function searchCodes(opts) {
@@ -1604,29 +1794,7 @@ function searchCodes(opts) {
   const limitRaw = opts && opts.limit != null ? Number(opts.limit) : 300;
   const limit = limitRaw && limitRaw > 0 ? Math.min(limitRaw, 2000) : 300;
 
-  const database = getDb();
-  if (!database) {
-    const dbDir = path.join(__dirname, "../db");
-    const fallbackPath = path.join(dbDir, ".codes.json");
-    let rows = safeReadJsonFile(fallbackPath) || [];
-    if (!Array.isArray(rows)) rows = [];
-
-    if (utilityIdRaw) {
-      rows = rows.filter((r) => r && String(r.utility_id) === utilityIdRaw);
-    }
-    if (typeIdRaw) {
-      rows = rows.filter((r) => r && String(r.type_id) === typeIdRaw);
-    }
-    if (query) {
-      const q = query.toLowerCase();
-      rows = rows.filter((r) => {
-        const id = r && r.id != null ? String(r.id) : "";
-        const title = r && r.title != null ? String(r.title).toLowerCase() : "";
-        return id.indexOf(query) !== -1 || title.indexOf(q) !== -1;
-      });
-    }
-    return rows.slice(0, limit);
-  }
+  const database = requireDbOrThrow();
 
   const where = [];
   const params = [];
@@ -1692,27 +1860,7 @@ function searchDoors(opts) {
   const limitRaw = opts && opts.limit != null ? Number(opts.limit) : 300;
   const limit = limitRaw && limitRaw > 0 ? Math.min(limitRaw, 2000) : 300;
 
-  const database = getDb();
-  if (!database) {
-    const dbDir = path.join(__dirname, "../db");
-    const fallbackPath = path.join(dbDir, ".doors.json");
-    let rows = safeReadJsonFile(fallbackPath) || [];
-    if (!Array.isArray(rows)) rows = [];
-
-    if (utilityIdRaw) rows = rows.filter((r) => r && String(r.utility_id) === utilityIdRaw);
-    if (typeIdRaw) rows = rows.filter((r) => r && String(r.type_id) === typeIdRaw);
-    if (codeIdRaw) rows = rows.filter((r) => r && String(r.code_id) === codeIdRaw);
-    if (query) {
-      const q = query.toLowerCase();
-      rows = rows.filter((r) => {
-        const id = r && r.id != null ? String(r.id) : "";
-        const title = r && r.title != null ? String(r.title).toLowerCase() : "";
-        const code = r && r.code != null ? String(r.code).toLowerCase() : "";
-        return id.indexOf(query) !== -1 || title.indexOf(q) !== -1 || code.indexOf(q) !== -1;
-      });
-    }
-    return rows.slice(0, limit);
-  }
+  const database = requireDbOrThrow();
 
   const where = [];
   const params = [];
@@ -1785,27 +1933,7 @@ function searchHardwares(opts) {
   const limitRaw = opts && opts.limit != null ? Number(opts.limit) : 300;
   const limit = limitRaw && limitRaw > 0 ? Math.min(limitRaw, 2000) : 300;
 
-  const database = getDb();
-  if (!database) {
-    const dbDir = path.join(__dirname, "../db");
-    const fallbackPath = path.join(dbDir, ".hardwares.json");
-    let rows = safeReadJsonFile(fallbackPath) || [];
-    if (!Array.isArray(rows)) rows = [];
-
-    if (utilityIdRaw) rows = rows.filter((r) => r && String(r.utility_id) === utilityIdRaw);
-    if (typeIdRaw) rows = rows.filter((r) => r && String(r.type_id) === typeIdRaw);
-    if (codeIdRaw) rows = rows.filter((r) => r && String(r.code_id) === codeIdRaw);
-    if (query) {
-      const q = query.toLowerCase();
-      rows = rows.filter((r) => {
-        const id = r && r.id != null ? String(r.id) : "";
-        const title = r && r.title != null ? String(r.title).toLowerCase() : "";
-        const code = r && r.code != null ? String(r.code).toLowerCase() : "";
-        return id.indexOf(query) !== -1 || title.indexOf(q) !== -1 || code.indexOf(q) !== -1;
-      });
-    }
-    return rows.slice(0, limit);
-  }
+  const database = requireDbOrThrow();
 
   const where = [];
   const params = [];
@@ -1884,27 +2012,7 @@ function searchHandlers(opts) {
   const limitRaw = opts && opts.limit != null ? Number(opts.limit) : 300;
   const limit = limitRaw && limitRaw > 0 ? Math.min(limitRaw, 2000) : 300;
 
-  const database = getDb();
-  if (!database) {
-    const dbDir = path.join(__dirname, "../db");
-    const fallbackPath = path.join(dbDir, ".handlers.json");
-    let rows = safeReadJsonFile(fallbackPath) || [];
-    if (!Array.isArray(rows)) rows = [];
-
-    if (utilityIdRaw) rows = rows.filter((r) => r && String(r.utility_id) === utilityIdRaw);
-    if (typeIdRaw) rows = rows.filter((r) => r && String(r.type_id) === typeIdRaw);
-    if (codeIdRaw) rows = rows.filter((r) => r && String(r.code_id) === codeIdRaw);
-    if (query) {
-      const q = query.toLowerCase();
-      rows = rows.filter((r) => {
-        const id = r && r.id != null ? String(r.id) : "";
-        const title = r && r.title != null ? String(r.title).toLowerCase() : "";
-        const code = r && r.code != null ? String(r.code).toLowerCase() : "";
-        return id.indexOf(query) !== -1 || title.indexOf(q) !== -1 || code.indexOf(q) !== -1;
-      });
-    }
-    return rows.slice(0, limit);
-  }
+  const database = requireDbOrThrow();
 
   const where = [];
   const params = [];
@@ -1976,27 +2084,7 @@ function searchShelves(opts) {
   const limitRaw = opts && opts.limit != null ? Number(opts.limit) : 300;
   const limit = limitRaw && limitRaw > 0 ? Math.min(limitRaw, 2000) : 300;
 
-  const database = getDb();
-  if (!database) {
-    const dbDir = path.join(__dirname, "../db");
-    const fallbackPath = path.join(dbDir, ".shelves.json");
-    let rows = safeReadJsonFile(fallbackPath) || [];
-    if (!Array.isArray(rows)) rows = [];
-
-    if (utilityIdRaw) rows = rows.filter((r) => r && String(r.utility_id) === utilityIdRaw);
-    if (typeIdRaw) rows = rows.filter((r) => r && String(r.type_id) === typeIdRaw);
-    if (codeIdRaw) rows = rows.filter((r) => r && String(r.code_id) === codeIdRaw);
-    if (query) {
-      const q = query.toLowerCase();
-      rows = rows.filter((r) => {
-        const id = r && r.id != null ? String(r.id) : "";
-        const title = r && r.title != null ? String(r.title).toLowerCase() : "";
-        const code = r && r.code != null ? String(r.code).toLowerCase() : "";
-        return id.indexOf(query) !== -1 || title.indexOf(q) !== -1 || code.indexOf(q) !== -1;
-      });
-    }
-    return rows.slice(0, limit);
-  }
+  const database = requireDbOrThrow();
 
   const where = [];
   const params = [];
@@ -2079,29 +2167,20 @@ function nextIdFor(opts) {
   const table = tableByBase[base];
   if (!table) return 1;
 
-  const database = getDb();
-  if (database) {
-    const row = database.prepare(`SELECT MAX(id) AS max_id FROM ${table}`).get();
-    const maxId = row && row.max_id != null ? Number(row.max_id) : 0;
-    return maxId + 1;
-  }
-
-  const dbDir = path.join(__dirname, "../db");
-  const filePath = path.join(dbDir, base);
-  let rows = safeReadJsonFile(filePath) || [];
-  if (!Array.isArray(rows)) rows = [];
-  let maxId = 0;
-  for (const r of rows) {
-    const id = r && r.id != null ? Number(r.id) : 0;
-    if (id > maxId) maxId = id;
-  }
+  const database = requireDbOrThrow();
+  const row = database.prepare(`SELECT MAX(id) AS max_id FROM ${table}`).get();
+  const maxId = row && row.max_id != null ? Number(row.max_id) : 0;
   return maxId + 1;
 }
 
 module.exports = {
   load,
   write,
-  migrateAllLegacyFiles,
+  initializeDatabase,
+  seedDatabaseFromBundledBackupIfNeeded,
+  repairToolDatabases,
+  backupDatabase,
+  restoreDatabase,
   searchCodes,
   searchDoors,
   searchHardwares,

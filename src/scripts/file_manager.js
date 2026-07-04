@@ -139,6 +139,18 @@ exports.exportToolsExcel = async (outPath) => {
   return rpc("tools:excel:export", "", payload);
 };
 
+exports.backupDatabase = async (outPath) => {
+  const payload = { outPath: outPath != null ? String(outPath) : "" };
+  return rpc("db:backup", "", payload);
+};
+
+exports.restoreDatabase = async (inPath) => {
+  const payload = { inPath: inPath != null ? String(inPath) : "" };
+  const result = await rpc("db:restore", "", payload);
+  Object.keys(cache).forEach((key) => delete cache[key]);
+  return result;
+};
+
 exports.getProfitMarginPercentage = async () => {
   const cfg = await exports.getSystemConfig();
   const pct = cfg && cfg.profit_margin_percentage != null ? Number(cfg.profit_margin_percentage) : 0;

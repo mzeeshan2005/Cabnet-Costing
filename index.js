@@ -1,7 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const path = require("path");
 const storage = require(path.join(__dirname, "src/main/storage.js"));
-const { getExcelPath, main: exportToolsExcel } = require(path.join(__dirname, "scripts/export-tools-excel.js"));
+const { getExcelPath } = require(path.join(__dirname, "scripts/export-tools-excel.js"));
 const fs = require("fs");
 
 const windows = new Set();
@@ -105,7 +105,7 @@ app.on("ready", async () => {
   if (!fs.existsSync(excelPath)) {
     console.log(`Tools_Data.xlsx not found at ${excelPath}. Generating...`);
     try {
-      await exportToolsExcel(app);
+      storage.exportToolsExcel("");
       console.log("Tools_Data.xlsx generated successfully.");
     } catch (e) {
       console.error("Failed to generate Tools_Data.xlsx:", e);

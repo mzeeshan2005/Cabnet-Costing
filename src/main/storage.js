@@ -6,6 +6,7 @@ const crypto = require("crypto");
 let Database;
 let db;
 let dbUnavailable = false;
+let lastDbUnavailableReason = "";
 
 const SQLITE_TARGET_BASENAMES = new Set([
   ".credentials.json",
@@ -61,6 +62,7 @@ function getDbPath() {
 function getDb() {
   if (process.env.CABINET_COSTING_DISABLE_SQLITE === "1") {
     dbUnavailable = true;
+    lastDbUnavailableReason = "CABINET_COSTING_DISABLE_SQLITE=1";
     return null;
   }
   if (db) return db;
@@ -70,6 +72,7 @@ function getDb() {
     try {
       Database = require("better-sqlite3");
     } catch (e) {
+      lastDbUnavailableReason = e && e.message ? e.message : String(e);
       console.error("SQLite disabled: failed to load better-sqlite3:", e && e.message ? e.message : e);
       dbUnavailable = true;
       return null;
@@ -80,11 +83,13 @@ function getDb() {
   try {
     db = new Database(dbPath);
   } catch (e) {
+    lastDbUnavailableReason = e && e.message ? e.message : String(e);
     console.error("SQLite disabled: failed to open database:", e && e.message ? e.message : e);
     dbUnavailable = true;
     return null;
   }
 
+  lastDbUnavailableReason = "";
   db.pragma("journal_mode = WAL");
   db.pragma("synchronous = NORMAL");
   db.pragma("foreign_keys = ON");
@@ -97,7 +102,9 @@ function getDb() {
 function requireDbOrThrow() {
   const database = getDb();
   if (database) return database;
-  throw new Error("SQLite database is required. JSON fallback is disabled.");
+  throw new Error(
+    `SQLite database is required. JSON fallback is disabled.${lastDbUnavailableReason ? ` Last SQLite error: ${lastDbUnavailableReason}` : ""}`
+  );
 }
 
 function closeDb() {
@@ -127,7 +134,8 @@ function getBundledSeedBackupPath() {
   for (let i = 0; i < candidates.length; i += 1) {
     const candidate = candidates[i];
     try {
-      if (fs.existsSync(candidate)) return candidate;
+      const exists = fs.existsSync(candidate);
+      if (exists) return candidate;
     } catch (e) {
       continue;
     }

@@ -97,7 +97,7 @@ function rmDirRecursive(dirPath) {
   fs.rmdirSync(dirPath);
 }
 
-module.exports.shouldIgnore = function shouldIgnore(relPath) {
+function shouldIgnore(relPath) {
   const p = relPath.replace(/\\/g, "/");
   if (!p) return false;
   if (p === "dist" || p.indexOf("dist/") === 0) return true;
@@ -106,6 +106,8 @@ module.exports.shouldIgnore = function shouldIgnore(relPath) {
   if (p.endsWith(".db") || p.endsWith(".db-wal") || p.endsWith(".db-shm")) return true;
   return false;
 }
+
+module.exports.shouldIgnore = shouldIgnore;
 
 function copyRecursive(srcDir, destDir, relBase) {
   ensureDir(destDir);
@@ -128,6 +130,12 @@ function copyRecursive(srcDir, destDir, relBase) {
 function npmCommand() {
   return isWindows() ? "npm.cmd" : "npm";
 }
+
+function normalizeElectronVersion(version) {
+  return String(version || "").trim().replace(/^[^\d]*/, "");
+}
+
+const electronVersion = normalizeElectronVersion("40.0.0");
 
 console.log(`pack-win.js: node=${process.version} platform=${process.platform} cwd=${process.cwd()}`);
 
@@ -162,7 +170,7 @@ const installEnv = {
   npm_config_platform: "win32",
   npm_config_arch: "x64",
   npm_config_runtime: "electron",
-  npm_config_target: "^40.0.0",
+  npm_config_target: electronVersion,
   npm_config_disturl: "https://electronjs.org/headers",
   npm_config_build_from_source: "false",
 };
@@ -175,7 +183,7 @@ run(packager.cmd, packager.baseArgs.concat([
   "CabinetCosting",
   "--platform=win32",
   "--arch=x64",
-  "--electron-version=^40.0.0",
+  `--electron-version=${electronVersion}`,
   "--overwrite",
   "--out=dist",
   "--prune=false",

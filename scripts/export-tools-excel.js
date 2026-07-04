@@ -196,6 +196,22 @@ function getExcelPath(app) {
   return path.join(__dirname, "../Tools_Data.xlsx");
 }
 
+function getDefaultDbPath(app) {
+  if (app && app.isPackaged) {
+    const exeDir = path.dirname(process.execPath);
+    return path.join(exeDir, "data", "cabinet_costing.db");
+  }
+
+  try {
+    const electron = require("electron");
+    if (electron && electron.app) {
+      return path.join(electron.app.getPath("userData"), "cabinet_costing.db");
+    }
+  } catch (e) {}
+
+  return "";
+}
+
 async function main(app) {
   const XLSX = require("xlsx");
 
@@ -212,7 +228,10 @@ async function main(app) {
 
   const outPath = getExcelPath(app);
 
-  const sqlitePath = getArgValue("--db") || (process.env.CABINET_COSTING_DB_PATH ? String(process.env.CABINET_COSTING_DB_PATH) : "");
+  const sqlitePath =
+    getArgValue("--db") ||
+    (process.env.CABINET_COSTING_DB_PATH ? String(process.env.CABINET_COSTING_DB_PATH) : "") ||
+    getDefaultDbPath(app);
   const fromSqlite = tryReadFromSqlite(sqlitePath);
 
   const utilities = fromSqlite ? fromSqlite.utilities : await readJsonFile(paths.utilities);

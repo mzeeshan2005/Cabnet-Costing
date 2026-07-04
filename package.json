@@ -30,6 +30,7 @@
   "build": {
     "appId": "com.cabinetcosting.app",
     "productName": "CabinetCosting",
+    "afterPack": "scripts/after-pack.js",
     "directories": {
       "output": "release"
     },
@@ -46,6 +47,7 @@
       "!src/db/*.json.bak"
     ],
     "win": {
+      "icon": "src/images/icon/favicon.ico",
       "target": [
         {
           "target": "portable",
@@ -55,6 +57,9 @@
         }
       ]
     },
+    "asarUnpack": [
+      "**/*.node"
+    ],
     "asar": true
   },
   "dependencies": {

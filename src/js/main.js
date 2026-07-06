@@ -1490,6 +1490,9 @@
 (function (window, document) {
   "use strict";
 
+  let activeToast = null;
+  const toastQueue = [];
+
   function ensureToastHost() {
     let host = document.getElementById("app-toast-host");
     if (host) return host;
@@ -1497,47 +1500,119 @@
     host = document.createElement("div");
     host.id = "app-toast-host";
     host.style.position = "fixed";
-    host.style.top = "20px";
-    host.style.right = "20px";
+    host.style.inset = "0";
     host.style.zIndex = "200000";
     host.style.display = "flex";
-    host.style.flexDirection = "column";
-    host.style.gap = "8px";
+    host.style.alignItems = "center";
+    host.style.justifyContent = "center";
     host.style.pointerEvents = "none";
     document.body.appendChild(host);
     return host;
   }
 
-  function notify(message) {
-    const host = ensureToastHost();
-    const toast = document.createElement("div");
-    toast.textContent = message != null ? String(message) : "";
-    toast.style.minWidth = "220px";
-    toast.style.maxWidth = "420px";
-    toast.style.padding = "12px 16px";
-    toast.style.borderRadius = "8px";
-    toast.style.background = "rgba(33, 37, 41, 0.96)";
-    toast.style.color = "#fff";
-    toast.style.fontSize = "14px";
-    toast.style.lineHeight = "1.4";
-    toast.style.boxShadow = "0 8px 24px rgba(0,0,0,0.28)";
-    toast.style.opacity = "0";
-    toast.style.transform = "translateY(-6px)";
-    toast.style.transition = "opacity 140ms ease, transform 140ms ease";
-    host.appendChild(toast);
+  function showNextToast() {
+    if (activeToast || toastQueue.length === 0) return;
 
-    window.requestAnimationFrame(function () {
-      toast.style.opacity = "1";
-      toast.style.transform = "translateY(0)";
+    const host = ensureToastHost();
+    const message = toastQueue.shift();
+    const overlay = document.createElement("div");
+    const box = document.createElement("div");
+    const text = document.createElement("div");
+    const actions = document.createElement("div");
+    const okBtn = document.createElement("button");
+
+    overlay.style.position = "absolute";
+    overlay.style.inset = "0";
+    overlay.style.display = "flex";
+    overlay.style.alignItems = "center";
+    overlay.style.justifyContent = "center";
+    overlay.style.background = "rgba(0, 0, 0, 0.38)";
+    overlay.style.padding = "20px";
+    overlay.style.pointerEvents = "auto";
+    overlay.style.opacity = "0";
+    overlay.style.transition = "opacity 160ms ease";
+
+    box.style.width = "min(460px, calc(100vw - 32px))";
+    box.style.background = "#ffffff";
+    box.style.color = "#212529";
+    box.style.borderRadius = "12px";
+    box.style.boxShadow = "0 18px 44px rgba(0,0,0,0.30)";
+    box.style.padding = "22px 22px 18px";
+    box.style.border = "1px solid rgba(0,0,0,0.08)";
+    box.style.transform = "translateY(8px) scale(0.98)";
+    box.style.transition = "transform 160ms ease";
+
+    text.textContent = message != null ? String(message) : "";
+    text.style.fontSize = "16px";
+    text.style.lineHeight = "1.5";
+    text.style.fontWeight = "600";
+    text.style.textAlign = "center";
+    text.style.whiteSpace = "pre-wrap";
+
+    actions.style.display = "flex";
+    actions.style.justifyContent = "center";
+    actions.style.marginTop = "18px";
+
+    okBtn.type = "button";
+    okBtn.textContent = "OK";
+    okBtn.style.minWidth = "92px";
+    okBtn.style.height = "38px";
+    okBtn.style.padding = "0 18px";
+    okBtn.style.border = "none";
+    okBtn.style.borderRadius = "8px";
+    okBtn.style.background = "#007bff";
+    okBtn.style.color = "#fff";
+    okBtn.style.fontSize = "14px";
+    okBtn.style.fontWeight = "600";
+    okBtn.style.cursor = "pointer";
+
+    actions.appendChild(okBtn);
+    box.appendChild(text);
+    box.appendChild(actions);
+    overlay.appendChild(box);
+    host.appendChild(overlay);
+    activeToast = overlay;
+
+    function closeToast() {
+      if (!activeToast) return;
+      overlay.style.opacity = "0";
+      box.style.transform = "translateY(8px) scale(0.98)";
+      window.setTimeout(function () {
+        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        activeToast = null;
+        showNextToast();
+      }, 170);
+    }
+
+    okBtn.addEventListener("click", closeToast);
+    overlay.addEventListener("click", function (event) {
+      if (event.target === overlay) closeToast();
     });
 
-    window.setTimeout(function () {
-      toast.style.opacity = "0";
-      toast.style.transform = "translateY(-6px)";
-      window.setTimeout(function () {
-        if (toast.parentNode) toast.parentNode.removeChild(toast);
-      }, 180);
-    }, 2200);
+    const keyHandler = function (event) {
+      if (event.key === "Enter" || event.key === "Escape") {
+        event.preventDefault();
+        closeToast();
+      }
+    };
+    document.addEventListener("keydown", keyHandler, true);
+
+    const originalCloseToast = closeToast;
+    closeToast = function () {
+      document.removeEventListener("keydown", keyHandler, true);
+      originalCloseToast();
+    };
+
+    window.requestAnimationFrame(function () {
+      overlay.style.opacity = "1";
+      box.style.transform = "translateY(0) scale(1)";
+      okBtn.focus();
+    });
+  }
+
+  function notify(message) {
+    toastQueue.push(message);
+    showNextToast();
   }
 
   function setSessionFlag(key, value) {

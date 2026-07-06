@@ -9,6 +9,17 @@ function save_func(event, op) {
   opt = op;
 }
 
+function selectedOptionText(selectId) {
+  const select = document.getElementById(selectId);
+  if (!select || select.selectedIndex < 0 || !select.options[select.selectedIndex]) return "";
+  return select.options[select.selectedIndex].text;
+}
+
+function handleToolPersistError(err) {
+  const message = err && err.message ? err.message : String(err);
+  window.appUi.notify(message || "Could Not Saved!");
+}
+
 function clearFields() {
   document.getElementById("client-name").value = "";
   document.getElementById("select").value = "";
@@ -579,29 +590,75 @@ function importHardwaresFromText(text) {
         cursor = hasLeadingId ? 2 : 1;
       }
 
-      const rateIdx = headerIndex && headerIndex.rate != null ? headerIndex.rate : null;
-      const sliderIdx = headerIndex && headerIndex.slider != null ? headerIndex.slider : headerIndex && headerIndex.sliders != null ? headerIndex.sliders : null;
-      const liftIdx = headerIndex && headerIndex.lift != null ? headerIndex.lift : headerIndex && headerIndex.lift_up != null ? headerIndex.lift_up : null;
+      const rateIdx =
+        headerIndex && headerIndex.rate != null
+          ? headerIndex.rate
+          : headerIndex && headerIndex.hinges_set != null
+            ? headerIndex.hinges_set
+            : headerIndex && headerIndex.hinge_set != null
+              ? headerIndex.hinge_set
+              : null;
+      const sliderIdx =
+        headerIndex && headerIndex.slider != null
+          ? headerIndex.slider
+          : headerIndex && headerIndex.sliders != null
+            ? headerIndex.sliders
+            : headerIndex && headerIndex.sliders_set != null
+              ? headerIndex.sliders_set
+              : headerIndex && headerIndex.slider_set != null
+                ? headerIndex.slider_set
+                : null;
+      const liftIdx =
+        headerIndex && headerIndex.lift != null
+          ? headerIndex.lift
+          : headerIndex && headerIndex.lift_up != null
+            ? headerIndex.lift_up
+            : headerIndex && headerIndex.lift_up_set != null
+              ? headerIndex.lift_up_set
+              : headerIndex && headerIndex.liftup != null
+                ? headerIndex.liftup
+                : headerIndex && headerIndex.liftup_set != null
+                  ? headerIndex.liftup_set
+                  : null;
       const hangerPipeIdx =
         headerIndex && headerIndex.hanger_pipe != null
           ? headerIndex.hanger_pipe
+          : headerIndex && headerIndex.hanger_pipe_length != null
+            ? headerIndex.hanger_pipe_length
           : headerIndex && headerIndex.hangerpipe != null
             ? headerIndex.hangerpipe
+            : headerIndex && headerIndex.hangerpipelength != null
+              ? headerIndex.hangerpipelength
             : null;
       const hangerPipeFittingIdx =
         headerIndex && headerIndex.hanger_pipe_fitting != null
           ? headerIndex.hanger_pipe_fitting
           : headerIndex && headerIndex.pipe_fitting != null
             ? headerIndex.pipe_fitting
+            : headerIndex && headerIndex.pipe_fitting_qty != null
+              ? headerIndex.pipe_fitting_qty
+            : headerIndex && headerIndex.hanger_pipe_fitting_qty != null
+              ? headerIndex.hanger_pipe_fitting_qty
             : headerIndex && headerIndex.hangerpipefitting != null
               ? headerIndex.hangerpipefitting
               : null;
-      const locksIdx = headerIndex && headerIndex.locks != null ? headerIndex.locks : null;
+      const locksIdx =
+        headerIndex && headerIndex.locks != null
+          ? headerIndex.locks
+          : headerIndex && headerIndex.locks_qty != null
+            ? headerIndex.locks_qty
+            : headerIndex && headerIndex.locks_quantity != null
+              ? headerIndex.locks_quantity
+              : null;
       const drawerHandlesIdx =
         headerIndex && headerIndex.drawer_handles != null
           ? headerIndex.drawer_handles
           : headerIndex && headerIndex.drawer_handle != null
             ? headerIndex.drawer_handle
+            : headerIndex && headerIndex.drawer_handles_qty != null
+              ? headerIndex.drawer_handles_qty
+            : headerIndex && headerIndex.drawer_handle_qty != null
+              ? headerIndex.drawer_handle_qty
             : headerIndex && headerIndex.drawerhandles != null
               ? headerIndex.drawerhandles
               : null;
@@ -1308,13 +1365,13 @@ document.getElementById("confirm").addEventListener("click", (event) => {
   let dd = {}
   const select = document.getElementById("select");
   dd.utility_id = select.value;
-  dd.utility = select.options[select.selectedIndex].text;
+  dd.utility = selectedOptionText("select");
   const select_1 = document.getElementById("select-1");
   dd.type_id = select_1.value;
-  dd.type = select_1.options[select_1.selectedIndex].text;
+  dd.type = selectedOptionText("select-1");
   const select_2 = document.getElementById("select-2");
   dd.code_id = select_2.value;
-  dd.code = select_2.options[select_2.selectedIndex].text;
+  dd.code = selectedOptionText("select-2");
   file_manager
     .loadFile(path.join(__dirname, "../../db/.credentials.json"))
     .then((res) => {
@@ -1340,6 +1397,7 @@ document.getElementById("confirm").addEventListener("click", (event) => {
                         document.getElementById("pass").value = "";
                         listData = [];
                         document.getElementById("save").disabled = true;
+                        clearFields();
                         populateTable();
                       } else {
                         if (file_manager.isDuplicateWriteResult(res)) {
@@ -1376,8 +1434,11 @@ document.getElementById("confirm").addEventListener("click", (event) => {
             file_manager
                 .loadFile(path.join(__dirname, "../../db/.hardwares.json"))
                 .then((res) => {
+                  const targetId = document.getElementById("id").innerHTML;
+                  let foundInStoredRows = false;
                   res.forEach((d) => {
-                    if (d.id === document.getElementById("id").innerHTML) {
+                    if (d.id === targetId) {
+                      foundInStoredRows = true;
                       d.title = document.getElementById("client-name").value;
                       d.utility_id = dd.utility_id;
                       d.utility = dd.utility;
@@ -1394,6 +1455,45 @@ document.getElementById("confirm").addEventListener("click", (event) => {
                       d.drawer_handles = document.getElementById("drawer-handles").value;
                     }
                   });
+                  if (!foundInStoredRows) {
+                    const pendingUpdatedHardware = {
+                      id: targetId,
+                      title: document.getElementById("client-name").value,
+                      utility_id: dd.utility_id,
+                      utility: dd.utility,
+                      type_id: dd.type_id,
+                      type: dd.type,
+                      code_id: dd.code_id,
+                      code: dd.code,
+                      rate: document.getElementById("rate").value,
+                      slider: document.getElementById("slider").value,
+                      lift: document.getElementById("lift").value,
+                      hanger_pipe: document.getElementById("hanger-pipe").value,
+                      hanger_pipe_fitting: document.getElementById("hanger-pipe-fitting").value,
+                      locks: document.getElementById("locks").value,
+                      drawer_handles: document.getElementById("drawer-handles").value,
+                    };
+                    res.push(pendingUpdatedHardware);
+                    file_manager
+                      .writeFile(path.join(__dirname, "../../db/.hardwares.json"), res)
+                      .then((saveRes) => {
+                        if (saveRes === "success") {
+                          listData = listData.filter((d) => d.id !== targetId);
+                          document.getElementById('edit').disabled = true
+                          clearFields();
+                          populateTable();
+                          document.getElementById("add").disabled = false;
+                          document.getElementById("save").disabled = listData.length === 0;
+                          document.getElementById("cancel").click();
+                          document.getElementById("pass").value = "";
+                        } else if (file_manager.isDuplicateWriteResult(saveRes)) {
+                          window.appUi.notify(file_manager.getDuplicateToolMessage());
+                        } else {
+                          window.appUi.notify("Could Not Saved!");
+                        }
+                      });
+                    return;
+                  }
                   file_manager
                       .writeFile(
                           path.join(__dirname, "../../db/.hardwares.json"),
@@ -1420,8 +1520,8 @@ document.getElementById("confirm").addEventListener("click", (event) => {
                             }
                           });
                           document.getElementById('edit').disabled = true
-                          populateTable();
                           clearFields();
+                          populateTable();
                           document.getElementById("add").disabled = false;
                           if (listData.length === 0) {
                             document.getElementById("save").disabled = true;
@@ -1461,7 +1561,8 @@ document.getElementById("confirm").addEventListener("click", (event) => {
           window.modalInputFix.showInvalid('pass', 'Password Not Matched!');
         }
       }
-    });
+    })
+    .catch(handleToolPersistError);
 });
 
 document.getElementById("checkbox-all").addEventListener("change", (event) => {

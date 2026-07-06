@@ -598,7 +598,8 @@
           window.appUi.showProtectedDropdown('2');
           return;
         }
-        document.getElementById('show-modal').click();
+        if (window.modalInputFix) window.modalInputFix.showModal('#staticModal-2');
+        else document.getElementById('show-modal').click();
         document.getElementById('numb').value = a;
       }
 
@@ -624,7 +625,8 @@
                 }
               }
               else {
-                alert("Invalid Password!")
+                if (window.modalInputFix) window.modalInputFix.showInvalid('pass2', 'Invalid Password!');
+                else alert("Invalid Password!");
               }
             })
       })
@@ -662,6 +664,7 @@
     <script src="../vendor/select2/select2.min.js">
     </script>
     <!--<script src="../vendor/datatable/datatable.min.js"></script>-->
+    <script src="../scripts/modal_input_fix.js"></script>
     <script src="../scripts/registration.js"></script>
 
     <!-- Main JS-->

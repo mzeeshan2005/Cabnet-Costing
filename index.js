@@ -90,10 +90,6 @@ ipcMain.handle("dialog:openExcelFile", async (event) => {
 
 app.on("ready", async () => {
   try {
-    const seedResult = storage.seedDatabaseFromBundledBackupIfNeeded();
-    if (seedResult && seedResult.seeded) {
-      console.log(`Seeded SQLite database from bundled backup: ${seedResult.sourcePath}`);
-    }
     storage.initializeDatabase();
   } catch (e) {
     console.error("Failed to initialize SQLite database:", e && e.message ? e.message : e);

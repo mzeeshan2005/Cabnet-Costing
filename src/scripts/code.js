@@ -10,6 +10,17 @@ function save_func(event, op) {
   opt = op;
 }
 
+function selectedOptionText(selectId) {
+  const select = document.getElementById(selectId);
+  if (!select || select.selectedIndex < 0 || !select.options[select.selectedIndex]) return "";
+  return select.options[select.selectedIndex].text;
+}
+
+function handleToolPersistError(err) {
+  const message = err && err.message ? err.message : String(err);
+  window.appUi.notify(message || "Could Not Saved!");
+}
+
 function clearFields() {
   document.getElementById("client-name").value = "";
   document.getElementById("select").value = "";
@@ -504,8 +515,12 @@ function importCodesFromText(text) {
       const wallBracketIdx =
         headerIndex && headerIndex.wall_bracket != null
           ? headerIndex.wall_bracket
+          : headerIndex && headerIndex.wall_brackets != null
+            ? headerIndex.wall_brackets
           : headerIndex && headerIndex.wallbracket != null
             ? headerIndex.wallbracket
+            : headerIndex && headerIndex.wallbrackets != null
+              ? headerIndex.wallbrackets
             : null;
 
       const rate = toNumOrFallback(headerIndex ? row[rateIdx] : row[cursor], rateDefault || 0);
@@ -936,10 +951,10 @@ document.getElementById("confirm").addEventListener("click", (event) => {
   let dd = {}
   const select = document.getElementById("select");
   dd.utility_id = select.value;
-  dd.utility = select.options[select.selectedIndex].text;
+  dd.utility = selectedOptionText("select");
   const select_1 = document.getElementById("select-1");
   dd.type_id = select_1.value;
-  dd.type = select_1.options[select_1.selectedIndex].text;
+  dd.type = selectedOptionText("select-1");
   file_manager
     .loadFile(path.join(__dirname, "../../db/.credentials.json"))
     .then((res) => {
@@ -1002,8 +1017,11 @@ document.getElementById("confirm").addEventListener("click", (event) => {
             file_manager
                 .loadFile(path.join(__dirname, "../../db/.codes.json"))
                 .then((res) => {
+                  const targetId = document.getElementById("id").innerHTML;
+                  let foundInStoredRows = false;
                   res.forEach((d) => {
-                    if (d.id === document.getElementById("id").innerHTML) {
+                    if (d.id === targetId) {
+                      foundInStoredRows = true;
                       d.title = document.getElementById("client-name").value;
                       d.utility_id = dd.utility_id;
                       d.utility = dd.utility;
@@ -1017,6 +1035,42 @@ document.getElementById("confirm").addEventListener("click", (event) => {
                       d.wall_bracket = document.getElementById("wall-bracket").value;
                     }
                   });
+                  if (!foundInStoredRows) {
+                    const pendingUpdatedCode = {
+                      id: targetId,
+                      title: document.getElementById("client-name").value,
+                      utility_id: dd.utility_id,
+                      utility: dd.utility,
+                      type_id: dd.type_id,
+                      type: dd.type,
+                      rate: document.getElementById("rate").value,
+                      back_area: document.getElementById("back-area").value,
+                      edging: document.getElementById("edging").value,
+                      screws: document.getElementById("screws").value,
+                      secondary_top: document.getElementById("secondary-top").value,
+                      wall_bracket: document.getElementById("wall-bracket").value,
+                    };
+                    res.push(pendingUpdatedCode);
+                    file_manager
+                      .writeFile(path.join(__dirname, "../../db/.codes.json"), res)
+                      .then((saveRes) => {
+                        if (saveRes === "success") {
+                          listData = listData.filter((d) => d.id !== targetId);
+                          document.getElementById('edit').disabled = true;
+                          populateTable();
+                          clearFields();
+                          document.getElementById("save").disabled = listData.length === 0;
+                          document.getElementById("add").disabled = false;
+                          document.getElementById("cancel").click();
+                          document.getElementById("pass").value = "";
+                        } else if (file_manager.isDuplicateWriteResult(saveRes)) {
+                          window.appUi.notify(file_manager.getDuplicateToolMessage());
+                        } else {
+                          window.appUi.notify("Could Not Saved!");
+                        }
+                      });
+                    return;
+                  }
                   file_manager
                       .writeFile(path.join(__dirname, "../../db/.codes.json"), res)
                       .then((res) => {
@@ -1078,7 +1132,8 @@ document.getElementById("confirm").addEventListener("click", (event) => {
           window.modalInputFix.showInvalid('pass', 'Password Not Matched!');
         }
       }
-    });
+    })
+    .catch(handleToolPersistError);
 });
 
 document.getElementById("checkbox-all").addEventListener("change", (event) => {

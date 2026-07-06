@@ -6,6 +6,15 @@ const pending = {};
 
 const cache = {};
 
+function cloneValue(value) {
+  if (value == null) return value;
+  try {
+    return JSON.parse(JSON.stringify(value));
+  } catch (e) {
+    return value;
+  }
+}
+
 ipcRenderer.on("store:rpc:reply", (event, message) => {
   const requestId = message && message.requestId;
   const handler = requestId != null ? pending[requestId] : null;
@@ -30,16 +39,17 @@ exports.loadFile = async (file) => {
   const key = String(file);
   const cached = cache[key];
   if (cached && cached.value !== undefined) {
-    return cached.value;
+    return cloneValue(cached.value);
   }
   if (cached && cached.inFlight) {
-    return cached.inFlight;
+    return cached.inFlight.then((res) => cloneValue(res));
   }
 
   const inFlight = rpc("load", key)
     .then((res) => {
-      cache[key] = { value: res };
-      return res;
+      const stored = cloneValue(res);
+      cache[key] = { value: stored };
+      return cloneValue(stored);
     })
     .catch((err) => {
       if (cache[key] && cache[key].inFlight) delete cache[key].inFlight;
@@ -53,11 +63,12 @@ exports.loadFile = async (file) => {
 
 exports.writeFile = async (file, data) => {
   const key = String(file);
-  const res = await rpc("write", key, data);
+  const payload = cloneValue(data);
+  const res = await rpc("write", key, payload);
   if (res === "success") {
-    cache[key] = { value: data };
-  } else if (cache[key] && cache[key].inFlight) {
-    delete cache[key].inFlight;
+    cache[key] = { value: cloneValue(payload) };
+  } else {
+    delete cache[key];
   }
   return res;
 };

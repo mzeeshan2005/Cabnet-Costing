@@ -74,23 +74,39 @@
     <!-- Main CSS-->
     <link href="../../css/theme.css" rel="stylesheet" media="all" />
     <style>
+      body{
+        height: 100vh;
+        overflow: hidden;
+      }
       .hardware-add-card .form-control-label,
-      .hardware-add-card .help-block,
-      .hardware-add-card .form-control,
-      .hardware-add-card select,
-      .hardware-add-card input {
-        font-size: 12px;
-        line-height: 1.2;
+      .hardware-add-card .help-block {
+        font-size: 14px;
+        line-height: 1.1;
       }
 
-      .hardware-add-card .form-control {
-        min-height: 34px;
-        padding: 0.25rem 0.5rem;
+      .hardware-add-card input[type="text"].form-control,
+      .hardware-add-card input[type="number"].form-control,
+      .hardware-add-card select.form-control {
+        font-size: 12px !important;
+        height: 30px !important;
+        min-height: 26px !important;
+        padding: 0.05rem 0.3rem !important;
+        line-height: 1 !important;
+        box-sizing: border-box !important;
+      }
+
+      .hardware-add-card .form-group {
+        margin-bottom: 0.25rem !important;
+      }
+
+      .hardware-add-card .form-control-label {
+        margin-bottom: 0;
+        line-height: 1;
       }
 
       .hardware-add-card .btn {
-        font-size: 12px;
-        line-height: 1.2;
+        font-size: 14px;
+        line-height: 1.1;
       }
 
       .hardware-all-header {
@@ -508,7 +524,7 @@
           <div class="section__content section__content--p30">
             <div class="container-fluid">
               <div class="row">
-                <div class="col-lg-5 col-md-5 col-sm-12">
+                <div class="col-lg-4 col-md-4 col-sm-12">
                   <div class="card hardware-add-card">
                     <div class="card-header d-flex justify-content-between align-items-center">
                       <strong>Add Hardware</strong>
@@ -833,7 +849,7 @@
                     </div>
                   </div>
                 </div>
-                <div class="col-lg-7 col-md-7 col-sm-12">
+                <div class="col-lg-8 col-md-8 col-sm-12">
                   <div class="table-data__tool">
                     <div class="table-data__tool-left">
                       <div class="row form-group">

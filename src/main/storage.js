@@ -7,6 +7,8 @@ let Database;
 let db;
 let dbUnavailable = false;
 let lastDbUnavailableReason = "";
+const DEFAULT_LOGIN_PASSWORD = "123";
+const DEFAULT_PRIMARY_PASSWORD = "1";
 
 const SQLITE_TARGET_BASENAMES = new Set([
   ".credentials.json",
@@ -419,8 +421,9 @@ function exportToolsExcel(outPath) {
         secondary_top: toNumStr(r.secondary_top),
         edging: toNumStr(r.edging),
         screws: toNumStr(r.screws),
+        wall_bracket: toNumStr(r.wall_bracket),
       })),
-      { header: ["id", "title", "utility_id", "utility", "type_id", "type", "rate", "back_area", "secondary_top", "edging", "screws"], skipHeader: false }
+      { header: ["id", "title", "utility_id", "utility", "type_id", "type", "rate", "back_area", "secondary_top", "edging", "screws", "wall_bracket"], skipHeader: false }
     ),
     "Codes"
   );
@@ -643,6 +646,7 @@ function initSchema(database) {
       edging REAL NOT NULL,
       screws REAL NOT NULL,
       secondary_top REAL NOT NULL,
+      wall_bracket REAL NOT NULL DEFAULT 0,
       FOREIGN KEY(type_id) REFERENCES types(id) ON DELETE CASCADE,
       FOREIGN KEY(utility_id) REFERENCES utilities(id) ON DELETE CASCADE
     );
@@ -728,12 +732,23 @@ function initSchema(database) {
     CREATE INDEX IF NOT EXISTS idx_shelves_code_id ON shelves(code_id);
   `);
 
+  database
+    .prepare(`
+      INSERT INTO credentials (id, password, primary_password)
+      VALUES (1, ?, ?)
+      ON CONFLICT(id) DO NOTHING
+    `)
+    .run(DEFAULT_LOGIN_PASSWORD, DEFAULT_PRIMARY_PASSWORD);
+
   // ALTER TABLE migrations for existing databases — safe to run multiple times
   const hardwaresCols = database.prepare("PRAGMA table_info(hardwares)").all().map((c) => c.name);
   if (!hardwaresCols.includes("hanger_pipe")) database.exec("ALTER TABLE hardwares ADD COLUMN hanger_pipe REAL NOT NULL DEFAULT 0");
   if (!hardwaresCols.includes("hanger_pipe_fitting")) database.exec("ALTER TABLE hardwares ADD COLUMN hanger_pipe_fitting REAL NOT NULL DEFAULT 0");
   if (!hardwaresCols.includes("locks")) database.exec("ALTER TABLE hardwares ADD COLUMN locks REAL NOT NULL DEFAULT 0");
   if (!hardwaresCols.includes("drawer_handles")) database.exec("ALTER TABLE hardwares ADD COLUMN drawer_handles REAL NOT NULL DEFAULT 0");
+
+  const codesCols = database.prepare("PRAGMA table_info(codes)").all().map((c) => c.name);
+  if (!codesCols.includes("wall_bracket")) database.exec("ALTER TABLE codes ADD COLUMN wall_bracket REAL NOT NULL DEFAULT 0");
 }
 
 function normalizedToolTitle(value) {
@@ -919,7 +934,8 @@ function createVisibleCodeUniquenessTriggers(database, table) {
           FROM ${table} existing
           LEFT JOIN codes existing_code ON existing_code.id = existing.code_id
           LEFT JOIN codes new_code ON new_code.id = NEW.code_id
-          WHERE COALESCE(existing.utility_id, -1) = COALESCE(NEW.utility_id, -1)
+          WHERE existing.id != NEW.id
+            AND COALESCE(existing.utility_id, -1) = COALESCE(NEW.utility_id, -1)
             AND LOWER(TRIM(existing.title)) = LOWER(TRIM(NEW.title))
             AND LOWER(TRIM(COALESCE(existing_code.title, ''))) = LOWER(TRIM(COALESCE(new_code.title, '')))
         )
@@ -1183,8 +1199,8 @@ function migrateTypes(database, json) {
 
 function migrateCodes(database, json) {
   const insert = database.prepare(`
-    INSERT INTO codes (id, type_id, utility_id, title, rate, back_area, edging, screws, secondary_top)
-    VALUES (@id, @type_id, @utility_id, @title, @rate, @back_area, @edging, @screws, @secondary_top)
+    INSERT INTO codes (id, type_id, utility_id, title, rate, back_area, edging, screws, secondary_top, wall_bracket)
+    VALUES (@id, @type_id, @utility_id, @title, @rate, @back_area, @edging, @screws, @secondary_top, @wall_bracket)
     ON CONFLICT(id) DO UPDATE SET
       type_id=excluded.type_id,
       utility_id=excluded.utility_id,
@@ -1193,7 +1209,8 @@ function migrateCodes(database, json) {
       back_area=excluded.back_area,
       edging=excluded.edging,
       screws=excluded.screws,
-      secondary_top=excluded.secondary_top
+      secondary_top=excluded.secondary_top,
+      wall_bracket=excluded.wall_bracket
   `);
 
   if (!Array.isArray(json)) return;
@@ -1208,6 +1225,7 @@ function migrateCodes(database, json) {
       edging: c && c.edging != null ? Number(c.edging) : 0,
       screws: c && c.screws != null ? Number(c.screws) : 0,
       secondary_top: c && c.secondary_top != null ? Number(c.secondary_top) : 0,
+      wall_bracket: c && c.wall_bracket != null ? Number(c.wall_bracket) : 0,
     });
   }
 }
@@ -1396,7 +1414,7 @@ function loadFromSqlite(database, base) {
   if (base === ".codes.json") {
     const rows = database
       .prepare(
-        `SELECT c.id, c.title, c.rate, c.back_area, c.edging, c.screws, c.secondary_top,
+        `SELECT c.id, c.title, c.rate, c.back_area, c.edging, c.screws, c.secondary_top, c.wall_bracket,
                 c.utility_id, u.title AS utility, c.type_id, t.title AS type
          FROM codes c
          JOIN utilities u ON u.id = c.utility_id
@@ -1412,6 +1430,7 @@ function loadFromSqlite(database, base) {
       edging: String(r.edging),
       screws: String(r.screws),
       secondary_top: String(r.secondary_top),
+      wall_bracket: String(r.wall_bracket != null ? r.wall_bracket : 0),
       utility_id: String(r.utility_id),
       utility: r.utility,
       type_id: String(r.type_id),

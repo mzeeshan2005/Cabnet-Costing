@@ -647,14 +647,45 @@ document.getElementById("confirm").addEventListener("click", (event) => {
             file_manager
                 .loadFile(path.join(__dirname, "../../db/.types.json"))
                 .then((res) => {
+                  const targetId = document.getElementById("id").innerHTML;
+                  let foundInStoredRows = false;
                   res.forEach((d) => {
-                    if (d.id === document.getElementById("id").innerHTML) {
+                    if (d.id === targetId) {
+                      foundInStoredRows = true;
                       d.title = document.getElementById("client-name").value;
                       const select = document.getElementById("select");
                       d.utility_id = select.value;
                       d.utility = select.options[select.selectedIndex].text;
                     }
                   });
+                  if (!foundInStoredRows) {
+                    const select = document.getElementById("select");
+                    res.push({
+                      id: targetId,
+                      title: document.getElementById("client-name").value,
+                      utility_id: select.value,
+                      utility: select.options[select.selectedIndex].text,
+                    });
+                    file_manager
+                      .writeFile(path.join(__dirname, "../../db/.types.json"), res)
+                      .then((saveRes) => {
+                        if (saveRes === "success") {
+                          listData = listData.filter((d) => d.id !== targetId);
+                          populateTable();
+                          clearFields();
+                          document.getElementById("edit").disabled = true;
+                          document.getElementById("save").disabled = listData.length === 0;
+                          document.getElementById("add").disabled = false;
+                          document.getElementById("cancel").click();
+                          document.getElementById("pass").value = "";
+                        } else if (file_manager.isDuplicateWriteResult(saveRes)) {
+                          window.appUi.notify(file_manager.getDuplicateToolMessage());
+                        } else {
+                          window.appUi.notify("Could Not Saved!");
+                        }
+                      });
+                    return;
+                  }
                   file_manager
                       .writeFile(path.join(__dirname, "../../db/.types.json"), res)
                       .then((res) => {

@@ -57,7 +57,9 @@
   }
 
   function cleanupBootstrapArtifacts() {
-    const visibleModals = document.querySelectorAll('.modal.show').length;
+    const visibleModals = Array.from(document.querySelectorAll('.modal.show')).filter(function (modal) {
+      return modal && modal.style.display !== 'none';
+    }).length;
     const backdrops = Array.from(document.querySelectorAll('.modal-backdrop'));
 
     if (visibleModals === 0) {
@@ -75,6 +77,55 @@
         backdrop.parentNode.removeChild(backdrop);
       }
     });
+  }
+
+  function releaseBlockedInteractions() {
+    const selectors = [
+      'body',
+      '#body',
+      '.page-wrapper',
+      '.page-content--bgf7',
+      '.main-content',
+      '.section__content',
+      '.animsition',
+      '#app-toast-host'
+    ];
+
+    selectors.forEach(function (selector) {
+      Array.from(document.querySelectorAll(selector)).forEach(function (node) {
+        if (!node || !node.style) return;
+        if (selector === '#app-toast-host') {
+          node.style.pointerEvents = 'none';
+          return;
+        }
+        node.style.pointerEvents = 'auto';
+      });
+    });
+
+    Array.from(document.querySelectorAll('.modal')).forEach(function (modal) {
+      if (!modal || !modal.style) return;
+      const isShown = modal.classList.contains('show') && modal.style.display !== 'none';
+      if (isShown) return;
+      modal.classList.remove('show');
+      modal.setAttribute('aria-hidden', 'true');
+      modal.removeAttribute('aria-modal');
+      modal.style.display = 'none';
+      modal.style.pointerEvents = 'none';
+    });
+  }
+
+  function forceReleaseUiLocks() {
+    cleanupBootstrapArtifacts();
+    releaseBlockedInteractions();
+    if (document.body) {
+      document.body.classList.remove('modal-open');
+      document.body.style.removeProperty('padding-right');
+      document.body.style.removeProperty('overflow');
+    }
+  }
+
+  function scheduleCleanup(delay) {
+    window.setTimeout(cleanupBootstrapArtifacts, delay || 0);
   }
 
   function setupModal(modalId, inputId) {
@@ -98,6 +149,23 @@
     });
   }
 
+  function bindGlobalModalCleanup() {
+    if (!window.jQuery) return;
+    const $doc = window.jQuery(document);
+
+    $doc.off('.modalInputFixGlobal');
+    $doc.on('show.bs.modal.modalInputFixGlobal', '.modal', function () {
+      cleanupBootstrapArtifacts();
+    });
+    $doc.on('shown.bs.modal.modalInputFixGlobal', '.modal', function () {
+      scheduleCleanup(0);
+    });
+    $doc.on('hidden.bs.modal.modalInputFixGlobal', '.modal', function () {
+      scheduleCleanup(0);
+      scheduleCleanup(50);
+    });
+  }
+
   const api = {
     setupModal: setupModal,
     showModal: function (modalId) {
@@ -116,17 +184,25 @@
     showInvalid: function (inputId, text) {
       showError(inputId, text);
       focusInput(inputId, true);
-      cleanupBootstrapArtifacts();
+      forceReleaseUiLocks();
     },
     clearInvalid: clearError,
-    cleanupBootstrapArtifacts: cleanupBootstrapArtifacts
+    cleanupBootstrapArtifacts: cleanupBootstrapArtifacts,
+    forceReleaseUiLocks: forceReleaseUiLocks
   };
 
   window.modalInputFix = api;
 
   document.addEventListener('DOMContentLoaded', function () {
+    bindGlobalModalCleanup();
     setupModal('#staticModal', 'pass');
     setupModal('#staticModal-2', 'pass2');
-    cleanupBootstrapArtifacts();
+    forceReleaseUiLocks();
+  });
+
+  window.addEventListener('focus', function () {
+    window.setTimeout(forceReleaseUiLocks, 0);
+    window.setTimeout(forceReleaseUiLocks, 100);
+    window.setTimeout(forceReleaseUiLocks, 250);
   });
 })(window, document);

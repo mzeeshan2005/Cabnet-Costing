@@ -1380,6 +1380,7 @@ document.getElementById("confirm").addEventListener("click", (event) => {
                         document.getElementById("pass").value = "";
                         listData = [];
                         document.getElementById("save").disabled = true;
+                        clearFields();
                         populateTable();
                       } else {
                         if (file_manager.isDuplicateWriteResult(res)) {
@@ -1410,8 +1411,11 @@ document.getElementById("confirm").addEventListener("click", (event) => {
             file_manager
                 .loadFile(path.join(__dirname, "../../db/.shelves.json"))
                 .then((res) => {
+                  const targetId = document.getElementById("id").innerHTML;
+                  let foundInStoredRows = false;
                   res.forEach((d) => {
-                    if (d.id === document.getElementById("id").innerHTML) {
+                    if (d.id === targetId) {
+                      foundInStoredRows = true;
                       d.title = document.getElementById("client-name").value;
                       d.utility_id = dd.utility_id;
                       d.utility = dd.utility;
@@ -1424,6 +1428,40 @@ document.getElementById("confirm").addEventListener("click", (event) => {
                       d.edging = document.getElementById("edging").value;
                     }
                   });
+                  if (!foundInStoredRows) {
+                    res.push({
+                      id: targetId,
+                      title: document.getElementById("client-name").value,
+                      utility_id: dd.utility_id,
+                      utility: dd.utility,
+                      type_id: dd.type_id,
+                      type: dd.type,
+                      code_id: dd.code_id,
+                      code: dd.code,
+                      rate: document.getElementById("rate").value,
+                      pin: document.getElementById("pin").value,
+                      edging: document.getElementById("edging").value,
+                    });
+                    file_manager
+                      .writeFile(path.join(__dirname, "../../db/.shelves.json"), res)
+                      .then((saveRes) => {
+                        if (saveRes === "success") {
+                          listData = listData.filter((d) => d.id !== targetId);
+                          clearFields();
+                          populateTable();
+                          document.getElementById('edit').disabled = true
+                          document.getElementById("save").disabled = listData.length === 0;
+                          document.getElementById("add").disabled = false;
+                          document.getElementById("cancel").click();
+                          document.getElementById("pass").value = "";
+                        } else if (file_manager.isDuplicateWriteResult(saveRes)) {
+                          window.appUi.notify(file_manager.getDuplicateToolMessage());
+                        } else {
+                          window.appUi.notify("Could Not Saved!");
+                        }
+                      });
+                    return;
+                  }
                   file_manager
                       .writeFile(path.join(__dirname, "../../db/.shelves.json"), res)
                       .then((res) => {
@@ -1442,8 +1480,8 @@ document.getElementById("confirm").addEventListener("click", (event) => {
                               d.edging = document.getElementById("edging").value;
                             }
                           });
-                          populateTable();
                           clearFields();
+                          populateTable();
                           document.getElementById('edit').disabled = true
                           if (listData.length === 0) {
                             document.getElementById("save").disabled = true;

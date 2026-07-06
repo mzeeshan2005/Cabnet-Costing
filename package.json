@@ -34,12 +34,6 @@
     "directories": {
       "output": "release"
     },
-    "extraResources": [
-      {
-        "from": "seed/cabinet_costing.db.bak",
-        "to": "seed/cabinet_costing.db.bak"
-      }
-    ],
     "files": [
       "**/*",
       "!src/db/.*.json",

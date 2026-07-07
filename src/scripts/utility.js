@@ -271,36 +271,24 @@ document.getElementById("confirm").addEventListener("click", (event) => {
         if(res[0].password === document.getElementById('pass').value)
         {
           file_manager
-              .loadFile(path.join(__dirname, "../../db/.utilities.json"))
+              .mergeUtilities(listData)
               .then((res) => {
-                const clients = res;
-                listData.forEach((r) => {
-                  clients.push(r);
-                });
-
-                file_manager
-                    .writeFile(
-                        path.join(__dirname, "../../db/.utilities.json"),
-                        clients
-                    )
-                    .then((res) => {
-                      if (res === "success") {
-                        window.appUi.notify("Saved Successfully!")
-                        document.getElementById("cancel").click();
-                        document.getElementById("pass").value = "";
-                        listData = [];
-                        document.getElementById("save").disabled = true;
-                        populateTable();
-                      } else {
-                        document.getElementById("cancel").click();
-                        document.getElementById("pass").value = "";
-                        if (file_manager.isDuplicateWriteResult(res)) {
-                          window.appUi.notify(file_manager.getDuplicateToolMessage());
-                        } else {
-                          window.appUi.notify("Not Saved!");
-                        }
-                      }
-                    });
+                if (res === "success") {
+                  window.appUi.notify("Saved Successfully!")
+                  document.getElementById("cancel").click();
+                  document.getElementById("pass").value = "";
+                  listData = [];
+                  document.getElementById("save").disabled = true;
+                  populateTable();
+                } else {
+                  document.getElementById("cancel").click();
+                  document.getElementById("pass").value = "";
+                  if (file_manager.isDuplicateWriteResult(res)) {
+                    window.appUi.notify(file_manager.getDuplicateToolMessage());
+                  } else {
+                    window.appUi.notify("Not Saved!");
+                  }
+                }
               });
         }
         else
@@ -558,27 +546,55 @@ function del() {
           s.push(data);
         }
       });
-      file_manager
-        .writeFile(path.join(__dirname, "../../db/.utilities.json"), selected)
-        .then((res) => {
+
+      const deleteIds = new Set(s.map((u) => (u && u.id != null ? String(u.id) : "")).filter((id) => id));
+      if (deleteIds.size === 0) {
+        window.appUi.notify("Please select at least one row to delete.");
+        return;
+      }
+
+      return Promise.all([
+        file_manager.loadFile(path.join(__dirname, "../../db/.types.json")),
+        file_manager.loadFile(path.join(__dirname, "../../db/.codes.json")),
+        file_manager.loadFile(path.join(__dirname, "../../db/.doors.json")),
+        file_manager.loadFile(path.join(__dirname, "../../db/.hardwares.json")),
+        file_manager.loadFile(path.join(__dirname, "../../db/.handlers.json")),
+        file_manager.loadFile(path.join(__dirname, "../../db/.shelves.json")),
+      ]).then((deps) => {
+        const types = Array.isArray(deps[0]) ? deps[0] : [];
+        const codes = Array.isArray(deps[1]) ? deps[1] : [];
+        const doors = Array.isArray(deps[2]) ? deps[2] : [];
+        const hardwares = Array.isArray(deps[3]) ? deps[3] : [];
+        const handlers = Array.isArray(deps[4]) ? deps[4] : [];
+        const shelves = Array.isArray(deps[5]) ? deps[5] : [];
+
+        const hasTypes = types.some((r) => r && r.utility_id != null && deleteIds.has(String(r.utility_id)));
+        const hasCodes = codes.some((r) => r && r.utility_id != null && deleteIds.has(String(r.utility_id)));
+        const hasDoors = doors.some((r) => r && r.utility_id != null && deleteIds.has(String(r.utility_id)));
+        const hasHardwares = hardwares.some((r) => r && r.utility_id != null && deleteIds.has(String(r.utility_id)));
+        const hasHandlers = handlers.some((r) => r && r.utility_id != null && deleteIds.has(String(r.utility_id)));
+        const hasShelves = shelves.some((r) => r && r.utility_id != null && deleteIds.has(String(r.utility_id)));
+
+        if (hasTypes || hasCodes || hasDoors || hasHardwares || hasHandlers || hasShelves) {
+          window.appUi.notify(
+            "Cannot delete utility because it is used in other tools (Descriptions/Codes/etc). Delete those rows first."
+          );
+          return;
+        }
+
+        return file_manager.writeFile(path.join(__dirname, "../../db/.utilities.json"), selected).then((res) => {
           if (res === "success") {
             document.getElementById('edit').disabled = true
             window.appUi.notify("Deleted Successfully!")
             document.getElementById("checkbox-all").checked = false;
-            // populateTable();
-            const selected1 = [];
 
+            const selected1 = [];
             listData.forEach((data) => {
               if (!document.getElementById(data.id).checked) {
                 selected1.push(data);
               }
-              else
-              {
-                s.push(data);
-              }
             });
             listData = selected1;
-            del_from_other(s);
             clearFields();
             populateTable();
             document.getElementById("fieldset").disabled = false;
@@ -589,10 +605,13 @@ function del() {
               document.getElementById("save").disabled = false;
             }
             document.getElementById("clear").disabled = false;
+          } else if (file_manager.isInUseWriteResult(res)) {
+            window.appUi.notify(file_manager.getInUseToolMessage());
           } else {
             window.appUi.notify("Error Occurred!")
           }
         });
+      });
     });
 }
 

@@ -110,8 +110,10 @@
       }
 
       .hardware-all-header {
-        width: 82px;
-        min-width: 82px;
+        width: 70px;
+        min-width: 70px;
+        padding-left: 6px !important;
+        padding-right: 6px !important;
       }
 
       .hardware-all-toggle {
@@ -119,6 +121,7 @@
         align-items: center;
         justify-content: center;
         gap: 0;
+        margin: 0;
       }
 
       .hardware-all-toggle .au-checkbox {
@@ -132,6 +135,19 @@
       .hardware-all-toggle p {
         margin: 0;
         margin-left: 8px;
+      }
+
+      #my-table th:nth-child(1),
+      #my-table td:nth-child(1) {
+        width: 70px;
+        min-width: 70px;
+      }
+
+      #my-table th:nth-child(3),
+      #my-table td:nth-child(3) {
+        min-width: 150px;
+        width: auto;
+        white-space: nowrap;
       }
     </style>
   </head>
@@ -785,7 +801,7 @@
                           <div class="mb-1 row form-group mr-2">
                             <div class="col col-md-3">
                               <label for="drawer-handles" class="form-control-label"
-                                >Drawer Handles Qty.</label
+                                >Internal Handle Qty.</label
                               >
                             </div>
                             <div class="col-12 col-md-9">
@@ -793,7 +809,7 @@
                                 type="number"
                                 id="drawer-handles"
                                 step="any"
-                                placeholder="Enter Drawer Handles"
+                                placeholder="Enter Internal Handle"
                                 class="form-control"
                                 value="0"
                                 required
@@ -905,7 +921,7 @@
                           <th  class="py-2" style="border: 1px solid black; width: 120px">hanger pipe length</th>
                           <th  class="py-2" style="border: 1px solid black; width: 120px">pipe fitting</th>
                           <th  class="py-2" style="border: 1px solid black; width: 90px">locks</th>
-                          <th  class="py-2" style="border: 1px solid black; width: 130px">drawer handles</th>
+                          <th  class="py-2" style="border: 1px solid black; width: 130px">internal handle</th>
                         </tr>
                       </thead>
                       <tbody id="client-table"></tbody>

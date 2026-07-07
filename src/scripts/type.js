@@ -430,6 +430,7 @@ function depImportUtilitiesFromText(text) {
     const existing = Array.isArray(res) ? res : [];
     let maxId = 0;
     const seen = {};
+    const rowsToMerge = [];
     existing.forEach((u) => {
       const idNum = u && u.id != null && !isNaN(Number(u.id)) ? Number(u.id) : 0;
       if (idNum > maxId) maxId = idNum;
@@ -454,37 +455,21 @@ function depImportUtilitiesFromText(text) {
         return;
       }
       maxId += 1;
-      existing.push({ id: String(maxId), title: title });
+      rowsToMerge.push({ id: String(maxId), title: title });
       seen[key] = true;
       added += 1;
     });
 
-    return file_manager
-      .writeFile(path.join(__dirname, "../../db/.utilities.json"), existing)
-      .then(() => ({ added: added, skipped: skipped }));
+    if (rowsToMerge.length === 0) {
+      return { added: added, skipped: skipped };
+    }
+
+    return file_manager.mergeUtilities(rowsToMerge).then(() => ({ added: added, skipped: skipped }));
   });
 }
 
-let depExcel = null;
 function openDepImportUtilities() {
-  const titleEl = document.getElementById("dep-import-title");
-  if (titleEl) titleEl.textContent = "Import Utilities";
-  const t = document.getElementById("dep-import-text");
-  const r = document.getElementById("dep-import-result");
-  if (t) t.value = "";
-  if (r) r.textContent = "";
-
-  if (file_manager && typeof file_manager.bindExcelImportControls === "function") {
-    depExcel = file_manager.bindExcelImportControls({
-      fileInputId: "dep-import-file",
-      sheetSelectId: "dep-import-sheet",
-      textAreaId: "dep-import-text",
-      preferredSheetName: "Utilities",
-      fileNameDisplayId: "dep-import-file-name",
-    });
-  }
-
-  if (window.$) window.$("#depImportModal").modal("show");
+  window.appUi.notify("Import Utilities from the Utilities page only.");
 }
 
 function ensureDepImportBindings() {
@@ -510,6 +495,11 @@ function ensureDepImportBindings() {
     });
     applyEl.__depBound = true;
   }
+}
+
+const depImportUtilityTrigger = document.getElementById("dep-import-utility");
+if (depImportUtilityTrigger) {
+  depImportUtilityTrigger.style.display = "none";
 }
 
 if (document.getElementById("dep-import-utility")) {

@@ -1585,6 +1585,22 @@ function writeToSqlite(database, base, data) {
     }
   }
 
+  function findFirstDependentUtilityId(utilityIds) {
+    if (!utilityIds || utilityIds.size === 0) return null;
+    const dependencyTables = ["types", "codes", "doors", "hardwares", "handlers", "shelves"];
+    for (const utilityId of utilityIds) {
+      const numericId = Number(utilityId);
+      if (Number.isNaN(numericId)) continue;
+      for (const table of dependencyTables) {
+        const row = database.prepare(`SELECT 1 AS found FROM ${table} WHERE utility_id = ? LIMIT 1`).get(numericId);
+        if (row && row.found) {
+          return String(utilityId);
+        }
+      }
+    }
+    return null;
+  }
+
   if (base === ".credentials.json") {
     migrateCredentials(database, data);
     return "success";
@@ -1611,11 +1627,40 @@ function writeToSqlite(database, base, data) {
 
   if (base === ".utilities.json") {
     const tx = database.transaction(() => {
-      database.exec("DELETE FROM utilities");
+      if (!Array.isArray(data)) {
+        return;
+      }
+
+      const incomingIds = new Set();
+      for (const u of data) {
+        const id = u && u.id != null ? String(u.id) : null;
+        if (id) incomingIds.add(id);
+      }
+
+      const existingIds = new Set(
+        database.prepare("SELECT id FROM utilities").all().map((r) => (r && r.id != null ? String(r.id) : ""))
+      );
+      const removedIds = new Set();
+      existingIds.forEach((id) => {
+        if (id && !incomingIds.has(id)) removedIds.add(id);
+      });
+
+      if (findFirstDependentUtilityId(removedIds)) {
+        throw new Error("UTILITY_IN_USE");
+      }
+
+      deleteMissingById("utilities", "id", incomingIds);
       migrateUtilities(database, data);
     });
-    tx();
-    return "success";
+    try {
+      tx();
+      return "success";
+    } catch (e) {
+      if (e && e.message === "UTILITY_IN_USE") {
+        return "in_use";
+      }
+      throw e;
+    }
   }
 
   if (base === ".types.json") {
@@ -1812,6 +1857,32 @@ function write(filePath, data) {
   const res = writeToSqlite(database, base, data);
   if (res === "success" || res == null) scheduleToolsExcelSync(base, data);
   return res || "success";
+}
+
+function mergeTypes(data) {
+  const database = requireDbOrThrow();
+  const tx = database.transaction(() => {
+    if (!Array.isArray(data) || data.length === 0) {
+      return;
+    }
+    migrateTypes(database, data);
+  });
+  tx();
+  scheduleToolsExcelSync(".types.json", data);
+  return "success";
+}
+
+function mergeUtilities(data) {
+  const database = requireDbOrThrow();
+  const tx = database.transaction(() => {
+    if (!Array.isArray(data) || data.length === 0) {
+      return;
+    }
+    migrateUtilities(database, data);
+  });
+  tx();
+  scheduleToolsExcelSync(".utilities.json", data);
+  return "success";
 }
 
 function searchCodes(opts) {
@@ -2203,6 +2274,8 @@ function nextIdFor(opts) {
 module.exports = {
   load,
   write,
+  mergeUtilities,
+  mergeTypes,
   initializeDatabase,
   seedDatabaseFromBundledBackupIfNeeded,
   repairToolDatabases,

@@ -73,9 +73,29 @@ exports.writeFile = async (file, data) => {
   return res;
 };
 
+exports.mergeTypes = async (rows) => {
+  const payload = cloneValue(Array.isArray(rows) ? rows : []);
+  const res = await rpc("types:merge", "", payload);
+  if (res === "success") {
+    delete cache[path.join(__dirname, "../../db/.types.json")];
+  }
+  return res;
+};
+
+exports.mergeUtilities = async (rows) => {
+  const payload = cloneValue(Array.isArray(rows) ? rows : []);
+  const res = await rpc("utilities:merge", "", payload);
+  if (res === "success") {
+    delete cache[path.join(__dirname, "../../db/.utilities.json")];
+  }
+  return res;
+};
+
 exports.isDuplicateWriteResult = (res) => res === "duplicate";
+exports.isInUseWriteResult = (res) => res === "in_use";
 
 exports.getDuplicateToolMessage = () => "Duplicate title already exists in this scope.";
+exports.getInUseToolMessage = () => "Cannot delete utility because it is used in other tools (Descriptions/Codes/etc).";
 
 exports.searchCodes = async (query, utility_id, type_id, limit) => {
   const payload = {

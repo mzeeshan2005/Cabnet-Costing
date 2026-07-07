@@ -906,15 +906,6 @@ function clear_dropdowns() {
   document.getElementById('shelves').innerHTML = "";
   document.getElementById('is_shelve').value = "yes";
   document.getElementById('additional').value = "0";
-  updateCurrentItemUnitAndTotal();
-  document.getElementById('unit').readOnly = true;
-  document.getElementById('code-new-rate').value = 0;
-  document.getElementById('finishing-new-rate').value = 0;
-  document.getElementById('harware-new-rate').value = 0;
-  document.getElementById("hardware-price").selectedIndex = 0;
-  document.getElementById("code-price").selectedIndex = 0;
-  document.getElementById('handle-new-rate').value = 0;
-  document.getElementById('shelve-new-rate').value = 0;
   item = null;
   code_rate = 0;
   door = 0;
@@ -922,6 +913,15 @@ function clear_dropdowns() {
   hardware = 0;
   shelve = 0;
   custom_val = 0;
+  document.getElementById('code-new-rate').value = 0;
+  document.getElementById('finishing-new-rate').value = 0;
+  document.getElementById('harware-new-rate').value = 0;
+  document.getElementById("hardware-price").selectedIndex = 0;
+  document.getElementById("code-price").selectedIndex = 0;
+  document.getElementById('handle-new-rate').value = 0;
+  document.getElementById('shelve-new-rate').value = 0;
+  updateCurrentItemUnitAndTotal();
+  document.getElementById('unit').readOnly = true;
   refreshNewCostBreakdown();
 }
 
@@ -1054,6 +1054,27 @@ function normalizeEntryDateValue(value) {
 function getEntryDateFieldValue() {
   const el = document.getElementById("entry-date");
   return normalizeEntryDateValue(el ? el.value : "");
+}
+
+function normalizeClientLookupValue(value) {
+  return String(value == null ? "" : value).trim().toLowerCase();
+}
+
+function getSelectedClientDisplayName() {
+  const el = document.getElementById('client-input');
+  if (!el) return "";
+  const option = el.options && el.selectedIndex >= 0 ? el.options[el.selectedIndex] : null;
+  return option && option.text != null ? String(option.text) : "";
+}
+
+function sanitizePdfFilename(value, fallback) {
+  const base = String(value == null ? "" : value);
+  const cleaned = base
+    .replace(/[<>:"/\\|?*\x00-\x1F]/g, "_")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/[. ]+$/g, "");
+  return cleaned || fallback || "document.pdf";
 }
 
 function buildPricingPinfo(idValue) {
@@ -2184,6 +2205,18 @@ function close_modal(event) {
 
 document.getElementById('print').addEventListener('click', async function (event) {
   let element = document.getElementById('my-table');
+  // #region debug-point A:print-click-entry
+  reportPrintDebug('A', 'pricing.js:print-click', '[DEBUG] Print clicked', {
+    isQuotation: !!document.getElementById('is_quotation').checked,
+    pricingNo: String(document.getElementById('pricing-no').value || ''),
+    clientId: String(document.getElementById('client-input').value || ''),
+    clientNameInput: String(document.getElementById('client-input').value || ''),
+    entryDateRaw: String(document.getElementById('entry-date').value || ''),
+    hasValueAsDate: !!document.getElementById('entry-date').valueAsDate,
+    itemsCount: Array.isArray(items) ? items.length : -1,
+    hasHtml2Pdf: typeof html2pdf !== 'undefined'
+  });
+  // #endregion
   if (window.modalInputFix && typeof window.modalInputFix.forceReleaseUiLocks === 'function') {
     window.modalInputFix.forceReleaseUiLocks();
   }
@@ -2196,6 +2229,13 @@ document.getElementById('print').addEventListener('click', async function (event
   };
   file_manager.loadFile(path.join(__dirname, '../db/.firm.json'))
       .then(res => {
+        // #region debug-point B:print-firm-loaded
+        reportPrintDebug('B', 'pricing.js:firm-loaded', '[DEBUG] Firm data loaded for print', {
+          firmCount: Array.isArray(res) ? res.length : -1,
+          firmName: res && res[0] && res[0].name != null ? String(res[0].name) : '',
+          hasLogo: !!(res && res[0] && res[0].logo)
+        });
+        // #endregion
         // const header = element.rows[0]
         // for (var i = 0; i < element.rows[0].cells.length; i++) {
         //
@@ -2212,6 +2252,16 @@ document.getElementById('print').addEventListener('click', async function (event
         // }
         file_manager.loadFile(path.join(__dirname, '../db/.clients.json'))
           .then(ress => {
+            // #region debug-point B:print-clients-loaded
+            reportPrintDebug('B', 'pricing.js:clients-loaded', '[DEBUG] Clients loaded for print lookup', {
+              clientsCount: Array.isArray(ress) ? ress.length : -1,
+              selectedClientId: String(document.getElementById('client-input').value || '')
+            });
+            // #endregion
+            const selectedClientId = String(document.getElementById('client-input').value || '');
+            const selectedClientName = getSelectedClientDisplayName();
+            const savedClientName = pricing && pricing.pinfo && pricing.pinfo.client_name != null ? String(pricing.pinfo.client_name) : '';
+            let matchedClient = false;
             ress.forEach(k => {
               let qout = ""
               let total = ""
@@ -2283,9 +2333,26 @@ document.getElementById('print').addEventListener('click', async function (event
                 qout = `<h3 style="color: black">${res[0].name}</h3>`
                 name = " Invoice.pdf"
               }
-              if (k.id === document.getElementById('client-input').value) {
+              if (
+                String(k.id) === selectedClientId ||
+                normalizeClientLookupValue(k.name) === normalizeClientLookupValue(selectedClientName) ||
+                normalizeClientLookupValue(k.name) === normalizeClientLookupValue(savedClientName)
+              ) {
+                matchedClient = true;
+                // #region debug-point C:print-client-match
+                reportPrintDebug('C', 'pricing.js:client-match', '[DEBUG] Matched client for print', {
+                  clientId: String(k.id || ''),
+                  clientName: String(k.name || ''),
+                  quotation: !!document.getElementById('is_quotation').checked
+                });
+                // #endregion
                 file_manager.loadFile(path.join(__dirname, '../db/terms.json'))
                   .then(obj => {
+                    // #region debug-point C:print-terms-loaded
+                    reportPrintDebug('C', 'pricing.js:terms-loaded', '[DEBUG] Terms loaded for print', {
+                      termSections: obj && typeof obj === 'object' ? Object.keys(obj).length : -1
+                    });
+                    // #endregion
                     let terms = ``;
                     for (const key in obj) {
                       terms += `
@@ -2407,11 +2474,55 @@ document.getElementById('print').addEventListener('click', async function (event
                             </div>
                     </div>
                     `
-                    html2pdf().set(opt).from(html).to('pdf').save(`${k.name}'s${name}`);
+                    // #region debug-point E:print-before-html2pdf
+                    const generatedFilename = `${k.name}'s${name}`;
+                    const safeFilename = sanitizePdfFilename(generatedFilename, document.getElementById('is_quotation').checked ? 'Quotation.pdf' : 'Invoice.pdf');
+                    opt.filename = safeFilename;
+                    reportPrintDebug('E', 'pricing.js:before-html2pdf', '[DEBUG] Invoking html2pdf save', {
+                      clientName: String(k.name || ''),
+                      generatedName: generatedFilename,
+                      safeGeneratedName: safeFilename,
+                      containsWindowsInvalidChars: /[<>:"/\\|?*]/.test(generatedFilename),
+                      htmlLength: html.length,
+                      hasHtml2Pdf: typeof html2pdf !== 'undefined',
+                      entryDateRaw: String(document.getElementById('entry-date').value || ''),
+                      hasValueAsDate: !!document.getElementById('entry-date').valueAsDate,
+                      pricingNo: String(document.getElementById('pricing-no').value || ''),
+                      referenceNo: String(document.getElementById('manual-input').value || '')
+                    });
+                    // #endregion
+                    // #region debug-point E:print-save-promise
+                    Promise.resolve(html2pdf().set(opt).from(html).to('pdf').save(safeFilename))
+                      .then(() => {
+                        reportPrintDebug('E', 'pricing.js:html2pdf-save-resolved', '[DEBUG] html2pdf save resolved', {
+                          generatedName: generatedFilename,
+                          safeGeneratedName: safeFilename
+                        });
+                      })
+                      .catch((err) => {
+                        reportPrintDebug('D', 'pricing.js:html2pdf-save-rejected', '[DEBUG] html2pdf save rejected', {
+                          generatedName: generatedFilename,
+                          safeGeneratedName: safeFilename,
+                          message: err && err.message ? String(err.message) : String(err)
+                        });
+                        window.appUi.notify("PDF generation failed. Check client name / filename and try again.");
+                      });
+                    // #endregion
 
                   })
               }
             })
+            if (!matchedClient) {
+              // #region debug-point C:print-client-not-found
+              reportPrintDebug('C', 'pricing.js:client-not-found', '[DEBUG] No matched client found for print', {
+                selectedClientId: String(document.getElementById('client-input').value || ''),
+                selectedClientName: selectedClientName,
+                savedClientName: savedClientName,
+                clientsCount: Array.isArray(ress) ? ress.length : -1
+              });
+              // #endregion
+              window.appUi.notify("Client record not found for this pricing. Re-select client and try print again.");
+            }
           })
       })
   window.setTimeout(function () {
@@ -2479,6 +2590,68 @@ document.getElementById('checkbox-all-open').addEventListener('change', (event) 
       })
   }
 })
+
+// #region debug-point A:print-debug-helper
+const printDebugConfig = (() => {
+  const defaults = {
+    url: "http://127.0.0.1:7777/event",
+    sessionId: "pricing-print-save",
+    runId: "pre-fix"
+  };
+  const candidates = [
+    path.join(__dirname, "../../.dbg/pricing-print-save.env"),
+    path.join(__dirname, "../../.dbg/print-build-failure.env")
+  ];
+  for (let i = 0; i < candidates.length; i++) {
+    try {
+      if (!fs.existsSync(candidates[i])) continue;
+      const raw = fs.readFileSync(candidates[i], "utf8");
+      raw.split(/\r?\n/).forEach((line) => {
+        const idx = line.indexOf("=");
+        if (idx === -1) return;
+        const key = line.slice(0, idx).trim();
+        const value = line.slice(idx + 1).trim();
+        if (key === "DEBUG_SERVER_URL" && value) defaults.url = value;
+        if (key === "DEBUG_SESSION_ID" && value) defaults.sessionId = value;
+      });
+      break;
+    } catch (_) {}
+  }
+  return defaults;
+})();
+
+function reportPrintDebug(hypothesisId, location, msg, data) {
+  fetch(printDebugConfig.url, {
+    method: "POST",
+    body: JSON.stringify({
+      sessionId: printDebugConfig.sessionId,
+      runId: printDebugConfig.runId,
+      hypothesisId: hypothesisId,
+      location: location,
+      msg: msg,
+      data: data || {},
+      ts: Date.now()
+    })
+  }).catch(() => {});
+}
+// #endregion
+
+// #region debug-point D:print-unhandled-errors
+window.addEventListener('error', function (event) {
+  reportPrintDebug('D', 'pricing.js:window-error', '[DEBUG] Window error during print runtime', {
+    message: event && event.message ? String(event.message) : '',
+    filename: event && event.filename ? String(event.filename) : '',
+    lineno: event && event.lineno != null ? Number(event.lineno) : null,
+    colno: event && event.colno != null ? Number(event.colno) : null
+  });
+});
+window.addEventListener('unhandledrejection', function (event) {
+  const reason = event && event.reason;
+  reportPrintDebug('D', 'pricing.js:unhandledrejection', '[DEBUG] Unhandled rejection during print runtime', {
+    reason: reason && reason.message ? String(reason.message) : String(reason)
+  });
+});
+// #endregion
 
 document.getElementById('delete-form').addEventListener('submit', (event) => {
   event.preventDefault();

@@ -322,10 +322,18 @@ function populateTable() {
   document.getElementById("delete-selected-1").disabled = true;
   document.getElementById("update").disabled = true;
   document.getElementById("save").disabled = true;
-  file_manager.nextId(".shelves.json").then((nextId) => {
-    document.getElementById("id").innerHTML = String(nextId);
-  });
-  refreshShelvesTable();
+  file_manager
+    .loadFile(path.join(__dirname, "../../db/.shelves.json"))
+    .then((res) => {
+      const id = document.getElementById("id");
+      const data1 = res.concat(listData);
+      if (res.length === 0 && listData.length === 0) {
+        id.innerHTML = "1";
+      } else {
+        id.innerHTML = Number(data1[data1.length - 1].id) + 1;
+      }
+      renderShelvesTable(data1);
+    });
   file_manager
     .loadFile(path.join(__dirname, "../../db/.utilities.json"))
     .then((res) => {
@@ -357,40 +365,6 @@ function populateTable() {
   option.value = "";
   option.classList.add('d-none');
   select.add(option);
-  // file_manager
-  //   .loadFile(path.join(__dirname, "../../db/.types.json"))
-  //   .then((res) => {
-  //     const select = document.getElementById("select-1");
-  //     select.innerHTML = "";
-  //     let option = document.createElement("option");
-  //     option.text = "Please Select";
-  //     option.value = "";
-  //     option.classList.add('d-none');
-  //     select.add(option);
-  //     res.forEach((data) => {
-  //       let option = document.createElement("option");
-  //       option.text = data.title;
-  //       option.value = data.id;
-  //       select.add(option);
-  //     });
-  //   });
-  // file_manager
-  //   .loadFile(path.join(__dirname, "../../db/.codes.json"))
-  //   .then((res) => {
-  //     const select = document.getElementById("select-2");
-  //     select.innerHTML = "";
-  //     let option = document.createElement("option");
-  //     option.text = "Please Select";
-  //     option.value = "";
-  //     option.classList.add('d-none');
-  //     select.add(option);
-  //     res.forEach((data) => {
-  //       let option = document.createElement("option");
-  //       option.text = data.title;
-  //       option.value = data.id;
-  //       select.add(option);
-  //     });
-  //   });
 }
 
 function renderShelvesTable(rows) {
@@ -853,6 +827,7 @@ function depImportUtilitiesFromText(text) {
     const existing = Array.isArray(res) ? res : [];
     let maxId = 0;
     const seen = {};
+    const rowsToMerge = [];
     existing.forEach((u) => {
       const idNum = u && u.id != null && !isNaN(Number(u.id)) ? Number(u.id) : 0;
       if (idNum > maxId) maxId = idNum;
@@ -877,12 +852,16 @@ function depImportUtilitiesFromText(text) {
         return;
       }
       maxId += 1;
-      existing.push({ id: String(maxId), title: title });
+      rowsToMerge.push({ id: String(maxId), title: title });
       seen[key] = true;
       added += 1;
     });
 
-    return file_manager.writeFile(path.join(__dirname, "../../db/.utilities.json"), existing).then(() => ({ added: added, skipped: skipped }));
+    if (rowsToMerge.length === 0) {
+      return { added: added, skipped: skipped };
+    }
+
+    return file_manager.mergeUtilities(rowsToMerge).then(() => ({ added: added, skipped: skipped }));
   });
 }
 
@@ -973,14 +952,16 @@ function depImportTypesFromText(text) {
       }
 
       maxId += 1;
-      existing.push({ id: String(maxId), title: title, utility_id: utilityId, utility: utilityName });
+      rowsToMerge.push({ id: String(maxId), title: title, utility_id: utilityId, utility: utilityName });
       seen[key] = true;
       added += 1;
     });
 
-    return file_manager
-      .writeFile(path.join(__dirname, "../../db/.types.json"), existing)
-      .then(() => ({ added: added, skipped: skipped, invalid: invalid }));
+    if (rowsToMerge.length === 0) {
+      return { added: added, skipped: skipped, invalid: invalid };
+    }
+
+    return file_manager.mergeTypes(rowsToMerge).then(() => ({ added: added, skipped: skipped, invalid: invalid }));
   });
 }
 
@@ -1126,41 +1107,19 @@ function depImportCodesFromText(text) {
 }
 
 let depMode = "";
-let depExcel = null;
 
 function openDepImport(mode) {
   depMode = mode != null ? String(mode) : "";
-  const titleEl = document.getElementById("dep-import-title");
-  if (titleEl) {
-    titleEl.textContent =
-      depMode === "utilities"
-        ? "Import Utilities"
-        : depMode === "types"
-          ? "Import Descriptions"
-          : depMode === "codes"
-            ? "Import Codes"
-            : "Import";
-  }
-
-  const t = document.getElementById("dep-import-text");
-  const r = document.getElementById("dep-import-result");
-  if (t) t.value = "";
-  if (r) r.textContent = "";
-
-  const preferred =
-    depMode === "utilities" ? "Utilities" : depMode === "types" ? "Descriptions" : depMode === "codes" ? "Codes" : "";
-  if (file_manager && typeof file_manager.bindExcelImportControls === "function") {
-    depExcel = file_manager.bindExcelImportControls({
-      fileInputId: "dep-import-file",
-      sheetSelectId: "dep-import-sheet",
-      textAreaId: "dep-import-text",
-      preferredSheetName: preferred,
-      fileNameDisplayId: "dep-import-file-name",
-    });
-  }
-
-  if (window.$) window.$("#depImportModal").modal("show");
+  const targetPage = depMode === "utilities" ? "Utilities" : depMode === "types" ? "Descriptions" : depMode === "codes" ? "Codes" : "";
+  window.appUi.notify("Import " + targetPage + " from the " + targetPage + " page only.");
 }
+
+const depImportUtilityTrigger = document.getElementById("dep-import-utility");
+if (depImportUtilityTrigger) depImportUtilityTrigger.style.display = "none";
+const depImportTypeTrigger = document.getElementById("dep-import-type");
+if (depImportTypeTrigger) depImportTypeTrigger.style.display = "none";
+const depImportCodeTrigger = document.getElementById("dep-import-code");
+if (depImportCodeTrigger) depImportCodeTrigger.style.display = "none";
 
 function ensureDepImportBindings() {
   const applyEl = document.getElementById("dep-import-apply");

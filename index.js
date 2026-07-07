@@ -50,6 +50,8 @@ ipcMain.on("store:rpc", (event, message) => {
     let result = null;
     if (action === "load") result = storage.load(filePath);
     else if (action === "write") result = storage.write(filePath, data);
+    else if (action === "utilities:merge") result = storage.mergeUtilities(data);
+    else if (action === "types:merge") result = storage.mergeTypes(data);
     else if (action === "codes:search") result = storage.searchCodes(data);
     else if (action === "doors:search") result = storage.searchDoors(data);
     else if (action === "hardwares:search") result = storage.searchHardwares(data);

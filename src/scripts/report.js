@@ -1,4 +1,6 @@
+const fs = require("fs");
 const path = require("path");
+const { pathToFileURL } = require("url");
 const file_manager = require(path.join(__dirname, "../../scripts/file_manager.js"));
 
 let items = []
@@ -121,6 +123,29 @@ document.getElementById('print').addEventListener('click', (event) => {
   };
   file_manager.loadFile(path.join(__dirname, '../../db/.firm.json'))
       .then(res => {
+        if (!res || !Array.isArray(res) || res.length === 0) {
+          res = [{ name: "", logo: "", address: "", contact: "" }];
+        }
+        let logoSrc = "";
+        if (res[0].logo) {
+          try {
+            const logoBuffer = fs.readFileSync(res[0].logo);
+            const ext = path.extname(res[0].logo).toLowerCase();
+            const mime = ext === '.png' ? 'image/png' : ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : ext === '.gif' ? 'image/gif' : ext === '.webp' ? 'image/webp' : ext === '.bmp' ? 'image/bmp' : 'image/png';
+            logoSrc = `data:${mime};base64,${logoBuffer.toString('base64')}`;
+          } catch (e) {
+            logoSrc = "";
+          }
+        }
+        if (!logoSrc) {
+          try {
+            const defaultLogoPath = path.join(__dirname, '../images/logo.png');
+            const logoBuffer = fs.readFileSync(defaultLogoPath);
+            logoSrc = `data:image/png;base64,${logoBuffer.toString('base64')}`;
+          } catch (e) {
+            logoSrc = "";
+          }
+        }
         let table_body = ``
         let total_amount = 0
         const typee = document.getElementById('filter-pricing').value;
@@ -145,7 +170,7 @@ document.getElementById('print').addEventListener('click', (event) => {
         })
         let header = `
             <div style="display: flex; flex-direction: row; margin-bottom: 5px">
-                <img alt="img" src="${res[0].logo}" style="height: 100px; width: 80px; margin-right: 10px" />
+                <img alt="img" src="${logoSrc}" style="height: 100px; width: 80px; margin-right: 10px" />
                 <div style="display: flex; flex-direction: column; ">
                    <h3 style="color: black">${res[0].name}</h3>
                    <div style="display: flex; flex-direction: row; justify-content: space-between; border-bottom: 2px solid grey; width: 700px">

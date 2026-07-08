@@ -1,6 +1,7 @@
 const fs = require("fs");
 const { event } = require('jquery');
 const path = require('path')
+const { pathToFileURL } = require('url');
 const file_manager = require(path.join(__dirname, "../scripts/file_manager.js"));
 
 let pricing = {}
@@ -1935,66 +1936,76 @@ document.getElementById('confirm').addEventListener('click', (event) => {
         file_manager.loadFile(path.join(__dirname, '../db/.pricings.json'))
           .then(res => {
             const old_pricing = res;
-            // let indd = -1;
-            // res.forEach((kk, ind) => {
-            //   if(kk["pinfo"].pricing_no === document.getElementById('pricing-no').value)
-            //   {
-            //     indd = ind;
-            //     return
-            //   }
-            // })
             const loadedPinfo = pricing["pinfo"] || null;
             const shouldUpdateExisting = !!(loadedPinfo && loadedPinfo.id && loadedPinfo.is_quotation === document.getElementById('is_quotation').checked);
-
-            if (shouldUpdateExisting) {
-              old_pricing.forEach((l, ind) => {
-                if (l['pinfo'].id == loadedPinfo.id) {
-                  pricing["pinfo"] = buildPricingPinfo(l['pinfo'].id);
-                  old_pricing[ind] = clonePricingRecord(pricing)
-                }
-              })
-              file_manager.writeFile(path.join(__dirname, '../db/.pricings.json'), old_pricing)
-                .then(res => {
-                  document.getElementById('cancel').click();
-                  if (res === 'success') {
-                    refreshOpenPricingList();
-
-                    alert("Pricing Saved Successfully!")
-                    all_clear()
-                    document.getElementById('save').disabled = true;
-                    document.getElementById('print').classList.add("d-none");
-                    document.getElementById('delete').disabled = true;
-                  }
-                  else {
-                    alert("An Error Occurred While Saving!")
+            const refNo = document.getElementById('manual-input').value;
+            const doSave = () => {
+              if (shouldUpdateExisting) {
+                old_pricing.forEach((l, ind) => {
+                  if (l['pinfo'].id == loadedPinfo.id) {
+                    pricing["pinfo"] = buildPricingPinfo(l['pinfo'].id);
+                    old_pricing[ind] = clonePricingRecord(pricing)
                   }
                 })
+                file_manager.writeFile(path.join(__dirname, '../db/.pricings.json'), old_pricing)
+                  .then(res => {
+                    document.getElementById('cancel').click();
+                    if (res === 'success') {
+                      refreshOpenPricingList();
+                      alert("Pricing Saved Successfully!")
+                      all_clear()
+                      document.getElementById('save').disabled = true;
+                      document.getElementById('print').classList.add("d-none");
+                      document.getElementById('delete').disabled = true;
+                    }
+                    else {
+                      alert("An Error Occurred While Saving!")
+                    }
+                  })
+              }
+              else {
+                pricing["pinfo"] = buildPricingPinfo(Date.now().toString())
+                old_pricing.push(clonePricingRecord(pricing));
+                file_manager.writeFile(path.join(__dirname, '../db/.pricings.json'), old_pricing)
+                  .then(res => {
+                    document.getElementById('cancel').click();
+                    if (res === 'success') {
+                      refreshOpenPricingList();
+                      alert("Pricing Saved Successfully!")
+                      all_clear()
+                      document.getElementById('save').disabled = true;
+                      document.getElementById('print').classList.add("d-none");
+                      document.getElementById('delete').disabled = true;
+                    }
+                    else {
+                      alert("An Error Occurred While Saving!")
+                    }
+                  })
+              }
+            };
+            if (refNo) {
+              const loadedId = loadedPinfo && loadedPinfo.id && shouldUpdateExisting ? String(loadedPinfo.id) : null;
+              const duplicateRef = old_pricing.some(p => {
+                const otherId = p && p.pinfo && p.pinfo.id != null ? String(p.pinfo.id) : null;
+                return otherId !== loadedId && String(p.pinfo.manual_no || '') === refNo;
+              });
+              if (duplicateRef) {
+                document.getElementById('ref-confirm-message').textContent = 'Reference number "' + refNo + '" already exists in another pricing. Do you want to save with the same reference number?';
+                document.getElementById('ref-confirm-save').onclick = () => {
+                  window.jQuery('#ref-confirm-modal').modal('hide');
+                  doSave();
+                };
+                document.getElementById('ref-confirm-cancel').onclick = () => {
+                  window.jQuery('#ref-confirm-modal').modal('hide');
+                };
+                if (window.modalInputFix) window.modalInputFix.hideModal('#staticModal');
+                else window.jQuery('#staticModal').modal('hide');
+                if (window.modalInputFix) window.modalInputFix.showModal('#ref-confirm-modal');
+                else window.jQuery('#ref-confirm-modal').modal('show');
+                return;
+              }
             }
-            else {
-              pricing["pinfo"] = buildPricingPinfo(Date.now().toString())
-              // if(indd === -1)
-              // {
-              old_pricing.push(clonePricingRecord(pricing));
-              // }
-              // else{
-              //   old_pricing[indd] = pricing
-              // }
-              file_manager.writeFile(path.join(__dirname, '../db/.pricings.json'), old_pricing)
-                .then(res => {
-                  document.getElementById('cancel').click();
-                  if (res === 'success') {
-                    refreshOpenPricingList();
-
-                    alert("Pricing Saved Successfully!")
-                    all_clear()
-                    document.getElementById('print').classList.add("d-none");
-                    document.getElementById('delete').disabled = true;
-                  }
-                  else {
-                    alert("An Error Occurred While Saving!")
-                  }
-                })
-            }
+            doSave();
           })
       }
       else {
@@ -2155,43 +2166,20 @@ document.getElementById('is_quotation').addEventListener('change', (event) => {
   ensurePricingTotalsEnabled();
 
   if (event.target.checked) {
-    if (document.getElementById('pricing-type').value == '') {
-      document.getElementById('pricing-type').value = 'invoice';
+    const backupDate = document.getElementById('entry-date-backup').value;
+    if (backupDate != '') {
+      document.getElementById("entry-date").value = backupDate;
     }
-
-    if (document.getElementById('pricing-type').value == 'quotation') {
-      const backupDate = document.getElementById('entry-date-backup').value;
-      if (backupDate != '') {
-        document.getElementById("entry-date").value = backupDate;
-      }
-    }
-
   }
   else {
+    document.getElementById("entry-date-backup").value = document.getElementById("entry-date").value;
     var date = new Date();
     var day = date.getDate();
     var month = date.getMonth() + 1;
     var year = date.getFullYear();
-
     if (month < 10) month = "0" + month;
     if (day < 10) day = "0" + day;
-
-    var today = year + "-" + month + "-" + day;
-
-    if (document.getElementById('pricing-type').value == '') {
-      document.getElementById('pricing-type').value = 'quotation';
-      document.getElementById("entry-date-backup").value = document.getElementById("entry-date").value;
-    }
-
-    if (document.getElementById('pricing-type').value == 'invoice') {
-      const backupDate = document.getElementById('entry-date-backup').value;
-      if (backupDate != '') {
-        document.getElementById("entry-date").value = backupDate;
-      }
-    } else {
-      document.getElementById("entry-date").value = today;
-    }
-
+    document.getElementById("entry-date").value = year + "-" + month + "-" + day;
   }
 })
 
@@ -2236,6 +2224,31 @@ document.getElementById('print').addEventListener('click', async function (event
           hasLogo: !!(res && res[0] && res[0].logo)
         });
         // #endregion
+
+        if (!res || !Array.isArray(res) || res.length === 0) {
+          res = [{ name: "", logo: "", address: "", contact: "" }];
+        }
+        let logoSrc = "";
+        if (res[0].logo) {
+          try {
+            const logoBuffer = fs.readFileSync(res[0].logo);
+            const ext = path.extname(res[0].logo).toLowerCase();
+            const mime = ext === '.png' ? 'image/png' : ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : ext === '.gif' ? 'image/gif' : ext === '.webp' ? 'image/webp' : ext === '.bmp' ? 'image/bmp' : 'image/png';
+            logoSrc = `data:${mime};base64,${logoBuffer.toString('base64')}`;
+          } catch (e) {
+            logoSrc = "";
+          }
+        }
+        if (!logoSrc) {
+          try {
+            const defaultLogoPath = path.join(__dirname, '../images/logo.png');
+            const logoBuffer = fs.readFileSync(defaultLogoPath);
+            logoSrc = `data:image/png;base64,${logoBuffer.toString('base64')}`;
+          } catch (e) {
+            logoSrc = "";
+          }
+        }
+
         // const header = element.rows[0]
         // for (var i = 0; i < element.rows[0].cells.length; i++) {
         //
@@ -2353,6 +2366,7 @@ document.getElementById('print').addEventListener('click', async function (event
                       termSections: obj && typeof obj === 'object' ? Object.keys(obj).length : -1
                     });
                     // #endregion
+                    if (!obj || typeof obj !== 'object') obj = {};
                     let terms = ``;
                     for (const key in obj) {
                       terms += `
@@ -2414,7 +2428,7 @@ document.getElementById('print').addEventListener('click', async function (event
 
                     let html = `
                    <div style="display: flex; flex-direction: row; margin-bottom: 5px">
-                        <img alt="img" src="${res[0].logo}" style="height: 100px; width: 80px; margin-right: 10px" />
+                        <img alt="img" src="${logoSrc}" style="height: 100px; width: 80px; margin-right: 10px" />
                         <div style="display: flex; flex-direction: column;">
                             ${qout}
                             <div style="display: flex; flex-direction: row; justify-content: space-between">

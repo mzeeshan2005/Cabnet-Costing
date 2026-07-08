@@ -221,40 +221,9 @@ document.getElementById("form").addEventListener("submit", (event) => {
     title: name,
   };
   listData.push(data);
-  file_manager
-    .loadFile(path.join(__dirname, "../../db/.utilities.json"))
-    .then((res) => {
-      if (res.length === 0 && listData.length === 1) {
-        document.getElementById("save").disabled = false;
-        document.getElementById("client-table").innerHTML = "";
-        document.getElementById("client-table").innerHTML += `
-          <tr class="tr-shadow" style="border-bottom: 2px solid grey">
-            <td style="border: 1px solid black">
-              <label class="au-checkbox">
-                <input type="checkbox" id="${data.id}" onchange="toggle(event)">
-                <span class="au-checkmark" style="border: 1px solid green"></span>
-              </label>
-            </td>
-            <td style="border: 1px solid black">${data.id}</td>
-            <td style="border: 1px solid black">${data.title}</td>
-          </tr>`;
-        clearFields();
-      } else {
-        document.getElementById("save").disabled = false;
-        document.getElementById("client-table").innerHTML += `
-          <tr class="tr-shadow" style="border-bottom: 2px solid grey">
-            <td style="border: 1px solid black">
-              <label class="au-checkbox">
-                <input type="checkbox" id="${data.id}" onchange="toggle(event)">
-                <span class="au-checkmark" style="border: 1px solid green"></span>
-              </label>
-            </td>
-            <td style="border: 1px solid black">${data.id}</td>
-            <td style="border: 1px solid black">${data.title}</td>
-          </tr>`;
-        clearFields();
-      }
-    });
+  populateTable();
+  document.getElementById("save").disabled = false;
+  clearFields();
 });
 
 document.getElementById('cancel').addEventListener('click', (event) => {

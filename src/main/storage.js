@@ -28,8 +28,7 @@ const SQLITE_TARGET_BASENAMES = new Set([
   ".products.json",
   ".sales.json",
   ".manuals.json",
-  ".firm.json",
-  "terms.json",
+   ".firm.json",
 ]);
 
 const TOOLS_SYNC_BASENAMES = new Set([
@@ -1840,7 +1839,13 @@ function load(filePath) {
   }
 
   const database = requireDbOrThrow();
-  return loadFromSqlite(database, base);
+  const result = loadFromSqlite(database, base);
+  if (result != null) return result;
+  try {
+    return safeReadJsonFile(filePath);
+  } catch (e) {
+    return null;
+  }
 }
 
 function write(filePath, data) {

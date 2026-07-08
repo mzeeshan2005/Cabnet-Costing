@@ -73,11 +73,24 @@ exports.writeFile = async (file, data) => {
   return res;
 };
 
+function resolveDbCacheKey(base) {
+  const candidates = [
+    path.join(__dirname, "../db", base),
+    path.join(__dirname, "../../db", base),
+    path.resolve(__dirname, "../db", base),
+    path.resolve(__dirname, "../../db", base),
+  ];
+  for (let i = 0; i < candidates.length; i++) {
+    if (candidates[i] in cache) return candidates[i];
+  }
+  return path.join(__dirname, "../db", base);
+}
+
 exports.mergeTypes = async (rows) => {
   const payload = cloneValue(Array.isArray(rows) ? rows : []);
   const res = await rpc("types:merge", "", payload);
   if (res === "success") {
-    delete cache[path.join(__dirname, "../../db/.types.json")];
+    delete cache[resolveDbCacheKey(".types.json")];
   }
   return res;
 };
@@ -86,7 +99,7 @@ exports.mergeUtilities = async (rows) => {
   const payload = cloneValue(Array.isArray(rows) ? rows : []);
   const res = await rpc("utilities:merge", "", payload);
   if (res === "success") {
-    delete cache[path.join(__dirname, "../../db/.utilities.json")];
+    delete cache[resolveDbCacheKey(".utilities.json")];
   }
   return res;
 };

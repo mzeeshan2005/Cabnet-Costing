@@ -1,21 +1,18 @@
 const path = require("path");
+const { pathToFileURL } = require("url");
 const file_manager = require(path.join(__dirname, "../../scripts/file_manager.js"));
+
+const LOGO_PATH = path.join(__dirname, "../../images/logo.png");
 
 function load() {
   file_manager.loadFile(path.join(__dirname, '../../db/.firm.json'))
       .then(res => {
-        if(res.length!== 0)
-        {
-          document.getElementById('firm-name').value = res[0].name;
-          document.getElementById('contact').value = res[0].contact;
-          document.getElementById('email').value = res[0].email;
-          document.getElementById('address').value = res[0].address;
-          document.getElementById('logo').src = res[0].logo;
-        }
-        else
-        {
-          alert("An Error Occurred!")
-        }
+        const firm = res && Array.isArray(res) && res.length !== 0 ? res[0] : {};
+        if (firm.name != null) document.getElementById('firm-name').value = firm.name;
+        if (firm.contact != null) document.getElementById('contact').value = firm.contact;
+        if (firm.email != null) document.getElementById('email').value = firm.email;
+        if (firm.address != null) document.getElementById('address').value = firm.address;
+        document.getElementById('logo').src = firm.logo ? pathToFileURL(firm.logo).href : pathToFileURL(LOGO_PATH).href;
       })
 
 }
@@ -31,7 +28,8 @@ document.getElementById('form').addEventListener('submit', (event) => {
   const contact = document.getElementById('contact').value;
   const email = document.getElementById('email').value;
   const address = document.getElementById('address').value;
-  const logo = document.getElementById('file-input').files[0].path;
+  const fileInput = document.getElementById('file-input');
+  const logo = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0].path : LOGO_PATH;
   const data = [
     {
       "name": name,
@@ -46,11 +44,6 @@ document.getElementById('form').addEventListener('submit', (event) => {
         if(r === 'success')
         {
           alert("Saved Successfully!")
-          // document.getElementById('firm-name').value = '';
-          // document.getElementById('contact').value = '';
-          // document.getElementById('email').value = '';
-          // document.getElementById('address').value = '';
-          // document.getElementById('file-input').files = [];
           load();
         }
         else

@@ -361,7 +361,7 @@ function isProbablyHeaderRow(row) {
   if (!row || row.length === 0) return false;
   for (let i = 0; i < row.length; i++) {
     const v = row[i] != null ? String(row[i]).trim().toLowerCase() : "";
-    if (v === "id" || v === "title" || v === "name" || v === "code" || v === "rate") return true;
+    if ((v === "id" || v.endsWith(" id") || v.endsWith(" title")) || v === "title" || v === "name" || v === "code" || v === "rate") return true;
   }
   return false;
 }
@@ -452,7 +452,7 @@ function importCodesFromText(text) {
 
       if (headerIndex) {
         const utilIdIdx = headerIndex.utility_id != null ? headerIndex.utility_id : null;
-        const utilIdx = headerIndex.utility != null ? headerIndex.utility : null;
+        const utilIdx = headerIndex.utility != null ? headerIndex.utility : headerIndex.utility_title != null ? headerIndex.utility_title : null;
         if (utilIdIdx != null && row[utilIdIdx] != null && String(row[utilIdIdx]).trim()) {
           utilityId = String(row[utilIdIdx]).trim();
         } else if (utilIdx != null && row[utilIdx] != null && String(row[utilIdx]).trim()) {
@@ -461,8 +461,8 @@ function importCodesFromText(text) {
           utilityId = match && match.id != null ? String(match.id) : "";
         }
 
-        const typeIdIdx = headerIndex.type_id != null ? headerIndex.type_id : null;
-        const typeIdx = headerIndex.type != null ? headerIndex.type : headerIndex.description != null ? headerIndex.description : null;
+        const typeIdIdx = headerIndex.type_id != null ? headerIndex.type_id : headerIndex.description_id != null ? headerIndex.description_id : null;
+        const typeIdx = headerIndex.type != null ? headerIndex.type : headerIndex.description_title != null ? headerIndex.description_title : headerIndex.description != null ? headerIndex.description : null;
         if (typeIdIdx != null && row[typeIdIdx] != null && String(row[typeIdIdx]).trim()) {
           typeId = String(row[typeIdIdx]).trim();
         } else if (typeIdx != null && row[typeIdx] != null && String(row[typeIdx]).trim()) {
@@ -483,7 +483,7 @@ function importCodesFromText(text) {
 
       let title = "";
       if (headerIndex) {
-        const titleIdx = headerIndex.title != null ? headerIndex.title : headerIndex.name != null ? headerIndex.name : headerIndex.code != null ? headerIndex.code : null;
+        const titleIdx = headerIndex.title != null ? headerIndex.title : headerIndex.name != null ? headerIndex.name : headerIndex.code_title != null ? headerIndex.code_title : headerIndex.code != null ? headerIndex.code : headerIndex.code_title != null ? headerIndex.code_title : null;
         title = titleIdx != null ? toTitleValue(row[titleIdx]) : "";
       }
       if (!title) {
@@ -507,9 +507,9 @@ function importCodesFromText(text) {
         cursor = hasLeadingId ? 2 : 1;
       }
 
-      const rateIdx = headerIndex && headerIndex.rate != null ? headerIndex.rate : null;
-      const backAreaIdx = headerIndex && headerIndex.back_area != null ? headerIndex.back_area : headerIndex && headerIndex.backarea != null ? headerIndex.backarea : null;
-      const secondaryTopIdx = headerIndex && headerIndex.secondary_top != null ? headerIndex.secondary_top : headerIndex && headerIndex.secondarytop != null ? headerIndex.secondarytop : null;
+      const rateIdx = headerIndex && headerIndex.rate != null ? headerIndex.rate : headerIndex && headerIndex.box_sheet != null ? headerIndex.box_sheet : null;
+      const backAreaIdx = headerIndex && headerIndex.back_area != null ? headerIndex.back_area : headerIndex && headerIndex.backarea != null ? headerIndex.backarea : headerIndex && headerIndex.back_sheet != null ? headerIndex.back_sheet : null;
+      const secondaryTopIdx = headerIndex && headerIndex.secondary_top != null ? headerIndex.secondary_top : headerIndex && headerIndex.secondarytop != null ? headerIndex.secondarytop : headerIndex && headerIndex.top != null ? headerIndex.top : null;
       const edgingIdx = headerIndex && headerIndex.edging != null ? headerIndex.edging : null;
       const screwsIdx = headerIndex && headerIndex.screws != null ? headerIndex.screws : null;
       const wallBracketIdx =
@@ -616,7 +616,7 @@ function depIsProbablyHeaderRow(row) {
   if (!row || row.length === 0) return false;
   for (let i = 0; i < row.length; i++) {
     const v = row[i] != null ? String(row[i]).trim().toLowerCase() : "";
-    if (v === "title" || v === "name" || v === "utility" || v === "utility_id" || v === "type" || v === "type_id" || v === "description") return true;
+    if (v === "title" || v === "name" || v === "utility" || v === "utility_id" || v === "type" || v === "type_id" || v === "description" || v.endsWith(" id") || v.endsWith(" title")) return true;
   }
   return false;
 }
@@ -694,7 +694,7 @@ function depImportUtilitiesFromText(text) {
       if (!row || row.length === 0) return;
       let title = "";
       if (headerIndex) {
-        const idx = headerIndex.title != null ? headerIndex.title : headerIndex.name != null ? headerIndex.name : null;
+        const idx = headerIndex.title != null ? headerIndex.title : headerIndex.name != null ? headerIndex.name : headerIndex.utility_title != null ? headerIndex.utility_title : null;
         title = idx != null ? depTitleValue(row[idx]) : "";
       }
       if (!title) title = depTitleValue(row[0]);
@@ -754,7 +754,7 @@ function depImportTypesFromText(text) {
 
       if (headerIndex) {
         const utilIdIdx = headerIndex.utility_id != null ? headerIndex.utility_id : null;
-        const utilIdx = headerIndex.utility != null ? headerIndex.utility : null;
+        const utilIdx = headerIndex.utility != null ? headerIndex.utility : headerIndex.utility_title != null ? headerIndex.utility_title : null;
         if (utilIdIdx != null && row[utilIdIdx] != null && String(row[utilIdIdx]).trim()) {
           utilityId = String(row[utilIdIdx]).trim();
         } else if (utilIdx != null && row[utilIdx] != null && String(row[utilIdx]).trim()) {
@@ -784,10 +784,12 @@ function depImportTypesFromText(text) {
             ? headerIndex.title
             : headerIndex.name != null
               ? headerIndex.name
-              : headerIndex.description != null
-                ? headerIndex.description
-                : headerIndex.type != null
-                  ? headerIndex.type
+              : headerIndex.description_title != null
+                ? headerIndex.description_title
+                : headerIndex.description != null
+                  ? headerIndex.description
+                  : headerIndex.type != null
+                    ? headerIndex.type
                   : null;
         title = titleIdx != null ? depTitleValue(row[titleIdx]) : "";
       }

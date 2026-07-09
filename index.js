@@ -100,7 +100,19 @@ app.on("ready", async () => {
   }
 
   const excelPath = getExcelPath(app);
-  if (!fs.existsSync(excelPath)) {
+
+  if (fs.existsSync(excelPath) && !storage.isValidExcelFile(excelPath)) {
+    console.log(`Tools_Data.xlsx exists but is corrupted at ${excelPath}. Regenerating...`);
+    try {
+      fs.unlinkSync(excelPath);
+    } catch (e) {}
+    try {
+      storage.exportToolsExcel("");
+      console.log("Tools_Data.xlsx regenerated successfully.");
+    } catch (e) {
+      console.error("Failed to regenerate Tools_Data.xlsx:", e);
+    }
+  } else if (!fs.existsSync(excelPath)) {
     console.log(`Tools_Data.xlsx not found at ${excelPath}. Generating...`);
     try {
       storage.exportToolsExcel("");
@@ -113,6 +125,10 @@ app.on("ready", async () => {
   }
 
   createWindow("screens/login.html");
+});
+
+app.on("will-quit", () => {
+  storage.cancelToolsExcelSync();
 });
 
 app.on("window-all-closed", () => {

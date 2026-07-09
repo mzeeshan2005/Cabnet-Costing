@@ -382,7 +382,12 @@
                     <div class="card" style="width: 70%">
                         <div class="card-header py-1 d-flex justify-content-lg-between px-2">
                             <strong>Create Report</strong>
-                            <i class="zmdi zmdi-close " style="color: red; font-size: 32px; font-weight: bold; cursor: pointer" onclick="location.href='../../index.html'"></i>
+                            <div>
+                                <button id="export-excel" class="btn btn-success btn-sm mr-2" onclick="exportExcel()">
+                                    <i class="zmdi zmdi-download"></i> Export Tools to Excel
+                                </button>
+                                <i class="zmdi zmdi-close " style="color: red; font-size: 32px; font-weight: bold; cursor: pointer" onclick="location.href='../../index.html'"></i>
+                            </div>
                         </div>
                         <div class="card-body py-1 ">
                             <form id="form" class="form-horizontal">
@@ -509,6 +514,28 @@
                 </div>
             </div>
         </div>
+
+        <button class="d-none" data-toggle="modal" data-target="#export-excel-modal" id="show-export-modal"></button>
+        <div class="modal fade" id="export-excel-modal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static">
+            <div class="modal-dialog modal-sm" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Export Tools to Excel</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <p>This will overwrite Tools_Data.xlsx with current database data. Existing rows not yet imported will be preserved.</p>
+                        <p class="mb-0"><strong>Continue?</strong></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal" id="export-cancel">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="export-confirm">Export</button>
+                    </div>
+                </div>
+            </div>
+        </div>
         <!-- END PAGE CONTAINER-->
     </div>
 
@@ -551,6 +578,25 @@
           }
         })
   })
+
+  function exportExcel() {
+    document.getElementById('show-export-modal').click();
+  }
+
+  document.getElementById('export-confirm').addEventListener('click', () => {
+    window.jQuery('#export-excel-modal').modal('hide');
+    const btn = document.getElementById('export-excel');
+    btn.disabled = true;
+    btn.textContent = ' Exporting...';
+    file_manager1.exportToolsExcel('').then((res) => {
+      alert('Tools data exported to Excel successfully!');
+    }).catch((err) => {
+      alert('Export failed: ' + (err && err.message ? err.message : err));
+    }).finally(() => {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="zmdi zmdi-download"></i> Export Tools to Excel';
+    });
+  });
 
   document.getElementById('dpdb').addEventListener('mouseleave', (event) => {
     document.getElementById('dpdb').classList.add('d-none')

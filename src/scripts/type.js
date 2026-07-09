@@ -243,7 +243,7 @@ function isProbablyHeaderRow(row) {
   if (!row || row.length === 0) return false;
   for (let i = 0; i < row.length; i++) {
     const v = row[i] != null ? String(row[i]).trim().toLowerCase() : "";
-    if (v === "id" || v === "title" || v === "name" || v === "type" || v === "description") return true;
+    if ((v === "id" || v.endsWith(" id") || v.endsWith(" title")) || v === "title" || v === "name" || v === "type" || v === "description") return true;
   }
   return false;
 }
@@ -310,7 +310,7 @@ function importTypesFromText(text) {
       let utilityId = selectedUtilityId;
       if (headerIndex) {
         const utilIdIdx = headerIndex.utility_id != null ? headerIndex.utility_id : null;
-        const utilIdx = headerIndex.utility != null ? headerIndex.utility : null;
+        const utilIdx = headerIndex.utility != null ? headerIndex.utility : headerIndex.utility_title != null ? headerIndex.utility_title : null;
         if (utilIdIdx != null && row[utilIdIdx] != null && String(row[utilIdIdx]).trim()) {
           utilityId = String(row[utilIdIdx]).trim();
         } else if (utilIdx != null && row[utilIdx] != null && String(row[utilIdx]).trim()) {
@@ -326,7 +326,7 @@ function importTypesFromText(text) {
 
       let title = "";
       if (headerIndex) {
-        const titleIdx = headerIndex.title != null ? headerIndex.title : headerIndex.name != null ? headerIndex.name : headerIndex.description != null ? headerIndex.description : null;
+        const titleIdx = headerIndex.title != null ? headerIndex.title : headerIndex.name != null ? headerIndex.name : headerIndex.description_title != null ? headerIndex.description_title : headerIndex.description != null ? headerIndex.description : null;
         title = titleIdx != null ? toTitleValue(row[titleIdx]) : "";
       }
       if (!title) title = toTitleValue(row.length >= 2 ? row[1] : row[0]);
@@ -391,7 +391,7 @@ function depIsProbablyHeaderRow(row) {
   if (!row || row.length === 0) return false;
   for (let i = 0; i < row.length; i++) {
     const v = row[i] != null ? String(row[i]).trim().toLowerCase() : "";
-    if (v === "title" || v === "name" || v === "utility" || v === "utility_id") return true;
+    if (v === "title" || v === "name" || v === "utility" || v === "utility_id" || v.endsWith(" id") || v.endsWith(" title")) return true;
   }
   return false;
 }
@@ -444,7 +444,7 @@ function depImportUtilitiesFromText(text) {
       if (!row || row.length === 0) return;
       let title = "";
       if (headerIndex) {
-        const idx = headerIndex.title != null ? headerIndex.title : headerIndex.name != null ? headerIndex.name : null;
+        const idx = headerIndex.title != null ? headerIndex.title : headerIndex.name != null ? headerIndex.name : headerIndex.utility_title != null ? headerIndex.utility_title : null;
         title = idx != null ? depTitleValue(row[idx]) : "";
       }
       if (!title) title = depTitleValue(row[0]);

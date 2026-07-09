@@ -1937,7 +1937,8 @@ document.getElementById('confirm').addEventListener('click', (event) => {
           .then(res => {
             const old_pricing = res;
             const loadedPinfo = pricing["pinfo"] || null;
-            const shouldUpdateExisting = !!(loadedPinfo && loadedPinfo.id && loadedPinfo.is_quotation === document.getElementById('is_quotation').checked);
+            const refNoChanged = !!(loadedPinfo && String(loadedPinfo.manual_no || '') !== String(document.getElementById('manual-input').value || ''));
+            const shouldUpdateExisting = !!(loadedPinfo && loadedPinfo.id && loadedPinfo.is_quotation === document.getElementById('is_quotation').checked) && !refNoChanged;
             const refNo = document.getElementById('manual-input').value;
             const doSave = () => {
               if (shouldUpdateExisting) {
@@ -1989,8 +1990,10 @@ document.getElementById('confirm').addEventListener('click', (event) => {
                 const otherId = p && p.pinfo && p.pinfo.id != null ? String(p.pinfo.id) : null;
                 return otherId !== loadedId && String(p.pinfo.manual_no || '') === refNo;
               });
-              if (duplicateRef) {
-                document.getElementById('ref-confirm-message').textContent = 'Reference number "' + refNo + '" already exists in another pricing. Do you want to save with the same reference number?';
+              if (duplicateRef || shouldUpdateExisting) {
+                document.getElementById('ref-confirm-message').textContent = duplicateRef
+                  ? 'Reference number "' + refNo + '" already exists in another pricing. Do you want to save with the same reference number?'
+                  : 'You are updating quotation "' + refNo + '". Do you want to continue?';
                 document.getElementById('ref-confirm-save').onclick = () => {
                   window.jQuery('#ref-confirm-modal').modal('hide');
                   doSave();

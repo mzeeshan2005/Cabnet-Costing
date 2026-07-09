@@ -635,7 +635,7 @@ function isProbablyHeaderRow(row) {
   if (!row || row.length === 0) return false;
   for (let i = 0; i < row.length; i++) {
     const v = row[i] != null ? String(row[i]).trim().toLowerCase() : "";
-    if (v === "id" || v === "title" || v === "name" || v === "utility") return true;
+    if ((v === "id" || v.endsWith(" id") || v.endsWith(" title")) || v === "title" || v === "name" || v === "utility") return true;
   }
   return false;
 }

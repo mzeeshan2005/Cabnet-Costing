@@ -931,281 +931,26 @@ function initSchema(database) {
   if (!codesCols.includes("wall_bracket")) database.exec("ALTER TABLE codes ADD COLUMN wall_bracket REAL NOT NULL DEFAULT 0");
 }
 
-function normalizedToolTitle(value) {
-  return value != null ? String(value).trim().toLowerCase() : "";
-}
-
-function scopedToolPart(value) {
-  return value != null ? String(value).trim() : "";
-}
-
-function visibleCodeToolPart(row) {
-  const code = row && row.code != null ? String(row.code).trim().toLowerCase() : "";
-  if (code) return code;
-  return scopedToolPart(row && row.code_id);
-}
-
-function duplicateToolKey(base, row) {
-  const title = normalizedToolTitle(row && row.title);
-  if (!title) return "";
-
-  if (base === ".utilities.json") {
-    return title;
-  }
-
-  if (base === ".types.json") {
-    return `${scopedToolPart(row && row.utility_id)}::${title}`;
-  }
-
-  if (base === ".codes.json") {
-    return `${scopedToolPart(row && row.utility_id)}::${scopedToolPart(row && row.type_id)}::${title}`;
-  }
-
-  if (
-    base === ".doors.json" ||
-    base === ".hardwares.json" ||
-    base === ".handlers.json" ||
-    base === ".shelves.json"
-  ) {
-    return `${scopedToolPart(row && row.utility_id)}::${visibleCodeToolPart(row)}::${title}`;
-  }
-
-  return "";
-}
-
-function hasDuplicateToolRows(base, data) {
-  if (!Array.isArray(data)) return false;
-  const seen = new Set();
-
-  for (const row of data) {
-    const key = duplicateToolKey(base, row);
-    if (!key) continue;
-    if (seen.has(key)) return true;
-    seen.add(key);
-  }
-
-  return false;
-}
-
-function mergeDuplicateIds(database, table, groupByColumns, childRefs) {
-  const groupExpr = groupByColumns.concat(["LOWER(TRIM(title))"]).join(", ");
-  const rows = database
-    .prepare(
-      `
-        SELECT MIN(id) AS keep_id, GROUP_CONCAT(id) AS ids
-        FROM ${table}
-        GROUP BY ${groupExpr}
-        HAVING COUNT(*) > 1
-      `
-    )
-    .all();
-
-  if (!rows || rows.length === 0) return;
-
-  const updates = (childRefs || []).map((ref) =>
-    database.prepare(`UPDATE ${ref.table} SET ${ref.column} = ? WHERE ${ref.column} = ?`)
-  );
-  const del = database.prepare(`DELETE FROM ${table} WHERE id = ?`);
-
-  for (const row of rows) {
-    const keepId = row && row.keep_id != null ? Number(row.keep_id) : null;
-    const ids = row && row.ids != null ? String(row.ids).split(",").map((v) => Number(v)) : [];
-    if (keepId == null || !ids.length) continue;
-
-    for (const id of ids) {
-      if (id === keepId || Number.isNaN(id)) continue;
-      for (const stmt of updates) stmt.run(keepId, id);
-      del.run(id);
-    }
-  }
-}
-
-function remapPricingPayloadToolIds(database, fieldName, idMap) {
-  if (!idMap || idMap.size === 0) return;
-
-  const rows = database.prepare("SELECT id, payload_json FROM pricings").all();
-  const update = database.prepare("UPDATE pricings SET payload_json = ? WHERE id = ?");
-
-  for (const row of rows) {
-    if (!row || row.payload_json == null) continue;
-
-    let payload = null;
-    try {
-      payload = JSON.parse(row.payload_json);
-    } catch (e) {
-      continue;
-    }
-
-    if (!payload || typeof payload !== "object") continue;
-
-    let changed = false;
-    Object.keys(payload).forEach((key) => {
-      if (key === "pinfo") return;
-      const items = payload[key];
-      if (!Array.isArray(items)) return;
-
-      items.forEach((item) => {
-        if (!item || item[fieldName] == null || item[fieldName] === "") return;
-        const currentId = String(item[fieldName]);
-        const mappedId = idMap.get(currentId);
-        if (mappedId == null || String(mappedId) === currentId) return;
-        item[fieldName] = String(mappedId);
-        changed = true;
-      });
-    });
-
-    if (changed) {
-      update.run(JSON.stringify(payload), row.id);
-    }
-  }
-}
-
-function mergeVisibleCodeDuplicates(database, table, pricingField) {
-  const rows = database
-    .prepare(
-      `
-        SELECT MIN(t.id) AS keep_id, GROUP_CONCAT(t.id) AS ids
-        FROM ${table} t
-        LEFT JOIN codes c ON c.id = t.code_id
-        GROUP BY
-          COALESCE(t.utility_id, -1),
-          LOWER(TRIM(t.title)),
-          LOWER(TRIM(COALESCE(c.title, '')))
-        HAVING COUNT(*) > 1
-      `
-    )
-    .all();
-
-  if (!rows || rows.length === 0) return;
-
-  const idMap = new Map();
-  const del = database.prepare(`DELETE FROM ${table} WHERE id = ?`);
-
-  for (const row of rows) {
-    const keepId = row && row.keep_id != null ? Number(row.keep_id) : null;
-    const ids = row && row.ids != null ? String(row.ids).split(",").map((v) => Number(v)) : [];
-    if (keepId == null || !ids.length) continue;
-
-    for (const id of ids) {
-      if (id === keepId || Number.isNaN(id)) continue;
-      idMap.set(String(id), String(keepId));
-      del.run(id);
-    }
-  }
-
-  remapPricingPayloadToolIds(database, pricingField, idMap);
-}
-
-function createVisibleCodeUniquenessTriggers(database, table) {
-  const insertTrigger = `trg_${table}_visible_code_unique_insert`;
-  const updateTrigger = `trg_${table}_visible_code_unique_update`;
-
-  database.exec(`
-    DROP TRIGGER IF EXISTS ${insertTrigger};
-    DROP TRIGGER IF EXISTS ${updateTrigger};
-
-    CREATE TRIGGER ${insertTrigger}
-    BEFORE INSERT ON ${table}
-    FOR EACH ROW
-    BEGIN
-      SELECT CASE
-        WHEN EXISTS (
-          SELECT 1
-          FROM ${table} existing
-          LEFT JOIN codes existing_code ON existing_code.id = existing.code_id
-          LEFT JOIN codes new_code ON new_code.id = NEW.code_id
-          WHERE existing.id != NEW.id
-            AND COALESCE(existing.utility_id, -1) = COALESCE(NEW.utility_id, -1)
-            AND LOWER(TRIM(existing.title)) = LOWER(TRIM(NEW.title))
-            AND LOWER(TRIM(COALESCE(existing_code.title, ''))) = LOWER(TRIM(COALESCE(new_code.title, '')))
-        )
-        THEN RAISE(ABORT, 'Duplicate title and code already exists.')
-      END;
-    END;
-
-    CREATE TRIGGER ${updateTrigger}
-    BEFORE UPDATE ON ${table}
-    FOR EACH ROW
-    BEGIN
-      SELECT CASE
-        WHEN EXISTS (
-          SELECT 1
-          FROM ${table} existing
-          LEFT JOIN codes existing_code ON existing_code.id = existing.code_id
-          LEFT JOIN codes new_code ON new_code.id = NEW.code_id
-          WHERE existing.id != OLD.id
-            AND COALESCE(existing.utility_id, -1) = COALESCE(NEW.utility_id, -1)
-            AND LOWER(TRIM(existing.title)) = LOWER(TRIM(NEW.title))
-            AND LOWER(TRIM(COALESCE(existing_code.title, ''))) = LOWER(TRIM(COALESCE(new_code.title, '')))
-        )
-        THEN RAISE(ABORT, 'Duplicate title and code already exists.')
-      END;
-    END;
-  `);
-}
-
 function ensureToolUniqueness(database) {
   const tx = database.transaction(() => {
-    mergeDuplicateIds(database, "utilities", [], [
-      { table: "types", column: "utility_id" },
-      { table: "codes", column: "utility_id" },
-      { table: "doors", column: "utility_id" },
-      { table: "hardwares", column: "utility_id" },
-      { table: "handlers", column: "utility_id" },
-      { table: "shelves", column: "utility_id" },
-    ]);
-
-    mergeDuplicateIds(database, "types", ["COALESCE(utility_id, -1)"], [
-      { table: "codes", column: "type_id" },
-      { table: "doors", column: "type_id" },
-      { table: "hardwares", column: "type_id" },
-      { table: "handlers", column: "type_id" },
-      { table: "shelves", column: "type_id" },
-    ]);
-
-    mergeDuplicateIds(database, "codes", ["COALESCE(utility_id, -1)", "COALESCE(type_id, -1)"], [
-      { table: "doors", column: "code_id" },
-      { table: "hardwares", column: "code_id" },
-      { table: "handlers", column: "code_id" },
-      { table: "shelves", column: "code_id" },
-    ]);
-
-    mergeVisibleCodeDuplicates(database, "doors", "door_panel");
-    mergeVisibleCodeDuplicates(database, "hardwares", "hardware");
-    mergeVisibleCodeDuplicates(database, "handlers", "handler");
-    mergeVisibleCodeDuplicates(database, "shelves", "shelves");
-
     database.exec(`
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_utilities_unique_title_nocase
-      ON utilities(LOWER(TRIM(title)));
-
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_types_unique_scope_title
-      ON types(COALESCE(utility_id, -1), LOWER(TRIM(title)));
-
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_codes_unique_scope_title
-      ON codes(COALESCE(utility_id, -1), COALESCE(type_id, -1), LOWER(TRIM(title)));
-
+      DROP INDEX IF EXISTS idx_utilities_unique_title_nocase;
+      DROP INDEX IF EXISTS idx_types_unique_scope_title;
+      DROP INDEX IF EXISTS idx_codes_unique_scope_title;
       DROP INDEX IF EXISTS idx_doors_unique_scope_title;
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_doors_unique_scope_title
-      ON doors(COALESCE(utility_id, -1), COALESCE(code_id, -1), LOWER(TRIM(title)));
-
       DROP INDEX IF EXISTS idx_hardwares_unique_scope_title;
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_hardwares_unique_scope_title
-      ON hardwares(COALESCE(utility_id, -1), COALESCE(code_id, -1), LOWER(TRIM(title)));
-
       DROP INDEX IF EXISTS idx_handlers_unique_scope_title;
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_handlers_unique_scope_title
-      ON handlers(COALESCE(utility_id, -1), COALESCE(code_id, -1), LOWER(TRIM(title)));
-
       DROP INDEX IF EXISTS idx_shelves_unique_scope_title;
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_shelves_unique_scope_title
-      ON shelves(COALESCE(utility_id, -1), COALESCE(code_id, -1), LOWER(TRIM(title)));
-    `);
 
-    createVisibleCodeUniquenessTriggers(database, "doors");
-    createVisibleCodeUniquenessTriggers(database, "hardwares");
-    createVisibleCodeUniquenessTriggers(database, "handlers");
-    createVisibleCodeUniquenessTriggers(database, "shelves");
+      DROP TRIGGER IF EXISTS trg_doors_visible_code_unique_insert;
+      DROP TRIGGER IF EXISTS trg_doors_visible_code_unique_update;
+      DROP TRIGGER IF EXISTS trg_hardwares_visible_code_unique_insert;
+      DROP TRIGGER IF EXISTS trg_hardwares_visible_code_unique_update;
+      DROP TRIGGER IF EXISTS trg_handlers_visible_code_unique_insert;
+      DROP TRIGGER IF EXISTS trg_handlers_visible_code_unique_update;
+      DROP TRIGGER IF EXISTS trg_shelves_visible_code_unique_insert;
+      DROP TRIGGER IF EXISTS trg_shelves_visible_code_unique_update;
+    `);
   });
 
   tx();
@@ -2031,9 +1776,6 @@ function load(filePath) {
 
 function write(filePath, data) {
   const base = path.basename(filePath);
-  if (hasDuplicateToolRows(base, data)) {
-    return "duplicate";
-  }
   if (!SQLITE_TARGET_BASENAMES.has(base)) {
     fs.writeFileSync(filePath, JSON.stringify(data));
     return "success";
@@ -2107,7 +1849,7 @@ function searchCodes(opts) {
 
   let sql = `
     SELECT
-      c.id, c.title, c.rate, c.back_area, c.secondary_top, c.edging, c.screws,
+      c.id, c.title, c.rate, c.back_area, c.secondary_top, c.edging, c.screws, c.wall_bracket,
       c.utility_id, u.title AS utility,
       c.type_id, t.title AS type
     FROM codes c
@@ -2129,6 +1871,7 @@ function searchCodes(opts) {
       secondary_top: String(r.secondary_top),
       edging: String(r.edging),
       screws: String(r.screws),
+      wall_bracket: String(r.wall_bracket != null ? r.wall_bracket : 0),
       utility_id: r.utility_id != null ? String(r.utility_id) : "",
       utility: r.utility != null ? r.utility : "",
       type_id: r.type_id != null ? String(r.type_id) : "",

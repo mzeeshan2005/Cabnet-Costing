@@ -461,29 +461,35 @@ function importHardwaresFromText(text) {
     const codes = Array.isArray(results[3]) ? results[3] : [];
 
     let maxId = 0;
-    const seen = {};
 
     existing.forEach((h) => {
       const idNum = h && h.id != null && !isNaN(Number(h.id)) ? Number(h.id) : 0;
       if (idNum > maxId) maxId = idNum;
-      const u = h && h.utility_id != null ? String(h.utility_id) : "";
-      const t = h && h.type_id != null ? String(h.type_id) : "";
-      const c = h && h.code_id != null ? String(h.code_id) : "";
-      const title = h && h.title != null ? String(h.title).trim().toLowerCase() : "";
-      if (u && t && c && title) seen[u + "::" + t + "::" + c + "::" + title] = true;
     });
     listData.forEach((h) => {
       const idNum = h && h.id != null && !isNaN(Number(h.id)) ? Number(h.id) : 0;
       if (idNum > maxId) maxId = idNum;
-      const u = h && h.utility_id != null ? String(h.utility_id) : "";
-      const t = h && h.type_id != null ? String(h.type_id) : "";
-      const c = h && h.code_id != null ? String(h.code_id) : "";
-      const title = h && h.title != null ? String(h.title).trim().toLowerCase() : "";
-      if (u && t && c && title) seen[u + "::" + t + "::" + c + "::" + title] = true;
     });
 
+    function allColsKey(h) {
+      const uId = h && h.utility_id != null ? String(h.utility_id) : "";
+      const typeIdVal = h && h.type_id != null ? String(h.type_id) : "";
+      const cId = h && h.code_id != null ? String(h.code_id) : "";
+      const t = h && h.title != null ? String(h.title).toLowerCase().trim() : "";
+      const rateVal = h && h.rate != null ? String(h.rate) : "";
+      const sliderVal = h && h.slider != null ? String(h.slider) : "";
+      const liftVal = h && h.lift != null ? String(h.lift) : "";
+      const hangerPipeVal = h && h.hanger_pipe != null ? String(h.hanger_pipe) : "";
+      const hangerPipeFittingVal = h && h.hanger_pipe_fitting != null ? String(h.hanger_pipe_fitting) : "";
+      const locksVal = h && h.locks != null ? String(h.locks) : "";
+      const drawerHandlesVal = h && h.drawer_handles != null ? String(h.drawer_handles) : "";
+      return uId + "::" + typeIdVal + "::" + cId + "::" + t + "::" + rateVal + "::" + sliderVal + "::" + liftVal + "::" + hangerPipeVal + "::" + hangerPipeFittingVal + "::" + locksVal + "::" + drawerHandlesVal;
+    }
+    const existingByKey = {};
+    existing.forEach((h) => { if (h) existingByKey[allColsKey(h)] = true; });
+    listData.forEach((h) => { if (h) existingByKey[allColsKey(h)] = true; });
+
     let added = 0;
-    let skipped = 0;
     let invalid = 0;
 
     usable.forEach((row) => {
@@ -548,15 +554,6 @@ function importHardwaresFromText(text) {
         title = toTitleValue(hasLeadingId ? row[1] : row[0]);
       }
       if (!title) return;
-
-      const key = utilityId + "::" + typeId + "::" + codeId + "::" + title.toLowerCase();
-      if (seen[key]) {
-        skipped += 1;
-        return;
-      }
-
-      maxId += 1;
-      const id = String(maxId);
 
       let cursor = 0;
       if (!headerIndex) {
@@ -647,6 +644,12 @@ function importHardwaresFromText(text) {
       const locks = toNumOrFallback(headerIndex ? row[locksIdx] : row[cursor + 5], locksDefault || 0);
       const drawer_handles = toNumOrFallback(headerIndex ? row[drawerHandlesIdx] : row[cursor + 6], drawerHandlesDefault || 0);
 
+      const dedupKey = utilityId + "::" + typeId + "::" + codeId + "::" + title.toLowerCase().trim() + "::" + String(rate) + "::" + String(slider) + "::" + String(lift) + "::" + String(hanger_pipe) + "::" + String(hanger_pipe_fitting) + "::" + String(locks) + "::" + String(drawer_handles);
+      if (existingByKey[dedupKey]) return;
+
+      maxId += 1;
+      const id = String(maxId);
+
       const utilityRow = utilities.find((u) => u && String(u.id) === String(utilityId));
       const typeRow = types.find((t) => t && String(t.id) === String(typeId));
       const codeRow = codes.find((c) => c && String(c.id) === String(codeId));
@@ -672,7 +675,6 @@ function importHardwaresFromText(text) {
         code: codeText,
       });
 
-      seen[key] = true;
       added += 1;
     });
 
@@ -686,7 +688,7 @@ function importHardwaresFromText(text) {
       idEl.innerHTML = String(localMax + 1);
     }
 
-    return { added: added, skipped: skipped, invalid: invalid };
+    return { added: added, invalid: invalid };
   });
 }
 
@@ -838,17 +840,13 @@ function depImportUtilitiesFromText(text) {
   return file_manager.loadFile(path.join(__dirname, "../../db/.utilities.json")).then((res) => {
     const existing = Array.isArray(res) ? res : [];
     let maxId = 0;
-    const seen = {};
     const rowsToMerge = [];
     existing.forEach((u) => {
       const idNum = u && u.id != null && !isNaN(Number(u.id)) ? Number(u.id) : 0;
       if (idNum > maxId) maxId = idNum;
-      const title = u && u.title != null ? String(u.title).trim().toLowerCase() : "";
-      if (title) seen[title] = true;
     });
 
     let added = 0;
-    let skipped = 0;
     usable.forEach((row) => {
       if (!row || row.length === 0) return;
       let title = "";
@@ -858,22 +856,16 @@ function depImportUtilitiesFromText(text) {
       }
       if (!title) title = depTitleValue(row[0]);
       if (!title) return;
-      const key = title.toLowerCase();
-      if (seen[key]) {
-        skipped += 1;
-        return;
-      }
       maxId += 1;
       rowsToMerge.push({ id: String(maxId), title: title });
-      seen[key] = true;
       added += 1;
     });
 
     if (rowsToMerge.length === 0) {
-      return { added: added, skipped: skipped };
+      return { added: added };
     }
 
-    return file_manager.mergeUtilities(rowsToMerge).then(() => ({ added: added, skipped: skipped }));
+    return file_manager.mergeUtilities(rowsToMerge).then(() => ({ added: added }));
   });
 }
 
@@ -891,17 +883,12 @@ function depImportTypesFromText(text) {
     const utilities = Array.isArray(results[1]) ? results[1] : [];
 
     let maxId = 0;
-    const seen = {};
     existing.forEach((t) => {
       const idNum = t && t.id != null && !isNaN(Number(t.id)) ? Number(t.id) : 0;
       if (idNum > maxId) maxId = idNum;
-      const utilId = t && t.utility_id != null ? String(t.utility_id) : "";
-      const title = t && t.title != null ? String(t.title).trim().toLowerCase() : "";
-      if (utilId && title) seen[utilId + "::" + title] = true;
     });
 
     let added = 0;
-    let skipped = 0;
     let invalid = 0;
 
     usable.forEach((row) => {
@@ -954,12 +941,6 @@ function depImportTypesFromText(text) {
       if (!title) title = depTitleValue(row.length >= 2 ? row[1] : row[0]);
       if (!title) return;
 
-      const key = utilityId + "::" + title.toLowerCase();
-      if (seen[key]) {
-        skipped += 1;
-        return;
-      }
-
       if (!utilityName) {
         const uRow = utilities.find((u) => u && u.id != null && String(u.id) === String(utilityId));
         utilityName = uRow && uRow.title != null ? String(uRow.title) : "";
@@ -967,15 +948,14 @@ function depImportTypesFromText(text) {
 
       maxId += 1;
       rowsToMerge.push({ id: String(maxId), title: title, utility_id: utilityId, utility: utilityName });
-      seen[key] = true;
       added += 1;
     });
 
     if (rowsToMerge.length === 0) {
-      return { added: added, skipped: skipped, invalid: invalid };
+      return { added: added, invalid: invalid };
     }
 
-    return file_manager.mergeTypes(rowsToMerge).then(() => ({ added: added, skipped: skipped, invalid: invalid }));
+    return file_manager.mergeTypes(rowsToMerge).then(() => ({ added: added, invalid: invalid }));
   });
 }
 
@@ -997,18 +977,12 @@ function depImportCodesFromText(text) {
     const types = Array.isArray(results[2]) ? results[2] : [];
 
     let maxId = 0;
-    const seen = {};
     existing.forEach((c) => {
       const idNum = c && c.id != null && !isNaN(Number(c.id)) ? Number(c.id) : 0;
       if (idNum > maxId) maxId = idNum;
-      const u = c && c.utility_id != null ? String(c.utility_id) : "";
-      const t = c && c.type_id != null ? String(c.type_id) : "";
-      const title = c && c.title != null ? String(c.title).trim().toLowerCase() : "";
-      if (u && t && title) seen[u + "::" + t + "::" + title] = true;
     });
 
     let added = 0;
-    let skipped = 0;
     let invalid = 0;
 
     usable.forEach((row) => {
@@ -1075,12 +1049,6 @@ function depImportCodesFromText(text) {
       if (!title) title = depTitleValue(row.length >= 3 ? row[2] : row.length >= 2 ? row[1] : row[0]);
       if (!title) return;
 
-      const key = utilityId + "::" + typeId + "::" + title.toLowerCase();
-      if (seen[key]) {
-        skipped += 1;
-        return;
-      }
-
       if (!utilityName) {
         const uRow = utilities.find((u) => u && u.id != null && String(u.id) === String(utilityId));
         utilityName = uRow && uRow.title != null ? String(uRow.title) : "";
@@ -1119,13 +1087,12 @@ function depImportCodesFromText(text) {
         screws: String(screws),
         wall_bracket: String(wall_bracket),
       });
-      seen[key] = true;
       added += 1;
     });
 
     return file_manager
       .writeFile(path.join(__dirname, "../../db/.codes.json"), existing)
-      .then(() => ({ added: added, skipped: skipped, invalid: invalid }));
+      .then(() => ({ added: added, invalid: invalid }));
   });
 }
 
@@ -1372,11 +1339,7 @@ document.getElementById("confirm").addEventListener("click", (event) => {
                         clearFields();
                         populateTable();
                       } else {
-                        if (file_manager.isDuplicateWriteResult(res)) {
-                          window.appUi.notify(file_manager.getDuplicateToolMessage());
-                        } else {
-                          window.appUi.notify("Could Not Saved!");
-                        }
+                        window.appUi.notify("Could Not Saved!");
                         document.getElementById("cancel").click();
                         document.getElementById("pass").value = "";
                       }
@@ -1458,8 +1421,6 @@ document.getElementById("confirm").addEventListener("click", (event) => {
                           document.getElementById("save").disabled = listData.length === 0;
                           document.getElementById("cancel").click();
                           document.getElementById("pass").value = "";
-                        } else if (file_manager.isDuplicateWriteResult(saveRes)) {
-                          window.appUi.notify(file_manager.getDuplicateToolMessage());
                         } else {
                           window.appUi.notify("Could Not Saved!");
                         }
@@ -1502,8 +1463,6 @@ document.getElementById("confirm").addEventListener("click", (event) => {
                           }
                           document.getElementById("cancel").click();
                           document.getElementById("pass").value = "";
-                        } else if (file_manager.isDuplicateWriteResult(res)) {
-                          window.appUi.notify(file_manager.getDuplicateToolMessage());
                         } else {
                           window.appUi.notify("Could Not Saved!");
                         }

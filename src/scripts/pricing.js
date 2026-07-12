@@ -18,6 +18,8 @@ let custom_val = 0.0
 let profitMarginPercentage = 0;
 let baseGrossAmount = 0;
 let breakdownRefreshToken = 0;
+let editSavedRawBaseCost = null;
+let editSavedAdditional = null;
 
 function isProfitMarginApplied() {
   const el = document.getElementById('apply-profit-margin');
@@ -51,15 +53,35 @@ function updateCurrentItemUnitAndTotal() {
   const unitEl = document.getElementById('unit');
   const totalEl = document.getElementById('total');
   const qtyEl = document.getElementById('qty');
-  if (!unitEl || !totalEl || !qtyEl) return;
+  if (!unitEl || !totalEl || !totalEl) return;
 
   custom_val = getCurrentAdditionalValue();
-  const baseUnit = getCurrentFormBaseUnit();
+  let baseUnit;
+  if (editSavedRawBaseCost != null) {
+    const currentAdditional = getCurrentAdditionalValue();
+    const additionalDelta = currentAdditional - (editSavedAdditional != null ? editSavedAdditional : 0);
+    baseUnit = editSavedRawBaseCost + additionalDelta;
+  } else {
+    baseUnit = getCurrentFormBaseUnit();
+  }
   const unit = Number((baseUnit * getProfitMarginFactor()).toFixed(2));
   const qty = numValue(qtyEl.value);
 
   unitEl.value = unit === 0 ? "0" : unit.toFixed(2);
   totalEl.innerHTML = String(Math.round(unit * qty));
+}
+
+function recalcGrossFromItems() {
+  let total = 0;
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i];
+    if (it && it.total != null) {
+      total += Number(it.total);
+    }
+  }
+  baseGrossAmount = total;
+  refreshGrossAmount();
+  discount_and_tax();
 }
 
 function recomputeQuotationPricesFromBase() {
@@ -423,7 +445,7 @@ document.getElementById('delete').addEventListener('click', (event) => {
   if (document.getElementById('checkbox-all').checked)
     document.getElementById('checkbox-all').click()
   populate_table();
-  discount_and_tax()
+  recalcGrossFromItems();
 })
 
 
@@ -838,6 +860,8 @@ document.getElementById('edit').addEventListener('click', (event) => {
   document.getElementById('additional').value = item.additional;
   document.getElementById('unit').value = item.unit;
   document.getElementById('total').innerHTML = item.total;
+  editSavedRawBaseCost = item.raw_base_cost != null ? Number(item.raw_base_cost) : null;
+  editSavedAdditional = getCurrentAdditionalValue();
   refreshNewCostBreakdown();
 
   // item = {
@@ -1325,6 +1349,7 @@ function save_dropdown(event, drp, drp_text) {
 }
 
 function utility_change(event) {
+  editSavedRawBaseCost = null;
   event.preventDefault();
   const utility = event.target.value;
   document.getElementById('type').innerHTML = ""
@@ -1370,6 +1395,7 @@ function utility_change(event) {
 }
 
 function type_change(event) {
+  editSavedRawBaseCost = null;
   event.preventDefault();
   const type = event.target.value;
   document.getElementById('door-panel').innerHTML = ''
@@ -1414,6 +1440,7 @@ function type_change(event) {
 }
 
 function code_change(event) {
+  editSavedRawBaseCost = null;
   event.preventDefault();
   const code = event.target.value;
   if (code === '') {
@@ -1707,6 +1734,7 @@ document.getElementById('form-pricing').addEventListener('submit', (event) => {
   document.getElementById('save').disabled = false;
   document.getElementById('unit').readOnly = true;
   populate_table()
+  recalcGrossFromItems()
   clear_dropdowns()
   document.getElementById('edit').disabled = true;
 })
@@ -1716,6 +1744,7 @@ document.getElementById('additional').addEventListener('input', () => {
 })
 
 document.getElementById('is_shelve').addEventListener('change', (event) => {
+  editSavedRawBaseCost = null;
   const val = event.target.value;
   if (val === "yes" && shelve === 0) {
     // document.getElementById('unit').value = parseFloat(document.getElementById('unit').value) - shelve;
@@ -1752,10 +1781,12 @@ document.getElementById('is_shelve').addEventListener('change', (event) => {
 })
 
 document.getElementById('qty').addEventListener('change', (event) => {
+  editSavedRawBaseCost = null;
   updateCurrentItemUnitAndTotal();
 })
 
 document.getElementById('door-panel').addEventListener('change', (event) => {
+  editSavedRawBaseCost = null;
   const val = event.target.value;
   document.getElementById('additional').value = 0;
   custom_val = 0;
@@ -1791,6 +1822,7 @@ document.getElementById('door-panel').addEventListener('change', (event) => {
 })
 
 document.getElementById('handler').addEventListener('change', (event) => {
+  editSavedRawBaseCost = null;
   const val = event.target.value;
   document.getElementById('additional').value = 0;
   custom_val = 0;
@@ -1823,6 +1855,7 @@ document.getElementById('handler').addEventListener('change', (event) => {
 })
 
 document.getElementById('hardware').addEventListener('change', (event) => {
+  editSavedRawBaseCost = null;
   const val = event.target.value;
   document.getElementById('additional').value = 0;
   custom_val = 0;
@@ -1855,6 +1888,7 @@ document.getElementById('hardware').addEventListener('change', (event) => {
 })
 
 document.getElementById('shelves').addEventListener('change', (event) => {
+  editSavedRawBaseCost = null;
   const val = event.target.value;
   if (val === '') {
     shelve = 0
@@ -1924,6 +1958,7 @@ document.getElementById('delivery-charges').addEventListener('change', () => {
 })
 
 document.getElementById('apply-profit-margin').addEventListener('change', (event) => {
+  editSavedRawBaseCost = null;
   updateCurrentItemUnitAndTotal();
 })
 
@@ -2156,6 +2191,7 @@ document.getElementById('confirm-1').addEventListener('click', (event) => {
           })
           ensurePricingTotalsEnabled();
           populate_table();
+          recalcGrossFromItems();
         }
       })
     })

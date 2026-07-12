@@ -284,25 +284,24 @@ function importTypesFromText(text) {
     const utilities = Array.isArray(results[1]) ? results[1] : [];
 
     let maxId = 0;
-    const seen = {};
+    const existingByKey = {};
 
     existing.forEach((t) => {
       const idNum = t && t.id != null && !isNaN(Number(t.id)) ? Number(t.id) : 0;
       if (idNum > maxId) maxId = idNum;
-      const util = t && t.utility_id != null ? String(t.utility_id) : "";
-      const title = t && t.title != null ? String(t.title).trim().toLowerCase() : "";
-      if (util && title) seen[util + "::" + title] = true;
+      if (t && t.utility_id != null && t.title != null) {
+        existingByKey[String(t.utility_id) + "::" + String(t.title).toLowerCase().trim()] = true;
+      }
     });
     listData.forEach((t) => {
       const idNum = t && t.id != null && !isNaN(Number(t.id)) ? Number(t.id) : 0;
       if (idNum > maxId) maxId = idNum;
-      const util = t && t.utility_id != null ? String(t.utility_id) : "";
-      const title = t && t.title != null ? String(t.title).trim().toLowerCase() : "";
-      if (util && title) seen[util + "::" + title] = true;
+      if (t && t.utility_id != null && t.title != null) {
+        existingByKey[String(t.utility_id) + "::" + String(t.title).toLowerCase().trim()] = true;
+      }
     });
 
     let added = 0;
-    let skipped = 0;
     let invalid = 0;
 
     usable.forEach((row) => {
@@ -332,21 +331,17 @@ function importTypesFromText(text) {
       if (!title) title = toTitleValue(row.length >= 2 ? row[1] : row[0]);
       if (!title) return;
 
-      const key = utilityId + "::" + title.toLowerCase();
-      if (seen[key]) {
-        skipped += 1;
-        return;
-      }
+      const key = String(utilityId) + "::" + title.toLowerCase().trim();
+      if (existingByKey[key]) return;
 
       maxId += 1;
       const id = String(maxId);
 
       listData.push({ id: id, title: title, utility_id: utilityId, utility: "" });
-      seen[key] = true;
       added += 1;
     });
 
-    return { added: added, skipped: skipped, invalid: invalid };
+    return { added: added, invalid: invalid };
   });
 }
 
@@ -429,17 +424,13 @@ function depImportUtilitiesFromText(text) {
   return file_manager.loadFile(path.join(__dirname, "../../db/.utilities.json")).then((res) => {
     const existing = Array.isArray(res) ? res : [];
     let maxId = 0;
-    const seen = {};
     const rowsToMerge = [];
     existing.forEach((u) => {
       const idNum = u && u.id != null && !isNaN(Number(u.id)) ? Number(u.id) : 0;
       if (idNum > maxId) maxId = idNum;
-      const title = u && u.title != null ? String(u.title).trim().toLowerCase() : "";
-      if (title) seen[title] = true;
     });
 
     let added = 0;
-    let skipped = 0;
     usable.forEach((row) => {
       if (!row || row.length === 0) return;
       let title = "";
@@ -449,22 +440,16 @@ function depImportUtilitiesFromText(text) {
       }
       if (!title) title = depTitleValue(row[0]);
       if (!title) return;
-      const key = title.toLowerCase();
-      if (seen[key]) {
-        skipped += 1;
-        return;
-      }
       maxId += 1;
       rowsToMerge.push({ id: String(maxId), title: title });
-      seen[key] = true;
       added += 1;
     });
 
     if (rowsToMerge.length === 0) {
-      return { added: added, skipped: skipped };
+      return { added: added };
     }
 
-    return file_manager.mergeUtilities(rowsToMerge).then(() => ({ added: added, skipped: skipped }));
+    return file_manager.mergeUtilities(rowsToMerge).then(() => ({ added: added }));
   });
 }
 
@@ -612,11 +597,7 @@ document.getElementById("confirm").addEventListener("click", (event) => {
                         document.getElementById("save").disabled = true;
                         populateTable();
                       } else {
-                        if (file_manager.isDuplicateWriteResult(res)) {
-                          window.appUi.notify(file_manager.getDuplicateToolMessage());
-                        } else {
-                          window.appUi.notify("Could Not Saved!");
-                        }
+                        window.appUi.notify("Could Not Saved!");
                         document.getElementById("cancel").click();
                         document.getElementById("pass").value = "";
                       }
@@ -668,8 +649,6 @@ document.getElementById("confirm").addEventListener("click", (event) => {
                           document.getElementById("add").disabled = false;
                           document.getElementById("cancel").click();
                           document.getElementById("pass").value = "";
-                        } else if (file_manager.isDuplicateWriteResult(saveRes)) {
-                          window.appUi.notify(file_manager.getDuplicateToolMessage());
                         } else {
                           window.appUi.notify("Could Not Saved!");
                         }
@@ -699,8 +678,6 @@ document.getElementById("confirm").addEventListener("click", (event) => {
                           document.getElementById("add").disabled = false;
                           document.getElementById("cancel").click();
                           document.getElementById("pass").value = "";
-                        } else if (file_manager.isDuplicateWriteResult(res)) {
-                          window.appUi.notify(file_manager.getDuplicateToolMessage());
                         } else {
                           window.appUi.notify("Could Not Saved!");
                         }

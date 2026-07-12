@@ -104,10 +104,8 @@ exports.mergeUtilities = async (rows) => {
   return res;
 };
 
-exports.isDuplicateWriteResult = (res) => res === "duplicate";
 exports.isInUseWriteResult = (res) => res === "in_use";
 
-exports.getDuplicateToolMessage = () => "Duplicate title already exists in this scope.";
 exports.getInUseToolMessage = () => "Cannot delete utility because it is used in other tools (Descriptions/Codes/etc).";
 
 exports.searchCodes = async (query, utility_id, type_id, limit) => {

@@ -523,29 +523,24 @@ function importDoorsFromText(text) {
     const codes = Array.isArray(results[3]) ? results[3] : [];
 
     let maxId = 0;
-    const seen = {};
+    const existingByKey = {};
 
     existing.forEach((d) => {
       const idNum = d && d.id != null && !isNaN(Number(d.id)) ? Number(d.id) : 0;
       if (idNum > maxId) maxId = idNum;
-      const u = d && d.utility_id != null ? String(d.utility_id) : "";
-      const t = d && d.type_id != null ? String(d.type_id) : "";
-      const c = d && d.code_id != null ? String(d.code_id) : "";
-      const title = d && d.title != null ? String(d.title).trim().toLowerCase() : "";
-      if (u && t && c && title) seen[u + "::" + t + "::" + c + "::" + title] = true;
+      if (d && d.utility_id != null && d.code_id != null && d.title != null) {
+        existingByKey[String(d.utility_id) + "::" + (d.type_id != null ? String(d.type_id) : "") + "::" + String(d.code_id) + "::" + String(d.title).toLowerCase().trim() + "::" + (d.rate != null ? String(d.rate) : "") + "::" + (d.edging != null ? String(d.edging) : "")] = true;
+      }
     });
     listData.forEach((d) => {
       const idNum = d && d.id != null && !isNaN(Number(d.id)) ? Number(d.id) : 0;
       if (idNum > maxId) maxId = idNum;
-      const u = d && d.utility_id != null ? String(d.utility_id) : "";
-      const t = d && d.type_id != null ? String(d.type_id) : "";
-      const c = d && d.code_id != null ? String(d.code_id) : "";
-      const title = d && d.title != null ? String(d.title).trim().toLowerCase() : "";
-      if (u && t && c && title) seen[u + "::" + t + "::" + c + "::" + title] = true;
+      if (d && d.utility_id != null && d.code_id != null && d.title != null) {
+        existingByKey[String(d.utility_id) + "::" + (d.type_id != null ? String(d.type_id) : "") + "::" + String(d.code_id) + "::" + String(d.title).toLowerCase().trim() + "::" + (d.rate != null ? String(d.rate) : "") + "::" + (d.edging != null ? String(d.edging) : "")] = true;
+      }
     });
 
     let added = 0;
-    let skipped = 0;
     let invalid = 0;
 
     usable.forEach((row) => {
@@ -611,15 +606,6 @@ function importDoorsFromText(text) {
       }
       if (!title) return;
 
-      const key = utilityId + "::" + typeId + "::" + codeId + "::" + title.toLowerCase();
-      if (seen[key]) {
-        skipped += 1;
-        return;
-      }
-
-      maxId += 1;
-      const id = String(maxId);
-
       let cursor = 0;
       if (!headerIndex) {
         const hasLeadingId = row.length >= 2 && toIdString(row[0]);
@@ -631,6 +617,12 @@ function importDoorsFromText(text) {
 
       const rate = toNumOrFallback(headerIndex ? row[rateIdx] : row[cursor], rateDefault || 0);
       const edging = toNumOrFallback(headerIndex ? row[edgingIdx] : row[cursor + 1], edgingDefault || 0);
+
+      const key = String(utilityId) + "::" + String(typeId) + "::" + String(codeId) + "::" + title.toLowerCase().trim() + "::" + String(rate) + "::" + String(edging);
+      if (existingByKey[key]) return;
+
+      maxId += 1;
+      const id = String(maxId);
 
       const utilityRow = utilities.find((u) => u && String(u.id) === String(utilityId));
       const typeRow = types.find((t) => t && String(t.id) === String(typeId));
@@ -652,7 +644,6 @@ function importDoorsFromText(text) {
         code: codeText,
       });
 
-      seen[key] = true;
       added += 1;
     });
 
@@ -666,7 +657,7 @@ function importDoorsFromText(text) {
       idEl.innerHTML = String(localMax + 1);
     }
 
-    return { added: added, skipped: skipped, invalid: invalid };
+    return { added: added, invalid: invalid };
   });
 }
 
@@ -818,17 +809,13 @@ function depImportUtilitiesFromText(text) {
   return file_manager.loadFile(path.join(__dirname, "../../db/.utilities.json")).then((res) => {
     const existing = Array.isArray(res) ? res : [];
     let maxId = 0;
-    const seen = {};
     const rowsToMerge = [];
     existing.forEach((u) => {
       const idNum = u && u.id != null && !isNaN(Number(u.id)) ? Number(u.id) : 0;
       if (idNum > maxId) maxId = idNum;
-      const title = u && u.title != null ? String(u.title).trim().toLowerCase() : "";
-      if (title) seen[title] = true;
     });
 
     let added = 0;
-    let skipped = 0;
     usable.forEach((row) => {
       if (!row || row.length === 0) return;
       let title = "";
@@ -838,22 +825,16 @@ function depImportUtilitiesFromText(text) {
       }
       if (!title) title = depTitleValue(row[0]);
       if (!title) return;
-      const key = title.toLowerCase();
-      if (seen[key]) {
-        skipped += 1;
-        return;
-      }
       maxId += 1;
       rowsToMerge.push({ id: String(maxId), title: title });
-      seen[key] = true;
       added += 1;
     });
 
     if (rowsToMerge.length === 0) {
-      return { added: added, skipped: skipped };
+      return { added: added };
     }
 
-    return file_manager.mergeUtilities(rowsToMerge).then(() => ({ added: added, skipped: skipped }));
+    return file_manager.mergeUtilities(rowsToMerge).then(() => ({ added: added }));
   });
 }
 
@@ -871,17 +852,12 @@ function depImportTypesFromText(text) {
     const utilities = Array.isArray(results[1]) ? results[1] : [];
 
     let maxId = 0;
-    const seen = {};
     existing.forEach((t) => {
       const idNum = t && t.id != null && !isNaN(Number(t.id)) ? Number(t.id) : 0;
       if (idNum > maxId) maxId = idNum;
-      const utilId = t && t.utility_id != null ? String(t.utility_id) : "";
-      const title = t && t.title != null ? String(t.title).trim().toLowerCase() : "";
-      if (utilId && title) seen[utilId + "::" + title] = true;
     });
 
     let added = 0;
-    let skipped = 0;
     let invalid = 0;
 
     usable.forEach((row) => {
@@ -934,12 +910,6 @@ function depImportTypesFromText(text) {
       if (!title) title = depTitleValue(row.length >= 2 ? row[1] : row[0]);
       if (!title) return;
 
-      const key = utilityId + "::" + title.toLowerCase();
-      if (seen[key]) {
-        skipped += 1;
-        return;
-      }
-
       if (!utilityName) {
         const uRow = utilities.find((u) => u && u.id != null && String(u.id) === String(utilityId));
         utilityName = uRow && uRow.title != null ? String(uRow.title) : "";
@@ -947,15 +917,14 @@ function depImportTypesFromText(text) {
 
       maxId += 1;
       rowsToMerge.push({ id: String(maxId), title: title, utility_id: utilityId, utility: utilityName });
-      seen[key] = true;
       added += 1;
     });
 
     if (rowsToMerge.length === 0) {
-      return { added: added, skipped: skipped, invalid: invalid };
+      return { added: added, invalid: invalid };
     }
 
-    return file_manager.mergeTypes(rowsToMerge).then(() => ({ added: added, skipped: skipped, invalid: invalid }));
+    return file_manager.mergeTypes(rowsToMerge).then(() => ({ added: added, invalid: invalid }));
   });
 }
 
@@ -977,18 +946,12 @@ function depImportCodesFromText(text) {
     const types = Array.isArray(results[2]) ? results[2] : [];
 
     let maxId = 0;
-    const seen = {};
     existing.forEach((c) => {
       const idNum = c && c.id != null && !isNaN(Number(c.id)) ? Number(c.id) : 0;
       if (idNum > maxId) maxId = idNum;
-      const u = c && c.utility_id != null ? String(c.utility_id) : "";
-      const t = c && c.type_id != null ? String(c.type_id) : "";
-      const title = c && c.title != null ? String(c.title).trim().toLowerCase() : "";
-      if (u && t && title) seen[u + "::" + t + "::" + title] = true;
     });
 
     let added = 0;
-    let skipped = 0;
     let invalid = 0;
 
     usable.forEach((row) => {
@@ -1055,12 +1018,6 @@ function depImportCodesFromText(text) {
       if (!title) title = depTitleValue(row.length >= 3 ? row[2] : row.length >= 2 ? row[1] : row[0]);
       if (!title) return;
 
-      const key = utilityId + "::" + typeId + "::" + title.toLowerCase();
-      if (seen[key]) {
-        skipped += 1;
-        return;
-      }
-
       if (!utilityName) {
         const uRow = utilities.find((u) => u && u.id != null && String(u.id) === String(utilityId));
         utilityName = uRow && uRow.title != null ? String(uRow.title) : "";
@@ -1099,13 +1056,12 @@ function depImportCodesFromText(text) {
         screws: String(screws),
         wall_bracket: String(wall_bracket),
       });
-      seen[key] = true;
       added += 1;
     });
 
     return file_manager
       .writeFile(path.join(__dirname, "../../db/.codes.json"), existing)
-      .then(() => ({ added: added, skipped: skipped, invalid: invalid }));
+      .then(() => ({ added: added, invalid: invalid }));
   });
 }
 
@@ -1348,11 +1304,7 @@ document.getElementById("confirm").addEventListener("click", (event) => {
                         clearFields();
                         populateTable();
                       } else {
-                        if (file_manager.isDuplicateWriteResult(res)) {
-                          window.appUi.notify(file_manager.getDuplicateToolMessage());
-                        } else {
-                          window.appUi.notify("Could Not Saved!");
-                        }
+                        window.appUi.notify("Could Not Saved!");
                         document.getElementById("cancel").click();
                         document.getElementById("pass").value = "";
                       }
@@ -1419,8 +1371,6 @@ document.getElementById("confirm").addEventListener("click", (event) => {
                           document.getElementById("add").disabled = false;
                           document.getElementById("cancel").click();
                           document.getElementById("pass").value = "";
-                        } else if (file_manager.isDuplicateWriteResult(saveRes)) {
-                          window.appUi.notify(file_manager.getDuplicateToolMessage());
                         } else {
                           window.appUi.notify("Could Not Saved!");
                         }
@@ -1455,8 +1405,6 @@ document.getElementById("confirm").addEventListener("click", (event) => {
                           document.getElementById("add").disabled = false;
                           document.getElementById("cancel").click();
                           document.getElementById("pass").value = "";
-                        } else if (file_manager.isDuplicateWriteResult(res)) {
-                          window.appUi.notify(file_manager.getDuplicateToolMessage());
                         } else {
                           window.appUi.notify("Could Not Saved!");
                         }

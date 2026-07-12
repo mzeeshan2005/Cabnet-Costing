@@ -239,26 +239,41 @@ document.getElementById("confirm").addEventListener("click", (event) => {
       {
         if(res[0].password === document.getElementById('pass').value)
         {
-          file_manager
-              .mergeUtilities(listData)
-              .then((res) => {
-                if (res === "success") {
-                  window.appUi.notify("Saved Successfully!")
-                  document.getElementById("cancel").click();
-                  document.getElementById("pass").value = "";
-                  listData = [];
-                  document.getElementById("save").disabled = true;
-                  populateTable();
-                } else {
-                  document.getElementById("cancel").click();
-                  document.getElementById("pass").value = "";
-                  if (file_manager.isDuplicateWriteResult(res)) {
-                    window.appUi.notify(file_manager.getDuplicateToolMessage());
-                  } else {
-                    window.appUi.notify("Not Saved!");
-                  }
-                }
-              });
+          file_manager.loadFile(path.join(__dirname, "../../db/.utilities.json")).then((dbRes) => {
+            const existing = Array.isArray(dbRes) ? dbRes : [];
+            const titles = new Set();
+            existing.forEach((u) => { if (u && u.title) titles.add(u.title.toLowerCase().trim()); });
+            let hasDup = false;
+            for (const u of listData) {
+              const key = u && u.title ? u.title.toLowerCase().trim() : "";
+              if (key && titles.has(key)) { hasDup = true; break; }
+              if (key) titles.add(key);
+            }
+            if (hasDup) {
+              document.getElementById("cancel").click();
+              document.getElementById("pass").value = "";
+              window.appUi.notify("Duplicate utility title is not allowed. Remove duplicates and try again.");
+              return;
+            }
+            file_manager.mergeUtilities(listData).then((res) => {
+              if (res === "success") {
+                window.appUi.notify("Saved Successfully!")
+                document.getElementById("cancel").click();
+                document.getElementById("pass").value = "";
+                listData = [];
+                document.getElementById("save").disabled = true;
+                populateTable();
+              } else {
+                document.getElementById("cancel").click();
+                document.getElementById("pass").value = "";
+                window.appUi.notify("Not Saved!");
+              }
+            }).catch((err) => {
+              document.getElementById("cancel").click();
+              document.getElementById("pass").value = "";
+              window.appUi.notify(err && err.message ? err.message : "Error saving utilities.");
+            });
+          });
         }
         else
         {
@@ -275,6 +290,14 @@ document.getElementById("confirm").addEventListener("click", (event) => {
                 .loadFile(path.join(__dirname, "../../db/.utilities.json"))
                 .then((res) => {
                   const targetId = document.getElementById("id").innerHTML;
+                  const newTitle = document.getElementById("client-name").value.trim();
+                  const dupCheck = res.concat(listData).filter((u) => String(u.id) !== targetId);
+                  if (dupCheck.some((u) => u && u.title && u.title.toLowerCase().trim() === newTitle.toLowerCase())) {
+                    document.getElementById("cancel").click();
+                    document.getElementById("pass").value = "";
+                    window.appUi.notify("Duplicate utility title is not allowed.");
+                    return;
+                  }
                   let foundInStoredRows = false;
                   res.forEach((d) => {
                     if (d.id === targetId) {
@@ -299,11 +322,13 @@ document.getElementById("confirm").addEventListener("click", (event) => {
                           document.getElementById("edit").disabled = true;
                           document.getElementById("cancel").click();
                           document.getElementById("pass").value = "";
-                        } else if (file_manager.isDuplicateWriteResult(saveRes)) {
-                          window.appUi.notify(file_manager.getDuplicateToolMessage());
                         } else {
                           window.appUi.notify("Not Saved!");
                         }
+                      }).catch((err) => {
+                        document.getElementById("cancel").click();
+                        document.getElementById("pass").value = "";
+                        window.appUi.notify(err && err.message ? err.message : "Error saving utility.");
                       });
                     return;
                   }
@@ -330,11 +355,13 @@ document.getElementById("confirm").addEventListener("click", (event) => {
                           document.getElementById("edit").disabled = true;
                           document.getElementById("cancel").click();
                           document.getElementById("pass").value = "";
-                        } else if (file_manager.isDuplicateWriteResult(res)) {
-                          window.appUi.notify(file_manager.getDuplicateToolMessage());
                         } else {
                           window.appUi.notify("Not Saved!");
                         }
+                      }).catch((err) => {
+                        document.getElementById("cancel").click();
+                        document.getElementById("pass").value = "";
+                        window.appUi.notify(err && err.message ? err.message : "Error saving utility.");
                       });
                 });
           }
@@ -669,23 +696,20 @@ function importUtilitiesFromText(text) {
     const existing = Array.isArray(res) ? res : [];
 
     let maxId = 0;
-    const seenTitles = {};
+    const existingByKey = {};
 
     existing.forEach((u) => {
       const idNum = u && u.id != null && !isNaN(Number(u.id)) ? Number(u.id) : 0;
       if (idNum > maxId) maxId = idNum;
-      const t = u && u.title != null ? String(u.title).trim().toLowerCase() : "";
-      if (t) seenTitles[t] = true;
+      if (u && u.title) existingByKey[u.title.toLowerCase().trim()] = true;
     });
     listData.forEach((u) => {
       const idNum = u && u.id != null && !isNaN(Number(u.id)) ? Number(u.id) : 0;
       if (idNum > maxId) maxId = idNum;
-      const t = u && u.title != null ? String(u.title).trim().toLowerCase() : "";
-      if (t) seenTitles[t] = true;
+      if (u && u.title) existingByKey[u.title.toLowerCase().trim()] = true;
     });
 
     let added = 0;
-    let skipped = 0;
 
     usable.forEach((row) => {
       if (!row || row.length === 0) return;
@@ -694,21 +718,17 @@ function importUtilitiesFromText(text) {
       const title = toTitleValue(hasLeadingId ? row[1] : row[0]);
       if (!title) return;
 
-      const key = title.toLowerCase();
-      if (seenTitles[key]) {
-        skipped += 1;
-        return;
-      }
+      const key = title.toLowerCase().trim();
+      if (existingByKey[key]) return;
 
       maxId += 1;
       const id = String(maxId);
 
       listData.push({ id: id, title: title });
-      seenTitles[key] = true;
       added += 1;
     });
 
-    return { added: added, skipped: skipped };
+    return { added: added };
   });
 }
 

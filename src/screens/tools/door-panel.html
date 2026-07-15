@@ -723,6 +723,10 @@
           window.appUi.showProtectedDropdown('2');
           return;
         }
+        if (String(a) === '1' && window.appUi && window.appUi.isHeaderAuthUnlocked('header-settings')) {
+          window.appUi.showProtectedDropdown('1');
+          return;
+        }
         window.modalInputFix.showModal('#staticModal-2');
         document.getElementById('numb').value = a;
       }
@@ -741,12 +745,13 @@
                   else document.getElementById('dpdb1').classList.remove('d-none')
                   document.getElementById('cancel2').click();
                 }
-                else
-                {
-                  document.getElementById('dpdb').classList.remove('d-none')
-                  setTimeout(() => {document.getElementById('dpd').classList.add('show-dropdown')}, 300)
-                  document.getElementById('cancel2').click();
-                }
+                    else
+                    {
+                      if (window.appUi) window.appUi.unlockHeaderAuth('header-settings');
+                      document.getElementById('dpdb').classList.remove('d-none')
+                      setTimeout(() => {document.getElementById('dpd').classList.add('show-dropdown')}, 300)
+                      document.getElementById('cancel2').click();
+                    }
               }
               else {
                 window.modalInputFix.showInvalid('pass2', 'Invalid Password!')

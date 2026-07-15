@@ -406,6 +406,10 @@
       const path = require('path')
       const file_manager = require(path.join(__dirname, 'scripts/file_manager.js'));
 
+      // Always require password on the homepage — clear any cached session unlock
+      try { window.sessionStorage.removeItem('header-tools'); } catch (_) {}
+      try { window.sessionStorage.removeItem('header-settings'); } catch (_) {}
+
       function openModal(a) {
         // If already unlocked this session, just show the dropdown directly
         if (String(a) === '2' && window.appUi && window.appUi.isHeaderAuthUnlocked('header-tools')) {

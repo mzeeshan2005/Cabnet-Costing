@@ -452,19 +452,17 @@ function importCodesFromText(text) {
       if (headerIndex) {
         const utilIdIdx = headerIndex.utility_id != null ? headerIndex.utility_id : null;
         const utilIdx = headerIndex.utility != null ? headerIndex.utility : headerIndex.utility_title != null ? headerIndex.utility_title : null;
-        if (utilIdIdx != null && row[utilIdIdx] != null && String(row[utilIdIdx]).trim()) {
-          utilityId = String(row[utilIdIdx]).trim();
-        } else if (utilIdx != null && row[utilIdx] != null && String(row[utilIdx]).trim()) {
+        if (utilIdx != null && row[utilIdx] != null && String(row[utilIdx]).trim()) {
           const utilName = String(row[utilIdx]).trim().toLowerCase();
           const match = utilities.find((u) => u && u.title != null && String(u.title).trim().toLowerCase() === utilName);
           utilityId = match && match.id != null ? String(match.id) : "";
+        } else if (utilIdIdx != null && row[utilIdIdx] != null && String(row[utilIdIdx]).trim()) {
+          utilityId = String(row[utilIdIdx]).trim();
         }
 
         const typeIdIdx = headerIndex.type_id != null ? headerIndex.type_id : headerIndex.description_id != null ? headerIndex.description_id : null;
         const typeIdx = headerIndex.type != null ? headerIndex.type : headerIndex.description_title != null ? headerIndex.description_title : headerIndex.description != null ? headerIndex.description : null;
-        if (typeIdIdx != null && row[typeIdIdx] != null && String(row[typeIdIdx]).trim()) {
-          typeId = String(row[typeIdIdx]).trim();
-        } else if (typeIdx != null && row[typeIdx] != null && String(row[typeIdx]).trim()) {
+        if (typeIdx != null && row[typeIdx] != null && String(row[typeIdx]).trim()) {
           const typeName = String(row[typeIdx]).trim().toLowerCase();
           const matchT = types.find((t) => {
             const okUtil = utilityId ? String(t.utility_id) === String(utilityId) : true;
@@ -472,6 +470,8 @@ function importCodesFromText(text) {
             return okUtil && tt === typeName;
           });
           typeId = matchT && matchT.id != null ? String(matchT.id) : "";
+        } else if (typeIdIdx != null && row[typeIdIdx] != null && String(row[typeIdIdx]).trim()) {
+          typeId = String(row[typeIdIdx]).trim();
         }
       }
 
@@ -735,13 +735,13 @@ function depImportTypesFromText(text) {
       if (headerIndex) {
         const utilIdIdx = headerIndex.utility_id != null ? headerIndex.utility_id : null;
         const utilIdx = headerIndex.utility != null ? headerIndex.utility : headerIndex.utility_title != null ? headerIndex.utility_title : null;
-        if (utilIdIdx != null && row[utilIdIdx] != null && String(row[utilIdIdx]).trim()) {
-          utilityId = String(row[utilIdIdx]).trim();
-        } else if (utilIdx != null && row[utilIdx] != null && String(row[utilIdx]).trim()) {
+        if (utilIdx != null && row[utilIdx] != null && String(row[utilIdx]).trim()) {
           const utilNameLower = String(row[utilIdx]).trim().toLowerCase();
           const match = utilities.find((u) => u && u.title != null && String(u.title).trim().toLowerCase() === utilNameLower);
           utilityId = match && match.id != null ? String(match.id) : "";
           utilityName = match && match.title != null ? String(match.title) : "";
+        } else if (utilIdIdx != null && row[utilIdIdx] != null && String(row[utilIdIdx]).trim()) {
+          utilityId = String(row[utilIdIdx]).trim();
         }
       } else if (row.length >= 2) {
         const utilNameLower = String(row[0]).trim().toLowerCase();
@@ -929,34 +929,51 @@ document.getElementById("confirm").addEventListener("click", (event) => {
       {
         if(res[0].password === document.getElementById('pass').value)
         {
-          file_manager
-              .loadFile(path.join(__dirname, "../../db/.codes.json"))
-              .then((res) => {
-                const clients = res;
-                listData.forEach((r) => {
-                  clients.push(r);
-                });
+          Promise.all([
+            file_manager.loadFile(path.join(__dirname, "../../db/.utilities.json")),
+            file_manager.loadFile(path.join(__dirname, "../../db/.types.json")),
+            file_manager.loadFile(path.join(__dirname, "../../db/.codes.json")),
+          ]).then(([utilities, types, storedCodes]) => {
+            const invalid = listData.filter((c) => {
+              const hasUtil = utilities.some((u) => String(u.id) === String(c.utility_id));
+              const hasType = types.some((t) => String(t.id) === String(c.type_id));
+              return !hasUtil || !hasType;
+            });
+            if (invalid.length > 0) {
+              const lines = invalid.map((c, i) =>
+                `  ${i + 1}. ID ${c.id} "${c.title}" — utility_id=${c.utility_id}${c.utility ? " (" + c.utility + ")" : ""}, type_id=${c.type_id}${c.type ? " (" + c.type + ")" : ""}`
+              );
+              const displayLines = lines.length > 20 ? lines.slice(0, 20).concat(`  ... and ${lines.length - 20} more`) : lines;
+              document.getElementById("invalid-ref-message").textContent = "The following " + invalid.length + " row(s) cannot be saved because they reference a utility or type that does not exist yet:\n\n" + displayLines.join("\n");
+              if (window.modalInputFix) window.modalInputFix.showModal("#invalidRefModal");
+              return;
+            }
 
-                file_manager
-                    .writeFile(
-                        path.join(__dirname, "../../db/.codes.json"),
-                        clients
-                    )
-                    .then((res) => {
-                      if (res === "success") {
-                          window.appUi.notify("Saved Successfully!");
-                        document.getElementById("cancel").click();
-                        document.getElementById("pass").value = "";
-                        listData = [];
-                        document.getElementById("save").disabled = true;
-                        populateTable();
-                      } else {
-                        window.appUi.notify("Could Not Saved!");
-                        document.getElementById("cancel").click();
-                        document.getElementById("pass").value = "";
-                      }
-                    });
-              });
+            const clients = storedCodes;
+            listData.forEach((r) => {
+              clients.push(r);
+            });
+
+            file_manager
+                .writeFile(
+                    path.join(__dirname, "../../db/.codes.json"),
+                    clients
+                )
+                .then((res) => {
+                  if (res === "success") {
+                      window.appUi.notify("Saved Successfully!");
+                    document.getElementById("cancel").click();
+                    document.getElementById("pass").value = "";
+                    listData = [];
+                    document.getElementById("save").disabled = true;
+                    populateTable();
+                  } else {
+                    window.appUi.notify("Could Not Saved!");
+                    document.getElementById("cancel").click();
+                    document.getElementById("pass").value = "";
+                  }
+                });
+          });
         }
         else
         {

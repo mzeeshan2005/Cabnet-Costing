@@ -533,7 +533,6 @@ function del() {
     .loadFile(path.join(__dirname, "../../db/.utilities.json"))
     .then((res) => {
       res.forEach((data) => {
-        console.log(data);
         if (!document.getElementById(data.id).checked) {
           selected.push(data);
         }
@@ -543,9 +542,33 @@ function del() {
         }
       });
 
+      const pendingChecked = listData.filter((d) => {
+        const el = document.getElementById(d.id);
+        return el && el.checked;
+      });
+      const pendingKept = listData.filter((d) => {
+        const el = document.getElementById(d.id);
+        return !el || !el.checked;
+      });
+
       const deleteIds = new Set(s.map((u) => (u && u.id != null ? String(u.id) : "")).filter((id) => id));
-      if (deleteIds.size === 0) {
+
+      if (deleteIds.size === 0 && pendingChecked.length === 0) {
         window.appUi.notify("Please select at least one row to delete.");
+        return;
+      }
+
+      if (deleteIds.size === 0 && pendingChecked.length > 0) {
+        listData = pendingKept;
+        document.getElementById('edit').disabled = true;
+        window.appUi.notify("Deleted Successfully!");
+        document.getElementById("checkbox-all").checked = false;
+        clearFields();
+        populateTable();
+        document.getElementById("fieldset").disabled = false;
+        document.getElementById("add").disabled = false;
+        document.getElementById("save").disabled = listData.length === 0;
+        document.getElementById("clear").disabled = false;
         return;
       }
 
@@ -584,22 +607,12 @@ function del() {
             window.appUi.notify("Deleted Successfully!")
             document.getElementById("checkbox-all").checked = false;
 
-            const selected1 = [];
-            listData.forEach((data) => {
-              if (!document.getElementById(data.id).checked) {
-                selected1.push(data);
-              }
-            });
-            listData = selected1;
+            listData = pendingKept;
             clearFields();
             populateTable();
             document.getElementById("fieldset").disabled = false;
             document.getElementById("add").disabled = false;
-            if (listData.length === 0) {
-              document.getElementById("save").disabled = true;
-            } else {
-              document.getElementById("save").disabled = false;
-            }
+            document.getElementById("save").disabled = listData.length === 0;
             document.getElementById("clear").disabled = false;
           } else if (file_manager.isInUseWriteResult(res)) {
             window.appUi.notify(file_manager.getInUseToolMessage());

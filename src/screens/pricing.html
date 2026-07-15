@@ -891,7 +891,7 @@
                                             <div class="form-group col mx-1">
                                                 <div class="row">
                                                     <div class="d-flex align-items-center px-1" style="gap: 6px; margin-top: 4px;">
-                                                        <input type="checkbox" id="show-discount" checked>
+                                                        <input type="checkbox" id="show-discount">
                                                         <label for="show-discount" class="form-control-label mb-0">Show
                                                             Discount</label>
                                                     </div>
@@ -1097,6 +1097,10 @@
                 window.appUi.showProtectedDropdown('2');
                 return;
             }
+            if (String(a) === '1' && window.appUi && window.appUi.isHeaderAuthUnlocked('header-settings')) {
+                window.appUi.showProtectedDropdown('1');
+                return;
+            }
             window.modalInputFix.showModal('#staticModal-2');
             document.getElementById('numb').value = a;
         }
@@ -1115,6 +1119,7 @@
                             document.getElementById('cancel2').click();
                         }
                         else {
+                            if (window.appUi) window.appUi.unlockHeaderAuth('header-settings');
                             document.getElementById('dpdb').classList.remove('d-none')
                             setTimeout(() => { document.getElementById('dpd').classList.add('show-dropdown') }, 300)
                             document.getElementById('cancel2').click();

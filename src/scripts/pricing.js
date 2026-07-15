@@ -945,6 +945,7 @@ function clear_dropdowns() {
   document.getElementById("code-price").selectedIndex = 0;
   document.getElementById('handle-new-rate').value = 0;
   document.getElementById('shelve-new-rate').value = 0;
+  document.getElementById('apply-profit-margin').checked = true;
   updateCurrentItemUnitAndTotal();
   document.getElementById('unit').readOnly = true;
   refreshNewCostBreakdown();
@@ -1029,7 +1030,7 @@ function all_clear() {
       document.getElementById('open').disabled = false;
       document.getElementById('gross-amount').value = 0;
       document.getElementById('discount').value = 0;
-      setDiscountVisibilityToggle(true);
+      setDiscountVisibilityToggle(false);
       document.getElementById('tax').value = 0;
       document.getElementById('calculated-tax').value = 0;
       document.getElementById('delivery-charges').value = 0;
@@ -2751,7 +2752,7 @@ $(document).ready(() => {
   updateCurrentItemUnitAndTotal();
   document.getElementById('gross-amount').value = 0;
   document.getElementById('discount').value = 0;
-  setDiscountVisibilityToggle(true);
+  setDiscountVisibilityToggle(false);
   document.getElementById('net').value = 0;
   document.getElementById('tax').value = 0;
   document.getElementById('delivery-charges').value = 0;

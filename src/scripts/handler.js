@@ -324,6 +324,7 @@ function populateTable() {
     .then((res) => {
       const id = document.getElementById("id");
       const data1 = res.concat(listData);
+      data1.sort((a, b) => Number(a.id) - Number(b.id));
       if (res.length === 0 && listData.length === 0) {
         id.innerHTML = "1";
       } else {
@@ -551,19 +552,17 @@ function importHandlersFromText(text) {
       if (headerIndex) {
         const utilIdIdx = headerIndex.utility_id != null ? headerIndex.utility_id : null;
         const utilIdx = headerIndex.utility != null ? headerIndex.utility : headerIndex.utility_title != null ? headerIndex.utility_title : null;
-        if (utilIdIdx != null && row[utilIdIdx] != null && String(row[utilIdIdx]).trim()) {
-          utilityId = String(row[utilIdIdx]).trim();
-        } else if (utilIdx != null && row[utilIdx] != null && String(row[utilIdx]).trim()) {
+        if (utilIdx != null && row[utilIdx] != null && String(row[utilIdx]).trim()) {
           const utilName = String(row[utilIdx]).trim().toLowerCase();
           const matchU = utilities.find((u) => u && u.title != null && String(u.title).trim().toLowerCase() === utilName);
           utilityId = matchU && matchU.id != null ? String(matchU.id) : "";
+        } else if (utilIdIdx != null && row[utilIdIdx] != null && String(row[utilIdIdx]).trim()) {
+          utilityId = String(row[utilIdIdx]).trim();
         }
 
         const typeIdIdx = headerIndex.type_id != null ? headerIndex.type_id : headerIndex.description_id != null ? headerIndex.description_id : null;
         const typeIdx = headerIndex.type != null ? headerIndex.type : headerIndex.description_title != null ? headerIndex.description_title : headerIndex.description != null ? headerIndex.description : null;
-        if (typeIdIdx != null && row[typeIdIdx] != null && String(row[typeIdIdx]).trim()) {
-          typeId = String(row[typeIdIdx]).trim();
-        } else if (typeIdx != null && row[typeIdx] != null && String(row[typeIdx]).trim()) {
+        if (typeIdx != null && row[typeIdx] != null && String(row[typeIdx]).trim()) {
           const typeName = String(row[typeIdx]).trim().toLowerCase();
           const matchT = types.find((t) => {
             const okUtil = utilityId ? String(t.utility_id) === String(utilityId) : true;
@@ -571,13 +570,13 @@ function importHandlersFromText(text) {
             return okUtil && tt === typeName;
           });
           typeId = matchT && matchT.id != null ? String(matchT.id) : "";
+        } else if (typeIdIdx != null && row[typeIdIdx] != null && String(row[typeIdIdx]).trim()) {
+          typeId = String(row[typeIdIdx]).trim();
         }
 
         const codeIdIdx = headerIndex.code_id != null ? headerIndex.code_id : null;
         const codeIdx = headerIndex.code != null ? headerIndex.code : headerIndex.code_title != null ? headerIndex.code_title : null;
-        if (codeIdIdx != null && row[codeIdIdx] != null && String(row[codeIdIdx]).trim()) {
-          codeId = String(row[codeIdIdx]).trim();
-        } else if (codeIdx != null && row[codeIdx] != null && String(row[codeIdx]).trim()) {
+        if (codeIdx != null && row[codeIdx] != null && String(row[codeIdx]).trim()) {
           const codeName = String(row[codeIdx]).trim().toLowerCase();
           const matchC = codes.find((c) => {
             const okType = typeId ? String(c.type_id) === String(typeId) : true;
@@ -585,6 +584,8 @@ function importHandlersFromText(text) {
             return okType && ct === codeName;
           });
           codeId = matchC && matchC.id != null ? String(matchC.id) : "";
+        } else if (codeIdIdx != null && row[codeIdIdx] != null && String(row[codeIdIdx]).trim()) {
+          codeId = String(row[codeIdIdx]).trim();
         }
       }
 
@@ -863,13 +864,13 @@ function depImportTypesFromText(text) {
       if (headerIndex) {
         const utilIdIdx = headerIndex.utility_id != null ? headerIndex.utility_id : null;
         const utilIdx = headerIndex.utility != null ? headerIndex.utility : headerIndex.utility_title != null ? headerIndex.utility_title : null;
-        if (utilIdIdx != null && row[utilIdIdx] != null && String(row[utilIdIdx]).trim()) {
-          utilityId = String(row[utilIdIdx]).trim();
-        } else if (utilIdx != null && row[utilIdx] != null && String(row[utilIdx]).trim()) {
+        if (utilIdx != null && row[utilIdx] != null && String(row[utilIdx]).trim()) {
           const uName = String(row[utilIdx]).trim().toLowerCase();
           const match = utilities.find((u) => u && u.title != null && String(u.title).trim().toLowerCase() === uName);
           utilityId = match && match.id != null ? String(match.id) : "";
           utilityName = match && match.title != null ? String(match.title) : "";
+        } else if (utilIdIdx != null && row[utilIdIdx] != null && String(row[utilIdIdx]).trim()) {
+          utilityId = String(row[utilIdIdx]).trim();
         }
       } else if (row.length >= 2) {
         const uName = String(row[0]).trim().toLowerCase();

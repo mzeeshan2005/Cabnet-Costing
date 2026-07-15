@@ -658,6 +658,10 @@
           window.appUi.showProtectedDropdown('2');
           return;
         }
+        if (String(a) === '1' && window.appUi && window.appUi.isHeaderAuthUnlocked('header-settings')) {
+          window.appUi.showProtectedDropdown('1');
+          return;
+        }
     document.getElementById('show-modal').click();
     document.getElementById('numb').value = a;
   }
@@ -678,6 +682,7 @@
             }
             else
             {
+              if (window.appUi) window.appUi.unlockHeaderAuth('header-settings');
               document.getElementById('dpdb').classList.remove('d-none')
               setTimeout(() => {document.getElementById('dpd').classList.add('show-dropdown')}, 300)
               document.getElementById('cancel2').click();

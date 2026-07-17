@@ -2,7 +2,9 @@ const path = require("path");
 const file_manager = require(path.join(__dirname, "../../scripts/file_manager.js"));
 
 let listData = [];
+let importRowOrder = null;
 let opt = '';
+let _scrollToId = null;
 
 
 function clearFields() {
@@ -11,15 +13,7 @@ function clearFields() {
     .loadFile(path.join(__dirname, "../../db/.utilities.json"))
     .then((res) => {
       const id = document.getElementById("id");
-      if (res.length === 0 && listData.length === 0) {
-        id.innerHTML = "1";
-      } else if (listData.length === 0) {
-        id.innerHTML = Number(res[res.length - 1].id) + 1;
-      } else if (res.length === 0) {
-        id.innerHTML = Number(listData[listData.length - 1].id) + 1;
-      } else {
-        id.innerHTML = Number(listData[listData.length - 1].id) + 1;
-      }
+      id.innerHTML = String(file_manager.findNextAvailableId(res.concat(listData)));
     });
 }
 
@@ -166,16 +160,17 @@ function populateTable() {
     .loadFile(path.join(__dirname, "../../db/.utilities.json"))
     .then((res) => {
       const data1 = res.concat(listData);
-      const id = document.getElementById("id");
-      if (res.length === 0 && listData.length === 0) {
-        id.innerHTML = "1";
-      } else if (listData.length === 0) {
-        id.innerHTML = Number(res[res.length - 1].id) + 1;
-      } else if (res.length === 0) {
-        id.innerHTML = Number(listData[listData.length - 1].id) + 1;
+      if (importRowOrder) {
+        data1.sort((a, b) => {
+          const ai = importRowOrder.indexOf(String(a.id));
+          const bi = importRowOrder.indexOf(String(b.id));
+          return (ai === -1 ? 9999 : ai) - (bi === -1 ? 9999 : bi);
+        });
       } else {
-        id.innerHTML = Number(listData[listData.length - 1].id) + 1;
+        data1.sort((a, b) => Number(a.id) - Number(b.id));
       }
+      const id = document.getElementById("id");
+      id.innerHTML = String(file_manager.findNextAvailableId(res.concat(listData)));
       if (data1.length === 0) {
         document.getElementById("client-table").innerHTML += `
           <tr class="tr-shadow" style="border-bottom: 2px solid grey">
@@ -187,8 +182,9 @@ function populateTable() {
       } else {
         document.getElementById("checkbox-all-box").style.display = "block";
         data1.forEach((data, index) => {
+          const isNew = listData.some(d => d.id === data.id);
           document.getElementById("client-table").innerHTML += `
-          <tr class="tr-shadow" style="border-bottom: 2px solid grey">
+          <tr class="tr-shadow" style="border-bottom: 2px solid grey${isNew ? '; background-color: #d4edda' : ''}">
             <td style="border: 1px solid black">
               <label class="au-checkbox">
                 <input type="checkbox" id="${data.id}" onchange="toggle(event)">
@@ -199,6 +195,11 @@ function populateTable() {
             <td style="border: 1px solid black">${data.title}</td>
           </tr>`;
         });
+      }
+      if (_scrollToId) {
+        const el = document.getElementById(_scrollToId);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+        _scrollToId = null;
       }
     });
 }
@@ -221,6 +222,7 @@ document.getElementById("form").addEventListener("submit", (event) => {
     title: name,
   };
   listData.push(data);
+  _scrollToId = id;
   populateTable();
   document.getElementById("save").disabled = false;
   clearFields();
@@ -261,6 +263,7 @@ document.getElementById("confirm").addEventListener("click", (event) => {
                 document.getElementById("cancel").click();
                 document.getElementById("pass").value = "";
                 listData = [];
+                importRowOrder = null;
                 document.getElementById("save").disabled = true;
                 populateTable();
               } else {
@@ -708,18 +711,18 @@ function importUtilitiesFromText(text) {
   return file_manager.loadFile(path.join(__dirname, "../../db/.utilities.json")).then((res) => {
     const existing = Array.isArray(res) ? res : [];
 
-    let maxId = 0;
+    const usedIds = new Set();
     const existingByKey = {};
 
     existing.forEach((u) => {
-      const idNum = u && u.id != null && !isNaN(Number(u.id)) ? Number(u.id) : 0;
-      if (idNum > maxId) maxId = idNum;
-      if (u && u.title) existingByKey[u.title.toLowerCase().trim()] = true;
+      const n = u && u.id != null ? Number(u.id) : 0;
+      if (n > 0) usedIds.add(n);
+      if (u && u.title) existingByKey[u.title.toLowerCase().trim()] = u.id;
     });
     listData.forEach((u) => {
-      const idNum = u && u.id != null && !isNaN(Number(u.id)) ? Number(u.id) : 0;
-      if (idNum > maxId) maxId = idNum;
-      if (u && u.title) existingByKey[u.title.toLowerCase().trim()] = true;
+      const n = u && u.id != null ? Number(u.id) : 0;
+      if (n > 0) usedIds.add(n);
+      if (u && u.title) existingByKey[u.title.toLowerCase().trim()] = u.id;
     });
 
     let added = 0;
@@ -732,10 +735,17 @@ function importUtilitiesFromText(text) {
       if (!title) return;
 
       const key = title.toLowerCase().trim();
-      if (existingByKey[key]) return;
+      importRowOrder = importRowOrder || [];
+      if (existingByKey[key]) {
+        importRowOrder.push(String(existingByKey[key]));
+        return;
+      }
 
-      maxId += 1;
-      const id = String(maxId);
+      let nextId = 1;
+      while (usedIds.has(nextId)) nextId++;
+      usedIds.add(nextId);
+      const id = String(nextId);
+      importRowOrder.push(id);
 
       listData.push({ id: id, title: title });
       added += 1;

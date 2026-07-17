@@ -2,8 +2,10 @@ const path = require("path");
 const file_manager = require(path.join(__dirname, "../../scripts/file_manager.js"));
 
 let listData = [];
+let importRowOrder = null;
 
 let opt = '';
+let _scrollToId = null;
 
 function save_func(event, op) {
   event.preventDefault();
@@ -21,15 +23,7 @@ function clearFields() {
     .loadFile(path.join(__dirname, "../../db/.doors.json"))
     .then((res) => {
       const id = document.getElementById("id");
-      if (res.length === 0 && listData.length === 0) {
-        id.innerHTML = "1";
-      } else if (listData.length === 0) {
-        id.innerHTML = Number(res[res.length - 1].id) + 1;
-      } else if (res.length === 0) {
-        id.innerHTML = Number(listData[listData.length - 1].id) + 1;
-      } else {
-        id.innerHTML = Number(listData[listData.length - 1].id) + 1;
-      }
+      id.innerHTML = String(file_manager.findNextAvailableId(res.concat(listData)));
     });
 }
 
@@ -324,12 +318,16 @@ function populateTable() {
     .then((res) => {
       const id = document.getElementById("id");
       const data1 = res.concat(listData);
-      data1.sort((a, b) => Number(a.id) - Number(b.id));
-      if (res.length === 0 && listData.length === 0) {
-        id.innerHTML = "1";
+      if (importRowOrder) {
+        data1.sort((a, b) => {
+          const ai = importRowOrder.indexOf(String(a.id));
+          const bi = importRowOrder.indexOf(String(b.id));
+          return (ai === -1 ? 9999 : ai) - (bi === -1 ? 9999 : bi);
+        });
       } else {
-        id.innerHTML = Number(data1[data1.length - 1].id) + 1;
+        data1.sort((a, b) => Number(a.id) - Number(b.id));
       }
+      id.innerHTML = String(file_manager.findNextAvailableId(res.concat(listData)));
       renderDoorsTable(data1);
     });
   file_manager
@@ -379,8 +377,10 @@ function renderDoorsTable(rows) {
   document.getElementById("checkbox-all-box").style.display = "block";
   tb.innerHTML = rows
     .map(
-      (data) => `
-        <tr class="tr-shadow" style="border-bottom: 2px solid grey">
+      (data) => {
+        const isNew = listData.some(d => d.id === data.id);
+        return `
+        <tr class="tr-shadow" style="border-bottom: 2px solid grey${isNew ? '; background-color: #d4edda' : ''}">
           <td style="border: 1px solid black">
             <label class="au-checkbox">
               <input type="checkbox" id="${data.id}" onchange="toggle(event)">
@@ -392,9 +392,15 @@ function renderDoorsTable(rows) {
           <td style="border: 1px solid black">${data.code}</td>
           <td style="border: 1px solid black">${data.rate}</td>
           <td style="border: 1px solid black">${data.edging}</td>
-        </tr>`
+        </tr>`;
+      }
     )
     .join("");
+  if (_scrollToId) {
+    const el = document.getElementById(_scrollToId);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    _scrollToId = null;
+  }
 }
 
 function currentDoorQuery() {
@@ -436,9 +442,17 @@ function mergeById(a, b) {
   for (const r of b || []) {
     if (r && r.id != null) map[String(r.id)] = r;
   }
-  return Object.keys(map)
-    .sort((x, y) => Number(x) - Number(y))
-    .map((k) => map[k]);
+  const ids = Object.keys(map);
+  if (importRowOrder) {
+    ids.sort((x, y) => {
+      const xi = importRowOrder.indexOf(x);
+      const yi = importRowOrder.indexOf(y);
+      return (xi === -1 ? 9999 : xi) - (yi === -1 ? 9999 : yi);
+    });
+  } else {
+    ids.sort((x, y) => Number(x) - Number(y));
+  }
+  return ids.map((k) => map[k]);
 }
 
 function refreshDoorsTable() {
@@ -523,21 +537,21 @@ function importDoorsFromText(text) {
     const types = Array.isArray(results[2]) ? results[2] : [];
     const codes = Array.isArray(results[3]) ? results[3] : [];
 
-    let maxId = 0;
+    const usedIds = new Set();
     const existingByKey = {};
 
     existing.forEach((d) => {
-      const idNum = d && d.id != null && !isNaN(Number(d.id)) ? Number(d.id) : 0;
-      if (idNum > maxId) maxId = idNum;
+      const n = d && d.id != null ? Number(d.id) : 0;
+      if (n > 0) usedIds.add(n);
       if (d && d.utility_id != null && d.code_id != null && d.title != null) {
-        existingByKey[String(d.utility_id) + "::" + (d.type_id != null ? String(d.type_id) : "") + "::" + String(d.code_id) + "::" + String(d.title).toLowerCase().trim() + "::" + (d.rate != null ? String(d.rate) : "") + "::" + (d.edging != null ? String(d.edging) : "")] = true;
+        existingByKey[String(d.utility_id) + "::" + (d.type_id != null ? String(d.type_id) : "") + "::" + String(d.code_id) + "::" + String(d.title).toLowerCase().trim() + "::" + (d.rate != null ? String(d.rate) : "") + "::" + (d.edging != null ? String(d.edging) : "")] = d.id;
       }
     });
     listData.forEach((d) => {
-      const idNum = d && d.id != null && !isNaN(Number(d.id)) ? Number(d.id) : 0;
-      if (idNum > maxId) maxId = idNum;
+      const n = d && d.id != null ? Number(d.id) : 0;
+      if (n > 0) usedIds.add(n);
       if (d && d.utility_id != null && d.code_id != null && d.title != null) {
-        existingByKey[String(d.utility_id) + "::" + (d.type_id != null ? String(d.type_id) : "") + "::" + String(d.code_id) + "::" + String(d.title).toLowerCase().trim() + "::" + (d.rate != null ? String(d.rate) : "") + "::" + (d.edging != null ? String(d.edging) : "")] = true;
+        existingByKey[String(d.utility_id) + "::" + (d.type_id != null ? String(d.type_id) : "") + "::" + String(d.code_id) + "::" + String(d.title).toLowerCase().trim() + "::" + (d.rate != null ? String(d.rate) : "") + "::" + (d.edging != null ? String(d.edging) : "")] = d.id;
       }
     });
 
@@ -620,10 +634,17 @@ function importDoorsFromText(text) {
       const edging = toNumOrFallback(headerIndex ? row[edgingIdx] : row[cursor + 1], edgingDefault || 0);
 
       const key = String(utilityId) + "::" + String(typeId) + "::" + String(codeId) + "::" + title.toLowerCase().trim() + "::" + String(rate) + "::" + String(edging);
-      if (existingByKey[key]) return;
+      importRowOrder = importRowOrder || [];
+      if (existingByKey[key]) {
+        importRowOrder.push(String(existingByKey[key]));
+        return;
+      }
 
-      maxId += 1;
-      const id = String(maxId);
+      let nextId = 1;
+      while (usedIds.has(nextId)) nextId++;
+      usedIds.add(nextId);
+      const id = String(nextId);
+      importRowOrder.push(id);
 
       const utilityRow = utilities.find((u) => u && String(u.id) === String(utilityId));
       const typeRow = types.find((t) => t && String(t.id) === String(typeId));
@@ -650,12 +671,7 @@ function importDoorsFromText(text) {
 
     const idEl = document.getElementById("id");
     if (idEl) {
-      let localMax = maxId;
-      listData.forEach((d) => {
-        const idNum = d && d.id != null && !isNaN(Number(d.id)) ? Number(d.id) : 0;
-        if (idNum > localMax) localMax = idNum;
-      });
-      idEl.innerHTML = String(localMax + 1);
+      idEl.innerHTML = String(file_manager.findNextAvailableId(listData));
     }
 
     return { added: added, invalid: invalid };
@@ -809,11 +825,11 @@ function depImportUtilitiesFromText(text) {
 
   return file_manager.loadFile(path.join(__dirname, "../../db/.utilities.json")).then((res) => {
     const existing = Array.isArray(res) ? res : [];
-    let maxId = 0;
+    const usedIds = new Set();
     const rowsToMerge = [];
     existing.forEach((u) => {
-      const idNum = u && u.id != null && !isNaN(Number(u.id)) ? Number(u.id) : 0;
-      if (idNum > maxId) maxId = idNum;
+      const n = u && u.id != null ? Number(u.id) : 0;
+      if (n > 0) usedIds.add(n);
     });
 
     let added = 0;
@@ -826,8 +842,10 @@ function depImportUtilitiesFromText(text) {
       }
       if (!title) title = depTitleValue(row[0]);
       if (!title) return;
-      maxId += 1;
-      rowsToMerge.push({ id: String(maxId), title: title });
+      let nextId = 1;
+      while (usedIds.has(nextId)) nextId++;
+      usedIds.add(nextId);
+      rowsToMerge.push({ id: String(nextId), title: title });
       added += 1;
     });
 
@@ -1235,6 +1253,7 @@ document.getElementById("form").addEventListener("submit", (event) => {
     code: text2,
   };
   listData.push(data);
+  _scrollToId = id;
   file_manager
     .loadFile(path.join(__dirname, "../../db/.doors.json"))
     .then((res) => {
@@ -1301,6 +1320,7 @@ document.getElementById("confirm").addEventListener("click", (event) => {
                         document.getElementById("cancel").click();
                         document.getElementById("pass").value = "";
                         listData = [];
+                        importRowOrder = null;
                         document.getElementById("save").disabled = true;
                         clearFields();
                         populateTable();

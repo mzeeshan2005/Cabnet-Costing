@@ -162,6 +162,21 @@ exports.searchShelves = async (query, utility_id, type_id, code_id, limit) => {
   return rpc("shelves:search", "", payload);
 };
 
+exports.findNextAvailableId = (items) => {
+  const ids = new Set();
+  if (Array.isArray(items)) {
+    for (const item of items) {
+      if (item && item.id != null) {
+        const num = Number(item.id);
+        if (!isNaN(num) && num > 0) ids.add(num);
+      }
+    }
+  }
+  let next = 1;
+  while (ids.has(next)) next++;
+  return next;
+};
+
 exports.nextId = async (base) => {
   const payload = { base: base != null ? String(base) : "" };
   return rpc("nextId", "", payload);

@@ -3,7 +3,9 @@ const {faInfoCircle} = require("@fortawesome/fontawesome-free-solid");
 const file_manager = require(path.join(__dirname, "../../scripts/file_manager.js"));
 
 let listData = [];
+let importRowOrder = null;
 let opt = '';
+let _scrollToId = null;
 
 
 function save_func(event, op) {
@@ -21,15 +23,7 @@ function clearFields() {
     .loadFile(path.join(__dirname, "../../db/.handlers.json"))
     .then((res) => {
       const id = document.getElementById("id");
-      if (res.length === 0 && listData.length === 0) {
-        id.innerHTML = "1";
-      } else if (listData.length === 0) {
-        id.innerHTML = Number(res[res.length - 1].id) + 1;
-      } else if (res.length === 0) {
-        id.innerHTML = Number(listData[listData.length - 1].id) + 1;
-      } else {
-        id.innerHTML = Number(listData[listData.length - 1].id) + 1;
-      }
+      id.innerHTML = String(file_manager.findNextAvailableId(res.concat(listData)));
     });
 }
 
@@ -324,12 +318,16 @@ function populateTable() {
     .then((res) => {
       const id = document.getElementById("id");
       const data1 = res.concat(listData);
-      data1.sort((a, b) => Number(a.id) - Number(b.id));
-      if (res.length === 0 && listData.length === 0) {
-        id.innerHTML = "1";
+      if (importRowOrder) {
+        data1.sort((a, b) => {
+          const ai = importRowOrder.indexOf(String(a.id));
+          const bi = importRowOrder.indexOf(String(b.id));
+          return (ai === -1 ? 9999 : ai) - (bi === -1 ? 9999 : bi);
+        });
       } else {
-        id.innerHTML = Number(data1[data1.length - 1].id) + 1;
+        data1.sort((a, b) => Number(a.id) - Number(b.id));
       }
+      id.innerHTML = String(file_manager.findNextAvailableId(data1));
       renderHandlersTable(data1);
     });
   file_manager
@@ -379,8 +377,10 @@ function renderHandlersTable(rows) {
   document.getElementById("checkbox-all-box").style.display = "block";
   tb.innerHTML = rows
     .map(
-      (data) => `
-        <tr class="tr-shadow" style="border-bottom: 2px solid grey">
+      (data) => {
+        const isNew = listData.some(d => d.id === data.id);
+        return `
+        <tr class="tr-shadow" style="border-bottom: 2px solid grey${isNew ? '; background-color: #d4edda' : ''}">
           <td style="border: 1px solid black">
             <label class="au-checkbox">
               <input type="checkbox" id="${data.id}" onchange="toggle(event)">
@@ -391,9 +391,15 @@ function renderHandlersTable(rows) {
           <td style="border: 1px solid black">${data.title}</td>
           <td style="border: 1px solid black">${data.code}</td>
           <td style="border: 1px solid black">${data.rate}</td>
-        </tr>`
+        </tr>`;
+      }
     )
     .join("");
+  if (_scrollToId) {
+    const el = document.getElementById(_scrollToId);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    _scrollToId = null;
+  }
 }
 
 function currentHandlerQuery() {
@@ -435,9 +441,17 @@ function mergeById(a, b) {
   for (const r of b || []) {
     if (r && r.id != null) map[String(r.id)] = r;
   }
-  return Object.keys(map)
-    .sort((x, y) => Number(x) - Number(y))
-    .map((k) => map[k]);
+  const ids = Object.keys(map);
+  if (importRowOrder) {
+    ids.sort((x, y) => {
+      const xi = importRowOrder.indexOf(x);
+      const yi = importRowOrder.indexOf(y);
+      return (xi === -1 ? 9999 : xi) - (yi === -1 ? 9999 : yi);
+    });
+  } else {
+    ids.sort((x, y) => Number(x) - Number(y));
+  }
+  return ids.map((k) => map[k]);
 }
 
 function refreshHandlersTable() {
@@ -521,21 +535,21 @@ function importHandlersFromText(text) {
     const types = Array.isArray(results[2]) ? results[2] : [];
     const codes = Array.isArray(results[3]) ? results[3] : [];
 
-    let maxId = 0;
+    const usedIds = new Set();
     const existingByKey = {};
 
     existing.forEach((h) => {
-      const idNum = h && h.id != null && !isNaN(Number(h.id)) ? Number(h.id) : 0;
-      if (idNum > maxId) maxId = idNum;
+      const n = h && h.id != null ? Number(h.id) : 0;
+      if (n > 0) usedIds.add(n);
       if (h && h.utility_id != null && h.code_id != null && h.title != null) {
-        existingByKey[String(h.utility_id) + "::" + (h.type_id != null ? String(h.type_id) : "") + "::" + String(h.code_id) + "::" + String(h.title).toLowerCase().trim() + "::" + (h.rate != null ? String(h.rate) : "")] = true;
+        existingByKey[String(h.utility_id) + "::" + (h.type_id != null ? String(h.type_id) : "") + "::" + String(h.code_id) + "::" + String(h.title).toLowerCase().trim() + "::" + (h.rate != null ? String(h.rate) : "")] = h.id;
       }
     });
     listData.forEach((h) => {
-      const idNum = h && h.id != null && !isNaN(Number(h.id)) ? Number(h.id) : 0;
-      if (idNum > maxId) maxId = idNum;
+      const n = h && h.id != null ? Number(h.id) : 0;
+      if (n > 0) usedIds.add(n);
       if (h && h.utility_id != null && h.code_id != null && h.title != null) {
-        existingByKey[String(h.utility_id) + "::" + (h.type_id != null ? String(h.type_id) : "") + "::" + String(h.code_id) + "::" + String(h.title).toLowerCase().trim() + "::" + (h.rate != null ? String(h.rate) : "")] = true;
+        existingByKey[String(h.utility_id) + "::" + (h.type_id != null ? String(h.type_id) : "") + "::" + String(h.code_id) + "::" + String(h.title).toLowerCase().trim() + "::" + (h.rate != null ? String(h.rate) : "")] = h.id;
       }
     });
 
@@ -615,10 +629,17 @@ function importHandlersFromText(text) {
       const rate = toNumOrFallback(headerIndex ? row[rateIdx] : row[cursor], rateDefault || 0);
 
       const key = String(utilityId) + "::" + String(typeId) + "::" + String(codeId) + "::" + title.toLowerCase().trim() + "::" + String(rate);
-      if (existingByKey[key]) return;
+      importRowOrder = importRowOrder || [];
+      if (existingByKey[key]) {
+        importRowOrder.push(String(existingByKey[key]));
+        return;
+      }
 
-      maxId += 1;
-      const id = String(maxId);
+      let nextId = 1;
+      while (usedIds.has(nextId)) nextId++;
+      usedIds.add(nextId);
+      const id = String(nextId);
+      importRowOrder.push(id);
 
       const utilityRow = utilities.find((u) => u && String(u.id) === String(utilityId));
       const typeRow = types.find((t) => t && String(t.id) === String(typeId));
@@ -644,12 +665,7 @@ function importHandlersFromText(text) {
 
     const idEl = document.getElementById("id");
     if (idEl) {
-      let localMax = maxId;
-      listData.forEach((h) => {
-        const idNum = h && h.id != null && !isNaN(Number(h.id)) ? Number(h.id) : 0;
-        if (idNum > localMax) localMax = idNum;
-      });
-      idEl.innerHTML = String(localMax + 1);
+      idEl.innerHTML = String(file_manager.findNextAvailableId(listData));
     }
 
     return { added: added, invalid: invalid };
@@ -803,12 +819,12 @@ function depImportUtilitiesFromText(text) {
 
   return file_manager.loadFile(path.join(__dirname, "../../db/.utilities.json")).then((res) => {
     const existing = Array.isArray(res) ? res : [];
-    let maxId = 0;
-    const rowsToMerge = [];
+    const usedIds = new Set();
     existing.forEach((u) => {
-      const idNum = u && u.id != null && !isNaN(Number(u.id)) ? Number(u.id) : 0;
-      if (idNum > maxId) maxId = idNum;
+      const n = u && u.id != null ? Number(u.id) : 0;
+      if (n > 0) usedIds.add(n);
     });
+    const rowsToMerge = [];
 
     let added = 0;
     usable.forEach((row) => {
@@ -820,8 +836,10 @@ function depImportUtilitiesFromText(text) {
       }
       if (!title) title = depTitleValue(row[0]);
       if (!title) return;
-      maxId += 1;
-      rowsToMerge.push({ id: String(maxId), title: title });
+      let nextId = 1;
+      while (usedIds.has(nextId)) nextId++;
+      usedIds.add(nextId);
+      rowsToMerge.push({ id: String(nextId), title: title });
       added += 1;
     });
 
@@ -846,11 +864,12 @@ function depImportTypesFromText(text) {
     const existing = Array.isArray(results[0]) ? results[0] : [];
     const utilities = Array.isArray(results[1]) ? results[1] : [];
 
-    let maxId = 0;
+    const usedIds = new Set();
     existing.forEach((t) => {
-      const idNum = t && t.id != null && !isNaN(Number(t.id)) ? Number(t.id) : 0;
-      if (idNum > maxId) maxId = idNum;
+      const n = t && t.id != null ? Number(t.id) : 0;
+      if (n > 0) usedIds.add(n);
     });
+    const rowsToMerge = [];
 
     let added = 0;
     let invalid = 0;
@@ -910,8 +929,10 @@ function depImportTypesFromText(text) {
         utilityName = uRow && uRow.title != null ? String(uRow.title) : "";
       }
 
-      maxId += 1;
-      rowsToMerge.push({ id: String(maxId), title: title, utility_id: utilityId, utility: utilityName });
+      let nextId = 1;
+      while (usedIds.has(nextId)) nextId++;
+      usedIds.add(nextId);
+      rowsToMerge.push({ id: String(nextId), title: title, utility_id: utilityId, utility: utilityName });
       added += 1;
     });
 
@@ -940,10 +961,10 @@ function depImportCodesFromText(text) {
     const utilities = Array.isArray(results[1]) ? results[1] : [];
     const types = Array.isArray(results[2]) ? results[2] : [];
 
-    let maxId = 0;
+    const usedIds = new Set();
     existing.forEach((c) => {
-      const idNum = c && c.id != null && !isNaN(Number(c.id)) ? Number(c.id) : 0;
-      if (idNum > maxId) maxId = idNum;
+      const n = c && c.id != null ? Number(c.id) : 0;
+      if (n > 0) usedIds.add(n);
     });
 
     let added = 0;
@@ -1036,9 +1057,11 @@ function depImportCodesFromText(text) {
       const screws = depNumValue(screwsCol != null ? row[screwsCol] : row.length >= 8 ? row[7] : 0, 0);
       const wall_bracket = depNumValue(wallBracketCol != null ? row[wallBracketCol] : row.length >= 9 ? row[8] : 0, 0);
 
-      maxId += 1;
+      let nextId = 1;
+      while (usedIds.has(nextId)) nextId++;
+      usedIds.add(nextId);
       existing.push({
-        id: String(maxId),
+        id: String(nextId),
         title: title,
         utility_id: utilityId,
         utility: utilityName,
@@ -1224,6 +1247,7 @@ document.getElementById("form").addEventListener("submit", (event) => {
     code: text2,
   };
   listData.push(data);
+  _scrollToId = id;
   file_manager
     .loadFile(path.join(__dirname, "../../db/.handlers.json"))
     .then((res) => {
@@ -1290,6 +1314,7 @@ document.getElementById("confirm").addEventListener("click", (event) => {
                         document.getElementById("cancel").click();
                         document.getElementById("pass").value = "";
                         listData = [];
+                        importRowOrder = null;
                         document.getElementById("save").disabled = true;
                         clearFields();
                         populateTable();

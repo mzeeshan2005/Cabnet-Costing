@@ -446,7 +446,7 @@ function exportToolsExcel(outPath) {
       const rowArr = raw[r];
       if (!rowArr || rowArr.length === 0) continue;
       const rowId = rowArr[idIdx] != null ? String(rowArr[idIdx]).trim() : null;
-      if (rowId && !dbIdSet.has(rowId)) {
+      if (rowId && !dbIdSet.has(rowId) && !deletedEntityIds.has(rowId)) {
         const obj = {};
         for (let c = 0; c < newHeader.length; c++) {
           const srcIdx = colMap[c];
@@ -671,6 +671,7 @@ function exportToolsExcel(outPath) {
     console.error("Style post-processing failed (non-fatal):", e && e.message ? e.message : e);
   }
 
+  deletedEntityIds.clear();
   return targetPath;
 }
 
@@ -678,6 +679,7 @@ let toolsExcelSyncTimer = null;
 let toolsExcelSyncPending = false;
 let toolsExcelLastSignature = "";
 const toolsExcelHashByBase = {};
+const deletedEntityIds = new Set();
 
 function cancelToolsExcelSync() {
   if (toolsExcelSyncTimer) {
@@ -1499,6 +1501,11 @@ function loadFromSqlite(database, base) {
 function writeToSqlite(database, base, data) {
   function deleteMissingById(table, idColumn, incomingIds) {
     if (!incomingIds || incomingIds.size === 0) {
+      const existing = database.prepare(`SELECT ${idColumn} AS id FROM ${table}`).all();
+      for (const r of existing) {
+        const id = r && r.id != null ? String(r.id) : null;
+        if (id) deletedEntityIds.add(id);
+      }
       database.exec(`DELETE FROM ${table}`);
       return;
     }
@@ -1506,7 +1513,10 @@ function writeToSqlite(database, base, data) {
     const del = database.prepare(`DELETE FROM ${table} WHERE ${idColumn} = ?`);
     for (const r of rows) {
       const id = r && r.id != null ? String(r.id) : null;
-      if (id && !incomingIds.has(id)) del.run(r.id);
+      if (id && !incomingIds.has(id)) {
+        del.run(r.id);
+        deletedEntityIds.add(id);
+      }
     }
   }
 
@@ -2195,9 +2205,14 @@ function nextIdFor(opts) {
   if (!table) return 1;
 
   const database = requireDbOrThrow();
-  const row = database.prepare(`SELECT MAX(id) AS max_id FROM ${table}`).get();
-  const maxId = row && row.max_id != null ? Number(row.max_id) : 0;
-  return maxId + 1;
+  const rows = database.prepare(`SELECT id FROM ${table} ORDER BY id`).all();
+  const ids = new Set();
+  for (const r of rows) {
+    if (r && r.id != null) ids.add(Number(r.id));
+  }
+  let next = 1;
+  while (ids.has(next)) next++;
+  return next;
 }
 
 module.exports = {

@@ -20,6 +20,7 @@ let baseGrossAmount = 0;
 let breakdownRefreshToken = 0;
 let editSavedRawBaseCost = null;
 let editSavedAdditional = null;
+const savedRates = {};
 
 function isProfitMarginApplied() {
   const el = document.getElementById('apply-profit-margin');
@@ -56,15 +57,14 @@ function updateCurrentItemUnitAndTotal() {
   if (!unitEl || !totalEl || !totalEl) return;
 
   custom_val = getCurrentAdditionalValue();
-  let baseUnit;
+  let componentBase;
   if (editSavedRawBaseCost != null) {
-    const currentAdditional = getCurrentAdditionalValue();
-    const additionalDelta = currentAdditional - (editSavedAdditional != null ? editSavedAdditional : 0);
-    baseUnit = editSavedRawBaseCost + additionalDelta;
+    const savedAdditional = editSavedAdditional != null ? editSavedAdditional : 0;
+    componentBase = editSavedRawBaseCost - savedAdditional;
   } else {
-    baseUnit = getCurrentFormBaseUnit();
+    componentBase = getCurrentFormBaseUnit() - getCurrentAdditionalValue();
   }
-  const unit = Number((baseUnit * getProfitMarginFactor()).toFixed(2));
+  const unit = Number((componentBase * getProfitMarginFactor()).toFixed(2)) + getCurrentAdditionalValue();
   const qty = numValue(qtyEl.value);
 
   unitEl.value = unit === 0 ? "0" : unit.toFixed(2);
@@ -100,8 +100,10 @@ function recomputeQuotationPricesFromBase() {
     const baseNum = !isNaN(base) ? base : 0;
     it.raw_base_cost = baseNum;
 
-    const unit = baseNum * factor;
-    const unitNum = !isNaN(unit) ? Number(unit.toFixed(2)) : 0;
+    const additional = it.additional != null ? Number(it.additional) : 0;
+    const componentBase = baseNum - additional;
+    const unit = Number((componentBase * factor).toFixed(2)) + additional;
+    const unitNum = !isNaN(unit) ? unit : 0;
     it.unit = unitNum;
     it.total = Math.round(unitNum * qtyNum);
   }
@@ -289,46 +291,78 @@ function refreshNewCostBreakdown() {
     });
 }
 
-function computeCodeContribution(codeRow, rates, selectedType, customRateValue) {
+function computeCodeContribution(codeRow, rates, selectedType, customRateValue, codeId) {
   if (!codeRow) return 0;
   const primaryType = selectedType || "Box Sheet Price/PC";
-  const primaryRate = numValue(customRateValue);
+  const hasCustomPrimary = customRateValue != null && String(customRateValue).trim() !== '';
+  const primaryRate = hasCustomPrimary ? numValue(customRateValue) : null;
+
+  // Helper: use a previously saved custom rate for a sub-type if available,
+  // otherwise fall back to the DB rate value.
+  function codeSubRate(subTypeLabel, ratesKey) {
+    if (codeId) {
+      const sk = 'code-new-rate:' + codeId + ':' + subTypeLabel;
+      if (savedRates[sk] != null && savedRates[sk] !== '') {
+        return numValue(savedRates[sk]);
+      }
+    }
+    return rateValue(rates, ratesKey);
+  }
 
   if (primaryType === "Box Back Sheet Price/PC") {
-    return (numValue(codeRow.rate) * rateValue(rates, "rate_codes"))
-      + (numValue(codeRow.back_area) * primaryRate)
-      + (numValue(codeRow.secondary_top) * rateValue(rates, "secondary_top_codes"))
+    return (numValue(codeRow.rate) * codeSubRate("Box Sheet Price/PC", "rate_codes"))
+      + (numValue(codeRow.back_area) * (primaryRate !== null ? primaryRate : codeSubRate("Box Back Sheet Price/PC", "back_area_codes")))
+      + (numValue(codeRow.secondary_top) * codeSubRate("Secondary Top Sheet Price/PC", "secondary_top_codes"))
       + (numValue(codeRow.edging) * rateValue(rates, "edging_codes"))
       + (numValue(codeRow.screws) * rateValue(rates, "screws_codes"))
       + (numValue(codeRow.wall_bracket) * rateValue(rates, "wall_bracket_codes"));
   }
 
   if (primaryType === "Secondary Top Sheet Price/PC") {
-    return (numValue(codeRow.rate) * rateValue(rates, "rate_codes"))
-      + (numValue(codeRow.back_area) * rateValue(rates, "back_area_codes"))
-      + (numValue(codeRow.secondary_top) * primaryRate)
+    return (numValue(codeRow.rate) * codeSubRate("Box Sheet Price/PC", "rate_codes"))
+      + (numValue(codeRow.back_area) * codeSubRate("Box Back Sheet Price/PC", "back_area_codes"))
+      + (numValue(codeRow.secondary_top) * (primaryRate !== null ? primaryRate : codeSubRate("Secondary Top Sheet Price/PC", "secondary_top_codes")))
       + (numValue(codeRow.edging) * rateValue(rates, "edging_codes"))
       + (numValue(codeRow.screws) * rateValue(rates, "screws_codes"))
       + (numValue(codeRow.wall_bracket) * rateValue(rates, "wall_bracket_codes"));
   }
 
-  return (numValue(codeRow.rate) * primaryRate)
-    + (numValue(codeRow.back_area) * rateValue(rates, "back_area_codes"))
-    + (numValue(codeRow.secondary_top) * rateValue(rates, "secondary_top_codes"))
+  // Default: "Box Sheet Price/PC" is primary
+  return (numValue(codeRow.rate) * (primaryRate !== null ? primaryRate : codeSubRate("Box Sheet Price/PC", "rate_codes")))
+    + (numValue(codeRow.back_area) * codeSubRate("Box Back Sheet Price/PC", "back_area_codes"))
+    + (numValue(codeRow.secondary_top) * codeSubRate("Secondary Top Sheet Price/PC", "secondary_top_codes"))
     + (numValue(codeRow.edging) * rateValue(rates, "edging_codes"))
     + (numValue(codeRow.screws) * rateValue(rates, "screws_codes"))
     + (numValue(codeRow.wall_bracket) * rateValue(rates, "wall_bracket_codes"));
 }
 
-function computeHardwareContribution(hardwareRow, rates, selectedType, customRateValue) {
+function computeHardwareContribution(hardwareRow, rates, selectedType, customRateValue, hwId) {
   if (!hardwareRow) return 0;
   const primaryType = selectedType || "Hinges Price/SET";
-  const primaryRate = numValue(customRateValue);
+  const hasCustomPrimary = customRateValue != null && String(customRateValue).trim() !== '';
+  const primaryRate = hasCustomPrimary ? numValue(customRateValue) : null;
+
+  // Mirror of codeSubRate in computeCodeContribution:
+  // For non-active sub-types, use a previously saved custom rate if the user
+  // set one, otherwise fall back to the DB rate. This gives the same multi-option
+  // persistence behaviour as the code-price dropdown.
+  function hwSubRate(subTypeLabel, ratesKey) {
+    if (hwId) {
+      const sk = 'harware-new-rate:' + hwId + ':' + subTypeLabel;
+      if (savedRates[sk] != null && savedRates[sk] !== '') {
+        return numValue(savedRates[sk]);
+      }
+    }
+    return rateValue(rates, ratesKey);
+  }
+
+  // Each dropdown option overrides only its own component's rate.
+  // All other components use their saved custom rate (if any) or the DB rate.
 
   if (primaryType === "Slider Price/SET") {
-    return (numValue(hardwareRow.rate) * rateValue(rates, "rate_hardware"))
-      + (numValue(hardwareRow.slider) * primaryRate)
-      + (numValue(hardwareRow.lift) * rateValue(rates, "lift_hardware"))
+    return (numValue(hardwareRow.rate) * hwSubRate("Hinges Price/SET", "rate_hardware"))
+      + (numValue(hardwareRow.slider) * (primaryRate !== null ? primaryRate : hwSubRate("Slider Price/SET", "slider_hardware")))
+      + (numValue(hardwareRow.lift) * hwSubRate("Lift Up Price/SET", "lift_hardware"))
       + (numValue(hardwareRow.hanger_pipe) * rateValue(rates, "hanger_pipe_hardware"))
       + (numValue(hardwareRow.hanger_pipe_fitting) * rateValue(rates, "hanger_pipe_fitting_hardware"))
       + (numValue(hardwareRow.locks) * rateValue(rates, "locks_hardware"))
@@ -336,18 +370,19 @@ function computeHardwareContribution(hardwareRow, rates, selectedType, customRat
   }
 
   if (primaryType === "Lift Up Price/SET") {
-    return (numValue(hardwareRow.rate) * rateValue(rates, "rate_hardware"))
-      + (numValue(hardwareRow.slider) * rateValue(rates, "slider_hardware"))
-      + (numValue(hardwareRow.lift) * primaryRate)
+    return (numValue(hardwareRow.rate) * hwSubRate("Hinges Price/SET", "rate_hardware"))
+      + (numValue(hardwareRow.slider) * hwSubRate("Slider Price/SET", "slider_hardware"))
+      + (numValue(hardwareRow.lift) * (primaryRate !== null ? primaryRate : hwSubRate("Lift Up Price/SET", "lift_hardware")))
       + (numValue(hardwareRow.hanger_pipe) * rateValue(rates, "hanger_pipe_hardware"))
       + (numValue(hardwareRow.hanger_pipe_fitting) * rateValue(rates, "hanger_pipe_fitting_hardware"))
       + (numValue(hardwareRow.locks) * rateValue(rates, "locks_hardware"))
       + (numValue(hardwareRow.drawer_handles) * rateValue(rates, "drawer_handle_rate"));
   }
 
-  return (numValue(hardwareRow.rate) * primaryRate)
-    + (numValue(hardwareRow.slider) * rateValue(rates, "slider_hardware"))
-    + (numValue(hardwareRow.lift) * rateValue(rates, "lift_hardware"))
+  // Default: "Hinges Price/SET" — override the hinge rate only.
+  return (numValue(hardwareRow.rate) * (primaryRate !== null ? primaryRate : hwSubRate("Hinges Price/SET", "rate_hardware")))
+    + (numValue(hardwareRow.slider) * hwSubRate("Slider Price/SET", "slider_hardware"))
+    + (numValue(hardwareRow.lift) * hwSubRate("Lift Up Price/SET", "lift_hardware"))
     + (numValue(hardwareRow.hanger_pipe) * rateValue(rates, "hanger_pipe_hardware"))
     + (numValue(hardwareRow.hanger_pipe_fitting) * rateValue(rates, "hanger_pipe_fitting_hardware"))
     + (numValue(hardwareRow.locks) * rateValue(rates, "locks_hardware"))
@@ -465,7 +500,7 @@ function recalculateCodeContributionFromCurrentSelection() {
   }
 
   file_manager.loadFile(path.join(__dirname, `../db/.codes.json`))
-    .then(res => {
+    .then(res =>
       file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
         .then(rates => {
           res.forEach(i => {
@@ -474,16 +509,16 @@ function recalculateCodeContributionFromCurrentSelection() {
                 const select = document.getElementById("code-price");
                 const selectedIndex = select.selectedIndex;
                 const selectedText = select.options[selectedIndex].text;
-                code_rate = computeCodeContribution(i, rates, selectedText, document.getElementById('code-new-rate').value);
+                code_rate = computeCodeContribution(i, rates, selectedText, document.getElementById('code-new-rate').value, selectedCodeId);
               }
               catch (e) {
-                code_rate = numValue(i.rate)
+                code_rate = numValue(i.rate);
               }
               updateCurrentItemUnitAndTotal();
             }
-          })
+          });
         })
-    })
+    );
 }
 
 
@@ -497,19 +532,19 @@ function change_finishing_rate(event) {
             res.forEach(i => {
               if (i.id === document.getElementById('door-panel').value) {
                 try {
-                  door = parseFloat(i.rate)
-                  door = door * parseFloat(document.getElementById('finishing-new-rate').value);
+                  const rawInput = document.getElementById('finishing-new-rate').value;
+                  const hasCustom = rawInput.trim() !== '';
+                  door = parseFloat(i.rate) * (hasCustom ? parseFloat(rawInput) : parseFloat(rates.finishing_doors || i.rate));
                   const edging = parseFloat(i.edging) * parseFloat(rates.edging_doors);
                   door = door + edging;
                 }
                 catch (e) {
-                  door = i.rate
+                  door = i.rate;
                 }
                 updateCurrentItemUnitAndTotal();
               }
             })
           })
-
       })
   }
 }
@@ -525,17 +560,17 @@ function change_handles_rate(event) {
             res.forEach(i => {
               if (i.id === document.getElementById('handler').value) {
                 try {
-                  handler = parseFloat(i.rate)
-                  handler = handler * parseFloat(document.getElementById('handle-new-rate').value);
+                  const rawInput = document.getElementById('handle-new-rate').value;
+                  const hasCustom = rawInput.trim() !== '';
+                  handler = parseFloat(i.rate) * (hasCustom ? parseFloat(rawInput) : 1);
                 }
                 catch (e) {
-                  handler = i.rate
+                  handler = i.rate;
                 }
                 updateCurrentItemUnitAndTotal();
               }
             })
           })
-
       })
   }
 }
@@ -557,7 +592,7 @@ function recalculateHardwareContributionFromCurrentSelection() {
   }
 
   file_manager.loadFile(path.join(__dirname, `../db/.hardwares.json`))
-    .then(res => {
+    .then(res =>
       file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
         .then(rates => {
           res.forEach(i => {
@@ -566,16 +601,16 @@ function recalculateHardwareContributionFromCurrentSelection() {
                 const select = document.getElementById("hardware-price");
                 const selectedIndex = select.selectedIndex;
                 const selectedText = select.options[selectedIndex].text;
-                hardware = computeHardwareContribution(i, rates, selectedText, document.getElementById('harware-new-rate').value);
+                hardware = computeHardwareContribution(i, rates, selectedText, document.getElementById('harware-new-rate').value, selectedHardwareId);
               }
               catch (e) {
-                hardware = numValue(i.rate)
+                hardware = numValue(i.rate);
               }
               updateCurrentItemUnitAndTotal();
             }
-          })
+          });
         })
-    })
+    );
 }
 
 
@@ -589,27 +624,34 @@ function change_shelve_rate(event) {
             res.forEach(i => {
               if (i.id === document.getElementById("shelves").value) {
                 try {
-                  shelve = parseFloat(i.rate)
-                  shelve = shelve * parseFloat(document.getElementById('shelve-new-rate').value);
+                  const rawInput = document.getElementById('shelve-new-rate').value;
+                  const hasCustom = rawInput.trim() !== '';
+                  shelve = parseFloat(i.rate) * (hasCustom ? parseFloat(rawInput) : parseFloat(rates.rate_shelve || i.rate));
                   const edging = parseFloat(i.edging) * parseFloat(rates.edging_shelve);
                   const pins = parseFloat(i.pin) * parseFloat(rates.pin_shelve);
                   shelve = shelve + edging + pins;
                 }
                 catch (e) {
-                  shelve = i.rate
+                  shelve = i.rate;
                 }
                 updateCurrentItemUnitAndTotal();
               }
             })
           })
-
       })
   }
 }
 
 
+let editingItem = false;
+
 document.getElementById('edit').addEventListener('click', (event) => {
   event.preventDefault()
+
+  clearSavedRates();
+  editingItem = true;
+  editSavedRawBaseCost = item.raw_base_cost != null ? Number(item.raw_base_cost) : null;
+  editSavedAdditional = item.additional != null ? Number(item.additional) : 0;
 
   document.getElementById('elevation-input').value = item.elevation;
   document.getElementById('utility').value = item.utility;
@@ -671,11 +713,15 @@ document.getElementById('edit').addEventListener('click', (event) => {
                     document.getElementById('code-new-rate').value = item.code_rate;
                     code_rate = computeCodeContribution(i, rates, item.code_rate_type, item.code_rate);
                   }
-                  catch (e) {
+                    catch (e) {
                     code_rate = numValue(i.rate)
                   }
                 }
               })
+              const codeId = document.getElementById('code').value;
+              if (codeId && item.code_rate_type) {
+                savedRates['code-new-rate:' + codeId + ':' + item.code_rate_type] = item.code_rate;
+              }
             })
         })
     })
@@ -692,7 +738,7 @@ document.getElementById('edit').addEventListener('click', (event) => {
       opt.classList.add('d-none')
       doors.options.add(opt)
       res.forEach(iter => {
-        if (iter.utility_id === document.getElementById('utility').value && iter.type_id === document.getElementById('type').value && iter.code_id === item.code) {
+        if (iter.utility_id === document.getElementById('utility').value && iter.type_id === item.type && iter.code_id === item.code) {
           const opt = document.createElement('option')
           opt.value = iter.id;
           opt.text = iter.title
@@ -709,6 +755,7 @@ document.getElementById('edit').addEventListener('click', (event) => {
                   try {
                     door = parseFloat(i.rate)
                     document.getElementById('finishing-new-rate').value = item.finishing_rate;
+                    if (item.door_panel) savedRates['finishing-new-rate:' + item.door_panel] = item.finishing_rate;
                     door = door * parseFloat(item.finishing_rate);
                     const edging = parseFloat(i.edging) * parseFloat(rates.edging_doors);
                     door = door + edging;
@@ -734,7 +781,7 @@ document.getElementById('edit').addEventListener('click', (event) => {
       opt.classList.add('d-none')
       doors.options.add(opt)
       res.forEach(i => {
-        if (document.getElementById('utility').value && i.type_id === document.getElementById('type').value && i.code_id === item.code) {
+        if (document.getElementById('utility').value && i.type_id === item.type && i.code_id === item.code) {
           const opt = document.createElement('option')
           opt.value = i.id;
           opt.text = i.title
@@ -751,6 +798,7 @@ document.getElementById('edit').addEventListener('click', (event) => {
                   try {
                     handler = parseFloat(i.rate)
                     document.getElementById('handle-new-rate').value = item.handle_rate;
+                    if (item.handler) savedRates['handle-new-rate:' + item.handler] = item.handle_rate;
                     handler = handler * parseFloat(item.handle_rate);
                   }
                   catch (e) {
@@ -773,7 +821,7 @@ document.getElementById('edit').addEventListener('click', (event) => {
       opt.classList.add('d-none')
       doors.options.add(opt)
       res.forEach(i => {
-        if (i.utility_id === document.getElementById('utility').value && i.type_id === document.getElementById('type').value && i.code_id === item.code) {
+        if (i.utility_id === document.getElementById('utility').value && i.type_id === item.type && i.code_id === item.code) {
           const opt = document.createElement('option')
           opt.value = i.id;
           opt.text = i.title
@@ -801,12 +849,16 @@ document.getElementById('edit').addEventListener('click', (event) => {
                     document.getElementById('harware-new-rate').value = item.hardware_rate
                     hardware = computeHardwareContribution(i, rates, item.hardware_rate_type, item.hardware_rate);
                   }
-                  catch (e) {
+                    catch (e) {
                     hardware = numValue(i.rate)
                   }
 
                 }
               })
+              const hwId = document.getElementById('hardware').value;
+              if (hwId && item.hardware_rate_type) {
+                savedRates['harware-new-rate:' + hwId + ':' + item.hardware_rate_type] = item.hardware_rate;
+              }
             })
 
         })
@@ -822,7 +874,7 @@ document.getElementById('edit').addEventListener('click', (event) => {
       opt.classList.add('d-none')
       doors.options.add(opt)
       res.forEach(i => {
-        if (i.utility_id === document.getElementById('utility').value && i.type_id === document.getElementById('type').value && i.code_id === item.code) {
+        if (i.utility_id === document.getElementById('utility').value && i.type_id === item.type && i.code_id === item.code) {
           const opt = document.createElement('option')
           opt.value = i.id;
           opt.text = i.title
@@ -841,6 +893,7 @@ document.getElementById('edit').addEventListener('click', (event) => {
                   try {
                     shelve = parseFloat(i.rate)
                     document.getElementById('shelve-new-rate').value = item.shelve_rate;
+                    if (item.shelves) savedRates['shelve-new-rate:' + item.shelves] = item.shelve_rate;
                     shelve = shelve * parseFloat(item.shelve_rate);
                     const edging = parseFloat(i.edging) * parseFloat(rates.edging_shelve);
                     const pins = parseFloat(i.pin) * parseFloat(rates.pin_shelve);
@@ -860,9 +913,12 @@ document.getElementById('edit').addEventListener('click', (event) => {
   document.getElementById('additional').value = item.additional;
   document.getElementById('unit').value = item.unit;
   document.getElementById('total').innerHTML = item.total;
+  document.getElementById('apply-profit-margin').checked = item.profit_margin_applied != null ? !!item.profit_margin_applied : (pricing && pricing.pinfo && pricing.pinfo.profit_margin_applied != null ? !!pricing.pinfo.profit_margin_applied : document.getElementById('apply-profit-margin').checked);
   editSavedRawBaseCost = item.raw_base_cost != null ? Number(item.raw_base_cost) : null;
   editSavedAdditional = getCurrentAdditionalValue();
   refreshNewCostBreakdown();
+
+  editingItem = false;
 
   // item = {
   //   "item_id": items.length + 1,
@@ -920,6 +976,7 @@ document.getElementById('edit').addEventListener('click', (event) => {
 })
 
 function clear_dropdowns() {
+  clearSavedRates();
   document.getElementById('elevation-input').value = "";
   document.getElementById('utility').value = "";
   document.getElementById('type').innerHTML = "";
@@ -932,6 +989,8 @@ function clear_dropdowns() {
   document.getElementById('is_shelve').value = "yes";
   document.getElementById('additional').value = "0";
   item = null;
+  editSavedRawBaseCost = null;
+  editSavedAdditional = null;
   code_rate = 0;
   door = 0;
   handler = 0;
@@ -954,6 +1013,11 @@ function clear_dropdowns() {
 document.getElementById('clear').addEventListener('click', (event) => {
   event.preventDefault();
   clear_dropdowns();
+  check_list = [];
+  document.querySelectorAll('#my-table input[type="checkbox"]').forEach(cb => cb.checked = false);
+  document.getElementById('checkbox-all').checked = false;
+  document.getElementById('edit').disabled = true;
+  document.getElementById('delete').disabled = true;
   // file_manager.loadFile(path.join(__dirname, `../db/.pricings.json`))
   //     .then(res => {
   //       document.getElementById('pricing-no').value = res.length + 1;
@@ -989,6 +1053,7 @@ document.getElementById('clear').addEventListener('click', (event) => {
 })
 
 function all_clear() {
+  clearSavedRates();
   file_manager.loadFile(path.join(__dirname, `../db/.pricings.json`))
     .then(res => {
       if (res.length === 0) {
@@ -1020,6 +1085,7 @@ function all_clear() {
       document.getElementById('shelves').innerHTML = "";
       document.getElementById('is_shelve').value = "yes";
       document.getElementById('additional').value = "0";
+      document.getElementById('apply-profit-margin').checked = true;
       updateCurrentItemUnitAndTotal();
       document.getElementById('table-body-div').innerHTML = "";
       document.getElementById('save').disabled = true;
@@ -1350,6 +1416,7 @@ function save_dropdown(event, drp, drp_text) {
 }
 
 function utility_change(event) {
+  if (editingItem) return;
   editSavedRawBaseCost = null;
   event.preventDefault();
   const utility = event.target.value;
@@ -1396,6 +1463,7 @@ function utility_change(event) {
 }
 
 function type_change(event) {
+  if (editingItem) return;
   editSavedRawBaseCost = null;
   event.preventDefault();
   const type = event.target.value;
@@ -1441,6 +1509,7 @@ function type_change(event) {
 }
 
 function code_change(event) {
+  if (editingItem) return;
   editSavedRawBaseCost = null;
   event.preventDefault();
   const code = event.target.value;
@@ -1462,6 +1531,11 @@ function code_change(event) {
     document.getElementById("hardware-price").selectedIndex = 0;
     document.getElementById('handle-new-rate').value = 0;
     document.getElementById('shelve-new-rate').value = 0;
+    ['code-new-rate', 'finishing-new-rate', 'harware-new-rate', 'handle-new-rate', 'shelve-new-rate'].forEach(k => {
+      Object.keys(savedRates).forEach(sk => {
+        if (sk.startsWith(k + ':')) delete savedRates[sk];
+      });
+    });
     updateCurrentItemUnitAndTotal();
   }
   else {
@@ -1473,8 +1547,10 @@ function code_change(event) {
               if (i.id === code) {
                 try {
                   document.getElementById("code-price").selectedIndex = 0;
-                  document.getElementById('code-new-rate').value = rates.rate_codes
-                  code_rate = computeCodeContribution(i, rates, "Box Sheet Price/PC", rates.rate_codes);
+                  const firstOptText = document.getElementById("code-price").options[0].text;
+                  const savedCodeRate = (code && firstOptText) ? savedRates['code-new-rate:' + code + ':' + firstOptText] : null;
+                  document.getElementById('code-new-rate').value = savedCodeRate != null ? savedCodeRate : rates.rate_codes;
+                  code_rate = computeCodeContribution(i, rates, firstOptText, savedCodeRate != null ? savedCodeRate : rates.rate_codes);
                 }
                 catch (e) {
                   code_rate = numValue(i.rate)
@@ -1571,22 +1647,111 @@ function code_change(event) {
   refreshNewCostBreakdown();
 }
 
+function clearSavedRates() {
+  Object.keys(savedRates).forEach(k => delete savedRates[k]);
+}
+
 document.getElementById("hardware-price").addEventListener("change", (event) => {
-  document.getElementById("harware-new-rate").value = event.target.value;
-  recalculateHardwareContributionFromCurrentSelection();
+  const hwId = document.getElementById('hardware').value;
+  const optText = event.target.options[event.target.selectedIndex].text;
+  const saved = (hwId && optText) ? savedRates['harware-new-rate:' + hwId + ':' + optText] : null;
+  document.getElementById("harware-new-rate").value = saved != null ? saved : event.target.value;
 })
 
 document.getElementById("code-price").addEventListener("change", (event) => {
-  document.getElementById("code-new-rate").value = event.target.value;
-  recalculateCodeContributionFromCurrentSelection();
+  const codeId = document.getElementById('code').value;
+  const optText = event.target.options[event.target.selectedIndex].text;
+  const saved = (codeId && optText) ? savedRates['code-new-rate:' + codeId + ':' + optText] : null;
+  document.getElementById("code-new-rate").value = saved != null ? saved : event.target.value;
 })
 
-document.getElementById("harware-new-rate").addEventListener("change", () => {
-  recalculateHardwareContributionFromCurrentSelection();
+document.getElementById("harware-new-rate").addEventListener("input", () => {
+  if (editingItem) return;
+  editSavedRawBaseCost = null;
 })
 
-document.getElementById("code-new-rate").addEventListener("change", () => {
-  recalculateCodeContributionFromCurrentSelection();
+document.getElementById("harware-new-rate").addEventListener("keydown", (e) => {
+  if (e.key === 'Enter' || e.which === 13) {
+    const hwId = document.getElementById('hardware').value;
+    const select = document.getElementById('hardware-price');
+    const optText = select.options[select.selectedIndex].text;
+    const val = document.getElementById('harware-new-rate').value;
+    if (hwId && optText && val.trim() !== '') savedRates['harware-new-rate:' + hwId + ':' + optText] = val;
+    else if (hwId && optText) delete savedRates['harware-new-rate:' + hwId + ':' + optText];
+    editSavedRawBaseCost = null;
+    e.preventDefault();
+    recalculateHardwareContributionFromCurrentSelection();
+  }
+})
+
+document.getElementById("code-new-rate").addEventListener("keydown", (e) => {
+  if (e.key === 'Enter' || e.which === 13) {
+    const codeId = document.getElementById('code').value;
+    const select = document.getElementById('code-price');
+    const optText = select.options[select.selectedIndex].text;
+    const val = document.getElementById('code-new-rate').value;
+    if (codeId && optText && val.trim() !== '') savedRates['code-new-rate:' + codeId + ':' + optText] = val;
+    else if (codeId && optText) delete savedRates['code-new-rate:' + codeId + ':' + optText];
+    editSavedRawBaseCost = null;
+    e.preventDefault();
+    recalculateCodeContributionFromCurrentSelection();
+  }
+})
+
+document.getElementById("code-new-rate").addEventListener("input", () => {
+  if (editingItem) return;
+  editSavedRawBaseCost = null;
+})
+
+document.getElementById("finishing-new-rate").addEventListener("keydown", (e) => {
+  if (e.key === 'Enter' || e.which === 13) {
+    const doorId = document.getElementById('door-panel').value;
+    const val = document.getElementById('finishing-new-rate').value;
+    if (doorId && val.trim() !== '') savedRates['finishing-new-rate:' + doorId] = val;
+    else if (doorId) delete savedRates['finishing-new-rate:' + doorId];
+    editSavedRawBaseCost = null;
+    e.preventDefault();
+    change_finishing_rate(e);
+  }
+})
+
+document.getElementById("finishing-new-rate").addEventListener("input", () => {
+  if (editingItem) return;
+  editSavedRawBaseCost = null;
+})
+
+document.getElementById("handle-new-rate").addEventListener("keydown", (e) => {
+  if (e.key === 'Enter' || e.which === 13) {
+    const hId = document.getElementById('handler').value;
+    const val = document.getElementById('handle-new-rate').value;
+    if (hId && val.trim() !== '') savedRates['handle-new-rate:' + hId] = val;
+    else if (hId) delete savedRates['handle-new-rate:' + hId];
+    editSavedRawBaseCost = null;
+    e.preventDefault();
+    change_handles_rate(e);
+  }
+})
+
+document.getElementById("handle-new-rate").addEventListener("input", () => {
+  if (editingItem) return;
+  editSavedRawBaseCost = null;
+})
+
+document.getElementById("shelve-new-rate").addEventListener("keydown", (e) => {
+  if (e.key === 'Enter' || e.which === 13) {
+    const sId = document.getElementById('shelves').value;
+    const val = document.getElementById('shelve-new-rate').value;
+    if (sId && val.trim() !== '') savedRates['shelve-new-rate:' + sId] = val;
+    else if (sId) delete savedRates['shelve-new-rate:' + sId];
+    editSavedRawBaseCost = null;
+    e.preventDefault();
+    change_shelve_rate(e);
+  }
+})
+
+document.getElementById("shelve-new-rate").addEventListener("input", () => {
+  if (editingItem) return;
+  editSavedRawBaseCost = null;
 })
 
 function recalcNetFromEnteredTotals() {
@@ -1700,6 +1865,7 @@ document.getElementById('form-pricing').addEventListener('submit', (event) => {
     "hardware_rate_type": selectedText,
     "code_rate_type": selectedText1,
     "shelve_rate": document.getElementById('shelve-new-rate').value,
+    "profit_margin_applied": isProfitMarginApplied(),
   }
   if (document.getElementById('is_shelve').value === 'no') {
     item.shelves_text = ''
@@ -1741,10 +1907,12 @@ document.getElementById('form-pricing').addEventListener('submit', (event) => {
 })
 
 document.getElementById('additional').addEventListener('input', () => {
+  if (editingItem) return;
   updateCurrentItemUnitAndTotal();
 })
 
 document.getElementById('is_shelve').addEventListener('change', (event) => {
+  if (editingItem) return;
   editSavedRawBaseCost = null;
   const val = event.target.value;
   if (val === "yes" && shelve === 0) {
@@ -1782,11 +1950,13 @@ document.getElementById('is_shelve').addEventListener('change', (event) => {
 })
 
 document.getElementById('qty').addEventListener('change', (event) => {
+  if (editingItem) return;
   editSavedRawBaseCost = null;
   updateCurrentItemUnitAndTotal();
 })
 
 document.getElementById('door-panel').addEventListener('change', (event) => {
+  if (editingItem) return;
   editSavedRawBaseCost = null;
   const val = event.target.value;
   document.getElementById('additional').value = 0;
@@ -1804,8 +1974,9 @@ document.getElementById('door-panel').addEventListener('change', (event) => {
               if (i.id === val) {
                 try {
                   door = parseFloat(i.rate)
-                  document.getElementById('finishing-new-rate').value = rates.rate_doors;
-                  door = door * parseFloat(rates.rate_doors);
+                  const savedFinish = savedRates['finishing-new-rate:' + val];
+                  document.getElementById('finishing-new-rate').value = savedFinish != null ? savedFinish : rates.rate_doors;
+                  door = door * parseFloat(document.getElementById('finishing-new-rate').value);
                   const edging = parseFloat(i.edging) * parseFloat(rates.edging_doors);
                   door = door + edging;
                 }
@@ -1823,6 +1994,7 @@ document.getElementById('door-panel').addEventListener('change', (event) => {
 })
 
 document.getElementById('handler').addEventListener('change', (event) => {
+  if (editingItem) return;
   editSavedRawBaseCost = null;
   const val = event.target.value;
   document.getElementById('additional').value = 0;
@@ -1840,8 +2012,9 @@ document.getElementById('handler').addEventListener('change', (event) => {
               if (i.id === val) {
                 try {
                   handler = parseFloat(i.rate)
-                  document.getElementById('handle-new-rate').value = rates.rate_handles;
-                  handler = handler * parseFloat(rates.rate_handles);
+                  const savedHandle = savedRates['handle-new-rate:' + val];
+                  document.getElementById('handle-new-rate').value = savedHandle != null ? savedHandle : rates.rate_handles;
+                  handler = handler * parseFloat(document.getElementById('handle-new-rate').value);
                 }
                 catch (e) {
                   handler = i.rate
@@ -1856,6 +2029,7 @@ document.getElementById('handler').addEventListener('change', (event) => {
 })
 
 document.getElementById('hardware').addEventListener('change', (event) => {
+  if (editingItem) return;
   editSavedRawBaseCost = null;
   const val = event.target.value;
   document.getElementById('additional').value = 0;
@@ -1873,8 +2047,11 @@ document.getElementById('hardware').addEventListener('change', (event) => {
               if (i.id === val) {
                 try {
                   document.getElementById("hardware-price").selectedIndex = 0;
-                  document.getElementById('harware-new-rate').value = rates.rate_hardware;
-                  hardware = computeHardwareContribution(i, rates, "Hinges Price/SET", rates.rate_hardware);
+                  const firstHwOptText = document.getElementById("hardware-price").options[0].text;
+                  const savedHw = (val && firstHwOptText) ? savedRates['harware-new-rate:' + val + ':' + firstHwOptText] : null;
+                  const hwRate = savedHw != null ? savedHw : rates.rate_hardware;
+                  document.getElementById('harware-new-rate').value = hwRate;
+                  hardware = computeHardwareContribution(i, rates, firstHwOptText, hwRate);
                 }
                 catch (e) {
                   hardware = numValue(i.rate);
@@ -1889,6 +2066,7 @@ document.getElementById('hardware').addEventListener('change', (event) => {
 })
 
 document.getElementById('shelves').addEventListener('change', (event) => {
+  if (editingItem) return;
   editSavedRawBaseCost = null;
   const val = event.target.value;
   if (val === '') {
@@ -1904,8 +2082,9 @@ document.getElementById('shelves').addEventListener('change', (event) => {
               if (i.id === val) {
                 try {
                   shelve = parseFloat(i.rate)
-                  document.getElementById('shelve-new-rate').value = rates.rate_shelve;
-                  shelve = shelve * parseFloat(rates.rate_shelve);
+                  const savedShelve = savedRates['shelve-new-rate:' + val];
+                  document.getElementById('shelve-new-rate').value = savedShelve != null ? savedShelve : rates.rate_shelve;
+                  shelve = shelve * parseFloat(document.getElementById('shelve-new-rate').value);
                   const edging = parseFloat(i.edging) * parseFloat(rates.edging_shelve);
                   const pins = parseFloat(i.pin) * parseFloat(rates.pin_shelve);
                   shelve = shelve + edging + pins;
@@ -1959,6 +2138,7 @@ document.getElementById('delivery-charges').addEventListener('change', () => {
 })
 
 document.getElementById('apply-profit-margin').addEventListener('change', (event) => {
+  if (editingItem) return;
   editSavedRawBaseCost = null;
   updateCurrentItemUnitAndTotal();
 })

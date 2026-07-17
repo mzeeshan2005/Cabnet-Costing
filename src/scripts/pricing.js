@@ -21,6 +21,7 @@ let breakdownRefreshToken = 0;
 let editSavedRawBaseCost = null;
 let editSavedAdditional = null;
 const savedRates = {};
+let formGeneration = 0;
 
 function isProfitMarginApplied() {
   const el = document.getElementById('apply-profit-margin');
@@ -976,6 +977,7 @@ document.getElementById('edit').addEventListener('click', (event) => {
 })
 
 function clear_dropdowns() {
+  formGeneration++;
   clearSavedRates();
   document.getElementById('elevation-input').value = "";
   document.getElementById('utility').value = "";
@@ -1541,8 +1543,10 @@ function code_change(event) {
   else {
     file_manager.loadFile(path.join(__dirname, `../db/.codes.json`))
       .then(res => {
+        const gen = formGeneration;
         file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
           .then(rates => {
+            if (gen !== formGeneration) return;
             res.forEach(i => {
               if (i.id === code) {
                 try {
@@ -1895,15 +1899,20 @@ document.getElementById('form-pricing').addEventListener('submit', (event) => {
     }
     if (pinfo !== "")
       pricing["pinfo"] = pinfo
-    check_list = []
   })
   document.getElementById('delete').disabled = true;
   document.getElementById('save').disabled = false;
   document.getElementById('unit').readOnly = true;
-  populate_table()
-  recalcGrossFromItems()
-  clear_dropdowns()
-  document.getElementById('edit').disabled = true;
+  try {
+    populate_table()
+    recalcGrossFromItems()
+  } finally {
+    check_list = [];
+    item = null;
+    editingItem = false;
+    clear_dropdowns();
+    document.getElementById('edit').disabled = true;
+  }
 })
 
 document.getElementById('additional').addEventListener('input', () => {
@@ -2041,8 +2050,10 @@ document.getElementById('hardware').addEventListener('change', (event) => {
   else {
     file_manager.loadFile(path.join(__dirname, `../db/.hardwares.json`))
       .then(res => {
+        const gen = formGeneration;
         file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
           .then(rates => {
+            if (gen !== formGeneration) return;
             res.forEach(i => {
               if (i.id === val) {
                 try {

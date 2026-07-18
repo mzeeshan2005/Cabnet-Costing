@@ -115,7 +115,7 @@ document.getElementById('filter-pricing').addEventListener('change', (event) => 
 
 document.getElementById('print').addEventListener('click', (event) => {
   var opt = {
-    margin:       0.5,
+    margin:       0.3,
     filename:     `report-${document.getElementById('from').value}-${document.getElementById('to').value}.pdf`,
     image:        { type: 'jpeg', quality: 0.98 },
     html2canvas:  { scale: 5 },
@@ -156,14 +156,14 @@ document.getElementById('print').addEventListener('click', (event) => {
             total_amount += parseInt(item['pinfo'].net);
             table_body += `
                <tr >
-               <td style="width: 39px; color: black; ">${ind+1}</td>
-               <td style="width: 65px; color: black;">${item['pinfo'].pricing_no}</td>
-               <td style="width: 70px; color: black; ">${item['pinfo'].manual_no}</td>
-               <td style="width: 170px; color: black; ">${item['pinfo'].client_name}</td>
-               <td style="width: 90px; color: black; ">${item['pinfo'].is_quotation ? 'Quotation' : 'Invoice' }</td>
-               <td style="width: 90px; color: black; ">${item['pinfo'].entry_date.split('T')[0] }</td>
-               <td style="width: 80px; color: black; ">${Intl.NumberFormat('en-US').format(item['pinfo'].net)}</td>
-               <td style="width:200px;"></td>
+                   <td style="width: 39px; color: black; ">${ind+1}</td>
+                   <td style="width: 65px; color: black;">${item['pinfo'].pricing_no}</td>
+                   <td style="width: 70px; color: black; ">${item['pinfo'].manual_no}</td>
+                   <td style="width: 170px; color: black; ">${item['pinfo'].client_name}</td>
+                   <td style="width: 90px; color: black; ">${item['pinfo'].is_quotation ? 'Quotation' : 'Invoice' }</td>
+                   <td style="width: 90px; color: black; ">${item['pinfo'].entry_date.split('T')[0] }</td>
+                   <td style="width: 80px; color: black; ">${Intl.NumberFormat('en-US').format(item['pinfo'].net)}</td>
+                   <td style="width:200px;"></td>
           </tr>
               `
           }
@@ -189,17 +189,17 @@ document.getElementById('print').addEventListener('click', (event) => {
 
         let table = `
                                 
-                                    <table style=" font-size: 10px; border: 1px solid black;" >
+                                    <table style="width: 100%; table-layout: fixed; font-size: 10px; border: 1px solid black;" >
                                         <thead style="font-size: 10px">
                                         <tr style="text-align: center; background-color: darkgrey; border-top: 1px solid black; border-bottom: 0.5px solid black">
-                                            <th class="p-1" style="width: 40px; color: black;  border-left: 1px solid black; border-right: 0.5px solid black; font-size: 10px;">No.</th>
-                                            <th class="" style="width: 90px;  color: black;border-left: 0.5px solid black; border-right: 0.5px solid black;font-size: 10px ">Pricing No.</th>
-                                            <th class="" style="width: 100px; border-left: 0.5px solid black; color: black; border-right: 0.5px solid black;font-size: 10px">Reference No.</th>
-                                            <th class="p-1" style="width: 170px; border-left: 0.5px solid black; color: black; border-right: 0.5px solid black;font-size: 10px">Client Name</th>
-                                            <th class="p-1" style="width: 70px; border-left: 0.5px solid black; color: black; border-right: 0.5px solid black;font-size: 10px">Type</th>
-                                            <th class="p-1" style="width: 70px; border-left: 0.5px solid black; color: black; border-right: 0.5px solid black;font-size: 10px">Date</th>
-                                            <th class="" style="width: 80px; border-left: 0.5px solid black; color: black; border-right: 0.5px solid black; font-size: 10px">Net Amount</th>
-                                            <th class="p-1" style="width:200px; color: black; border-left: 0.5px solid black; border-right: 1px solid black;  font-size: 10px">Remarks</th>
+                                             <th class="p-1" style="width: 40px; color: black;  border-left: 1px solid black; border-right: 0.5px solid black; font-size: 10px;">No.</th>
+                                             <th class="" style="width: 90px;  color: black;border-left: 0.5px solid black; border-right: 0.5px solid black;font-size: 10px ">Pricing No.</th>
+                                             <th class="" style="width: 100px; border-left: 0.5px solid black; color: black; border-right: 0.5px solid black;font-size: 10px">Reference No.</th>
+                                             <th class="p-1" style="width: 170px; border-left: 0.5px solid black; color: black; border-right: 0.5px solid black;font-size: 10px">Client Name</th>
+                                             <th class="p-1" style="width: 70px; border-left: 0.5px solid black; color: black; border-right: 0.5px solid black;font-size: 10px">Type</th>
+                                             <th class="p-1" style="width: 70px; border-left: 0.5px solid black; color: black; border-right: 0.5px solid black;font-size: 10px">Date</th>
+                                             <th class="" style="width: 80px; border-left: 0.5px solid black; color: black; border-right: 0.5px solid black; font-size: 10px">Net Amount</th>
+                                             <th class="p-1" style="width:200px; color: black; border-left: 0.5px solid black; border-right: 1px solid black;  font-size: 10px">Remarks</th>
                                         </tr>
                                         </thead>
                                         <tbody id="table-body-div" style="font-size: 10px; text-align: center">

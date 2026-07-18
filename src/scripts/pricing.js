@@ -2440,7 +2440,7 @@ document.getElementById('print').addEventListener('click', async function (event
     window.modalInputFix.forceReleaseUiLocks();
   }
   var opt = {
-    margin: 0.5,
+    margin: 0.2,
     filename: 'invoice.pdf',
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 5 },
@@ -2616,7 +2616,7 @@ document.getElementById('print').addEventListener('click', async function (event
                     let count = 1
                     keys.forEach(i => {
                       if (pricing[i].length > 0 && i !== "pinfo") {
-                        body += `<tr><td style="font-size: 11px; text-align: center; padding: 0px; color: black; font-weight: bold;" colspan="12">${i}</td></tr>`;
+                        body += `<tr><td style="font-size: 11px; text-align: center; padding: 0px; color: black; font-weight: bold;" colspan="11">${i}</td></tr>`;
                         pricing[i].forEach((j, ind) => {
                           body += `
                                 <tr style="padding-top: 3px; padding-bottom: 3px; font-weight: 500">
@@ -2637,20 +2637,20 @@ document.getElementById('print').addEventListener('click', async function (event
                       }
                     })
                     let table = `
-                                    <table style="font-size: 12px; color: black;">
+                                    <table style="width: 100%; table-layout: fixed; font-size: 12px; color: black;">
                                         <thead style="background-color: #C0C0C0; padding-top: 2px; padding-bottom: 2px">
                                             <tr style="padding-top: 2.5px; padding-bottom: 2.5px; ">
-                                                <th style="font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid black; padding-top: 2.5px; padding-bottom: 2.5px;">No.</th>
-                                                <th style="font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid black; padding-top: 2px; padding-bottom: 2px;">UTILITY</th>
-                                                <th style="font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid black;">DESCRIPTION</th>
-                                                <th style="font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid black;">CODE</th>
-                                                <th style="font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid black;">QTY</th>
-                                                <th style="font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid black;">FINISHING</th>
-                                                <th style="font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid black;">HANDLES</th>
-                                                <th style="font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid black;">HARDWARE</th>
-                                                <th style="font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid black;">ADJ. SHELVES</th>
-                                                <th style="font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid black;">UNIT PRICE</th>
-                                                <th style="font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid black;">TOTAL</th>
+                                                <th style="width: 4%; font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid black; padding-top: 2.5px; padding-bottom: 2.5px;">No.</th>
+                                                <th style="width: 15%; font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid black; padding-top: 2px; padding-bottom: 2px;">UTILITY</th>
+                                                <th style="width: 13%; font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid black;">DESCRIPTION</th>
+                                                <th style="width: 8%; font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid black;">CODE</th>
+                                                <th style="width: 3%; font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid black;">QTY</th>
+                                                <th style="width: 11%; font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid black;">FINISHING</th>
+                                                <th style="width: 9%; font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid black;">HANDLES</th>
+                                                <th style="width: 10%; font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid black;">HARDWARE</th>
+                                                <th style="width: 9%; font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid black;">ADJ. SHELVES</th>
+                                                <th style="width: 9%; font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid black;">UNIT PRICE</th>
+                                                <th style="width: 9%; font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid black;">TOTAL</th>
                                             </tr>
                                         </thead>
                                         <tbody style="border: 0.5px solid black">${body}</tbody>

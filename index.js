@@ -4,12 +4,16 @@ const storage = require(path.join(__dirname, "src/main/storage.js"));
 const { getExcelPath } = require(path.join(__dirname, "scripts/export-tools-excel.js"));
 const fs = require("fs");
 
+app.commandLine.appendSwitch("disable-gpu-shader-disk-cache");
+
 const windows = new Set();
 
 function createWindow(loadPath) {
+  let crashCount = 0;
   const win = new BrowserWindow({
     zoomToPageWidth: true,
     show: false,
+    backgroundColor: "#ffffff",
     autoHideMenuBar: true,
     webPreferences: {
       nodeIntegration: true,
@@ -22,8 +26,21 @@ function createWindow(loadPath) {
     windows.delete(win);
   });
   win.maximize();
-  win.show();
   win.loadURL(`file://${__dirname}/src/${loadPath}`);
+  win.once("ready-to-show", () => {
+    win.show();
+  });
+  win.webContents.on("render-process-gone", (_event, details) => {
+    crashCount += 1;
+    console.error(`Render process gone (crash #${crashCount}), reason:`, details.reason);
+    if (crashCount >= 3) {
+      console.error("Too many renderer crashes, giving up.");
+      return;
+    }
+    setTimeout(() => {
+      win.loadURL(`file://${__dirname}/src/${loadPath}`);
+    }, 1000);
+  });
   return win;
 }
 

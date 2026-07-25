@@ -1812,16 +1812,16 @@ function populate_table() {
               </label>
             </td>
             <td style="width: 40px; color: black; border-right: 1px solid black; border-bottom: 1px solid black;" class="p-1">${count}</td>
-            <td class="p-1 might-overflow" style="width: 150px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; color: black; border-right: 1px solid black; border-bottom: 1px solid black;">${j.utility_text}</td>
-            <td class="p-1" style="width: 185px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; color: black;  border-right: 1px solid black; border-bottom: 1px solid black;">${j.type_text}</td>
-            <td class="p-1" style="width: 70px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; color: black; border-right: 1px solid black; border-bottom: 1px solid black;">${j.code_text}</td>
-            <td class="p-1" style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden; color: black; width: 35px; border-right: 1px solid black; border-bottom: 1px solid black;">${j.qty}</td>
-            <td class="p-1" style="width: 175px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; color: black; border-right: 1px solid black; border-bottom: 1px solid black;">${j.door_panel_text}</td>
-            <td class="p-1" style="width: 100px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; color: black; border-right: 1px solid black; border-bottom: 1px solid black;">${j.handler_text}</td>
-            <td class="p-1" style="width: 120px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; color: black; border-right: 1px solid black; border-bottom: 1px solid black;">${j.hardware_text}</td>
-            <td class="p-1" style="width: 105px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; color: black; border-right: 1px solid black; border-bottom: 1px solid black;">${j.shelves_text}</td>
-            <td class="p-1" style="width: 85px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; color: black; border-right: 1px solid black; border-bottom: 1px solid black;">${Intl.NumberFormat('en-US').format(j && j.unit != null ? j.unit : 0)}</td>
-            <td class="p-1" style="width: 70px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; color: black; border-bottom: 1px solid black; ">${Intl.NumberFormat('en-US').format(j && j.total != null ? j.total : 0)}</td>
+            <td class="p-1 might-overflow" style="width: 150px;  color: black; border-right: 1px solid black; border-bottom: 1px solid black;">${j.utility_text}</td>
+            <td class="p-1" style="width: 185px;  color: black;  border-right: 1px solid black; border-bottom: 1px solid black;">${j.type_text}</td>
+            <td class="p-1" style="width: 70px;  color: black; border-right: 1px solid black; border-bottom: 1px solid black;">${j.code_text}</td>
+            <td class="p-1" style=" color: black; width: 35px; border-right: 1px solid black; border-bottom: 1px solid black;">${j.qty}</td>
+            <td class="p-1" style="width: 175px;  color: black; border-right: 1px solid black; border-bottom: 1px solid black;">${j.door_panel_text}</td>
+            <td class="p-1" style="width: 100px;  color: black; border-right: 1px solid black; border-bottom: 1px solid black;">${j.handler_text}</td>
+            <td class="p-1" style="width: 120px;  color: black; border-right: 1px solid black; border-bottom: 1px solid black;">${j.hardware_text}</td>
+            <td class="p-1" style="width: 105px;  color: black; border-right: 1px solid black; border-bottom: 1px solid black;">${j.shelves_text}</td>
+            <td class="p-1" style="width: 85px;  color: black; border-right: 1px solid black; border-bottom: 1px solid black;">${Intl.NumberFormat('en-US').format(j && j.unit != null ? j.unit : 0)}</td>
+            <td class="p-1" style="width: 70px;  color: black; border-bottom: 1px solid black; ">${Intl.NumberFormat('en-US').format(j && j.total != null ? j.total : 0)}</td>
           </tr>`;
         count += 1
       });
@@ -2440,7 +2440,7 @@ document.getElementById('print').addEventListener('click', async function (event
     window.modalInputFix.forceReleaseUiLocks();
   }
   var opt = {
-    margin: 0.2,
+    margin: 0.4,
     filename: 'invoice.pdf',
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 5 },
@@ -2616,44 +2616,44 @@ document.getElementById('print').addEventListener('click', async function (event
                     let count = 1
                     keys.forEach(i => {
                       if (pricing[i].length > 0 && i !== "pinfo") {
-                        body += `<tr><td style="font-size: 11px; text-align: center; padding: 0px; color: black; font-weight: bold;" colspan="11">${i}</td></tr>`;
+                        body += `<tr style="page-break-after: avoid;"><td style="font-size: 11px; text-align: center; padding: 0px; color: black; font-weight: bold;" colspan="11">${i}</td></tr>`;
                         pricing[i].forEach((j, ind) => {
                           body += `
-                                <tr style="padding-top: 3px; padding-bottom: 3px; font-weight: 500">
-                                  <td style="text-align: center;width: 40px; color: black; font-size: 9px; padding-left: 3px; padding-top: 2.5px; padding-bottom: 2.5px;" >${count}</td>
-                                  <td style="text-align: center;padding-left: 3px; width: 170px; text-overflow: ellipsis; white-space: nowrap; font-size: 9px; overflow: hidden; color: black; ">${j.utility_text}</td>
-                                  <td  style="text-align: center; padding-left: 3px;width: 150px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; color: black; font-size: 9px;">${j.type_text}</td>
-                                  <td  style="text-align: center; padding-left: 3px;width: 70px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-size: 9px; color: black; ">${j.code_text}</td>
-                                  <td  style="text-align: center; padding-left: 3px;text-overflow: ellipsis; white-space: nowrap; overflow: hidden; color: black; font-size: 9px; width: 35px; ">${j.qty}</td>
-                                  <td  style="text-align: center;padding-left: 3px;width: 120px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-size: 9px; color: black; ">${j.door_panel_text}</td>
-                                  <td  style="text-align: center;width: 80px; padding-left: 3px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-size: 9px; color: black;">${j.handler_text}</td>
-                                  <td  style="text-align: center;width: 140px; padding-left: 3px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-size: 9px; color: black;">${j.hardware_text}</td>
-                                  <td  style="text-align: center;width: 110px; padding-left: 3px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-size: 9px; color: black;">${j.shelves_text}</td>
-                                  <td  style="text-align: center;width: 95px; padding-left: 3px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-size: 9px; color: black;">${Intl.NumberFormat('en-US').format(j.unit)}</td>
-                                  <td style="text-align: right; padding-right: 3px;width: 100px; padding-left: 3px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; color: black; font-size: 9px;">${Intl.NumberFormat('en-US').format(j.total)}</td>
+                                 <tr style="page-break-inside: avoid; padding-top: 3px; padding-bottom: 3px; font-weight: 500">
+                                  <td style="text-align: center;  color: black; font-size: 9px; padding: 2.5px 2px; border: 0.5px solid rgba(23, 23, 22, 0.7);">${count}</td>
+                                  <td style="text-align: center;  font-size: 9px; color: black; padding: 2.5px 2px; border: 0.5px solid rgba(23, 23, 22, 0.7);">${j.utility_text}</td>
+                                  <td style="text-align: center;  color: black; font-size: 9px; padding: 2.5px 2px; border: 0.5px solid rgba(23, 23, 22, 0.7);">${j.type_text}</td>
+                                  <td style="text-align: center;  font-size: 9px; color: black; padding: 2.5px 2px; border: 0.5px solid rgba(23, 23, 22, 0.7);">${j.code_text}</td>
+                                  <td style="text-align: center;  color: black; font-size: 9px; padding: 2.5px 2px; border: 0.5px solid rgba(23, 23, 22, 0.7);">${j.qty}</td>
+                                  <td style="text-align: center;  font-size: 9px; color: black; padding: 2.5px 2px; border: 0.5px solid rgba(23, 23, 22, 0.7);">${j.door_panel_text}</td>
+                                  <td style="text-align: center;  font-size: 9px; color: black; padding: 2.5px 2px; border: 0.5px solid rgba(23, 23, 22, 0.7);">${j.handler_text}</td>
+                                  <td style="text-align: center;  font-size: 9px; color: black; padding: 2.5px 2px; border: 0.5px solid rgba(23, 23, 22, 0.7);">${j.hardware_text}</td>
+                                  <td style="text-align: center;  font-size: 9px; color: black; padding: 2.5px 2px; border: 0.5px solid rgba(23, 23, 22, 0.7);">${j.shelves_text}</td>
+                                  <td style="text-align: center;  font-size: 9px; color: black; padding: 2.5px 2px; border: 0.5px solid rgba(23, 23, 22, 0.7);">${Intl.NumberFormat('en-US').format(j.unit)}</td>
+<td style="text-align: right; color: black; font-size: 9px; padding: 2.5px 3.5px 2.5px 2px; border: 0.5px solid rgba(23, 23, 22, 0.7);">${Intl.NumberFormat('en-US').format(j.total)}</td>
                                 </tr>`;
                           count += 1
                         });
                       }
                     })
                     let table = `
-                                    <table style="width: 100%; table-layout: fixed; font-size: 12px; color: black;">
-                                        <thead style="background-color: #C0C0C0; padding-top: 2px; padding-bottom: 2px">
-                                            <tr style="padding-top: 2.5px; padding-bottom: 2.5px; ">
-                                                <th style="width: 4%; font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid black; padding-top: 2.5px; padding-bottom: 2.5px;">No.</th>
-                                                <th style="width: 15%; font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid black; padding-top: 2px; padding-bottom: 2px;">UTILITY</th>
-                                                <th style="width: 13%; font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid black;">DESCRIPTION</th>
-                                                <th style="width: 8%; font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid black;">CODE</th>
-                                                <th style="width: 3%; font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid black;">QTY</th>
-                                                <th style="width: 11%; font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid black;">FINISHING</th>
-                                                <th style="width: 9%; font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid black;">HANDLES</th>
-                                                <th style="width: 10%; font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid black;">HARDWARE</th>
-                                                <th style="width: 9%; font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid black;">ADJ. SHELVES</th>
-                                                <th style="width: 9%; font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid black;">UNIT PRICE</th>
-                                                <th style="width: 9%; font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid black;">TOTAL</th>
+                                    <table style="width: 100%; font-size: 12px; color: black; border-collapse: collapse;">
+                                        <thead style="background-color: #C0C0C0;">
+                                            <tr>
+                                                <th style="font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid rgba(23, 23, 22, 0.7); padding: 2.5px 2px;">No.</th>
+                                                <th style="font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid rgba(23, 23, 22, 0.7); padding: 2.5px 2px;">UTILITY</th>
+                                                <th style="font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid rgba(23, 23, 22, 0.7); padding: 2.5px 2px;">DESCRIPTION</th>
+                                                <th style="font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid rgba(23, 23, 22, 0.7); padding: 2.5px 2px;">CODE</th>
+                                                <th style="font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid rgba(23, 23, 22, 0.7); padding: 2.5px 2px;">QTY</th>
+                                                <th style="font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid rgba(23, 23, 22, 0.7); padding: 2.5px 2px;">FINISHING</th>
+                                                <th style="font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid rgba(23, 23, 22, 0.7); padding: 2.5px 2px;">HANDLES</th>
+                                                <th style="font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid rgba(23, 23, 22, 0.7); padding: 2.5px 2px;">HARDWARE</th>
+                                                <th style="font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid rgba(23, 23, 22, 0.7); padding: 2.5px 2px;">ADJ. SHELVES</th>
+                                                <th style="font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid rgba(23, 23, 22, 0.7); padding: 2.5px 2px;">UNIT PRICE</th>
+                                                <th style="font-weight: bold; font-size: 9px; text-align: center; border: 0.5px solid rgba(23, 23, 22, 0.7); padding: 2.5px 2px;">TOTAL</th>
                                             </tr>
                                         </thead>
-                                        <tbody style="border: 0.5px solid black">${body}</tbody>
+                                        <tbody>${body}</tbody>
                                     </table>
                                     `
 

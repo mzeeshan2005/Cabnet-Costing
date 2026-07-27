@@ -22,6 +22,7 @@ let editSavedRawBaseCost = null;
 let editSavedAdditional = null;
 const savedRates = {};
 let formGeneration = 0;
+const pmAppliedItems = new Set();
 
 function isProfitMarginApplied() {
   const el = document.getElementById('apply-profit-margin');
@@ -127,6 +128,18 @@ function refreshGrossAmount() {
   setProfitMarginLabel();
 }
 
+function computeDefinedCost() {
+  let cost = 0;
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i];
+    if (!it || !pmAppliedItems.has(it.item_id)) continue;
+    const rawBase = numValue(it.raw_base_cost);
+    const qty = numValue(it.qty);
+    cost += Math.round(rawBase * qty);
+  }
+  return Math.round(cost);
+}
+
 function refreshCostAmount() {
   const costEl = document.getElementById('cost');
   if (!costEl) return;
@@ -138,7 +151,7 @@ function refreshCostAmount() {
   let cost = 0;
   for (let i = 0; i < items.length; i++) {
     const it = items[i];
-    if (!it || !it.profit_margin_applied) continue;
+    if (!it || !pmAppliedItems.has(it.item_id)) continue;
     const rawBase = numValue(it.raw_base_cost);
     const qty = numValue(it.qty);
     cost += Math.round(rawBase * qty);
@@ -551,7 +564,7 @@ function forceRefreshBottomFields() {
       let cost = 0;
       for (let i = 0; i < items.length; i++) {
         const it = items[i];
-        if (!it || !it.profit_margin_applied) continue;
+        if (!it || !pmAppliedItems.has(it.item_id)) continue;
         cost += Math.round(numValue(it.raw_base_cost) * numValue(it.qty));
       }
       costEl.value = String(Math.round(cost));
@@ -1198,6 +1211,7 @@ function all_clear() {
       pricing = {}
       item = null
       items = []
+      pmAppliedItems.clear();
       check_list = []
       check_list2 = []
       refreshNewCostBreakdown();
@@ -1277,6 +1291,7 @@ function buildPricingPinfo(idValue) {
     "net": document.getElementById('net').value,
     "profit_margin_percentage": profitMarginPercentage,
     "profit_margin_applied": isProfitMarginApplied(),
+    "defined_cost": computeDefinedCost(),
     "category": document.getElementById('category-input').value,
   };
 }
@@ -1974,6 +1989,7 @@ document.getElementById('form-pricing').addEventListener('submit', (event) => {
         items[ind] = item
     })
   }
+  if (isProfitMarginApplied()) pmAppliedItems.add(item.item_id);
 
   let pinfo = ""
   if ("pinfo" in pricing) {
@@ -2334,9 +2350,12 @@ document.getElementById('confirm').addEventListener('click', (event) => {
             };
             if (refNo) {
               const loadedId = loadedPinfo && loadedPinfo.id && shouldUpdateExisting ? String(loadedPinfo.id) : null;
+              const currentPricingNo = String(document.getElementById('pricing-no').value || '');
               const duplicateRef = old_pricing.some(p => {
                 const otherId = p && p.pinfo && p.pinfo.id != null ? String(p.pinfo.id) : null;
-                return otherId !== loadedId && String(p.pinfo.manual_no || '') === refNo;
+                const sameRef = String(p.pinfo.manual_no || '') === refNo;
+                const samePricingNo = String(p.pinfo.pricing_no || '') === currentPricingNo;
+                return otherId !== loadedId && sameRef && samePricingNo;
               });
               if (duplicateRef || shouldUpdateExisting) {
                 document.getElementById('ref-confirm-message').textContent = duplicateRef
@@ -2480,7 +2499,7 @@ document.getElementById('confirm-1').addEventListener('click', (event) => {
           document.getElementById('net').value = i["pinfo"].net;
           document.getElementById('category-input').value = i["pinfo"].category;
           document.getElementById('show-cost').checked = false;
-          document.getElementById('cost').value = 'Restricted';
+          document.getElementById('cost').value = i["pinfo"].defined_cost != null ? i["pinfo"].defined_cost : 'Restricted';
           document.getElementById('open').disabled = true
           document.getElementById('confirm-1').disabled = true;
           document.getElementById('print').disabled = false;
@@ -2505,6 +2524,8 @@ document.getElementById('confirm-1').addEventListener('click', (event) => {
               });
             }
           })
+          pmAppliedItems.clear();
+          items.forEach(it => { if (it && it.profit_margin_applied) pmAppliedItems.add(it.item_id); });
           ensurePricingTotalsEnabled();
           try { populate_table(); } catch(e) { console.error('populate_table error', e); }
           recalcGrossFromItems();

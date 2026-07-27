@@ -1,8 +1,18 @@
 Tools_Data.xlsx found at /home/ackerman/Documents/VisualWork/Work/Buisnesss/Muneeb Project/app/Tools_Data.xlsx.
 MESA-INTEL: warning: Ivy Bridge Vulkan support is incomplete
 libva error: /usr/lib/x86_64-linux-gnu/dri/iHD_drv_video.so init failed
-[6308:0727/125241.360874:ERROR:dbus/object_proxy.cc:573] Failed to call method: org.freedesktop.systemd1.Manager.StartTransientUnit: object_path= /org/freedesktop/systemd1: org.freedesktop.systemd1.UnitExists: Unit app-org.chromium.Chromium-6308.scope was already loaded or has a fragment file.
+[6144:0727/230000.552039:ERROR:dbus/object_proxy.cc:573] Failed to call method: org.freedesktop.systemd1.Manager.StartTransientUnit: object_path= /org/freedesktop/systemd1: org.freedesktop.systemd1.UnitExists: Unit app-org.chromium.Chromium-6144.scope was already loaded or has a fragment file.
 window:open index.html
-[6348:0727/125256.662696:ERROR:ui/gl/gl_surface_presentation_helper.cc:260] GetVSyncParametersIfAvailable() failed for 1 times!
-[6348:0727/125258.674623:ERROR:ui/gl/gl_surface_presentation_helper.cc:260] GetVSyncParametersIfAvailable() failed for 2 times!
-[6348:0727/125300.311781:ERROR:ui/gl/gl_surface_presentation_helper.cc:260] GetVSyncParametersIfAvailable() failed for 3 times!
+[6187:0727/230016.749881:ERROR:ui/gl/gl_surface_presentation_helper.cc:260] GetVSyncParametersIfAvailable() failed for 1 times!
+[6187:0727/230019.801965:ERROR:ui/gl/gl_surface_presentation_helper.cc:260] GetVSyncParametersIfAvailable() failed for 2 times!
+[6187:0727/230025.662367:ERROR:ui/gl/gl_surface_presentation_helper.cc:260] GetVSyncParametersIfAvailable() failed for 3 times!
+[6144:0727/230656.779350:ERROR:content/browser/network_service_instance_impl.cc:610] Network service crashed or was terminated, restarting service.
+[6144:0727/230656.793654:ERROR:content/common/zygote/zygote_communication_linux.cc:293] Failed to send GetTerminationStatus message to zygote
+Render process gone (crash #1), reason: clean-exit
+[6144:0727/230656.796982:ERROR:content/browser/gpu/gpu_process_host.cc:998] GPU process launch failed: error_code=1002
+[6144:0727/230656.798255:ERROR:content/browser/gpu/gpu_process_host.cc:998] GPU process launch failed: error_code=1002
+[6144:0727/230656.798907:ERROR:content/browser/gpu/gpu_process_host.cc:998] GPU process launch failed: error_code=1002
+[6144:0727/230656.799560:ERROR:content/browser/gpu/gpu_process_host.cc:998] GPU process launch failed: error_code=1002
+[6144:0727/230656.800058:ERROR:content/browser/gpu/gpu_process_host.cc:998] GPU process launch failed: error_code=1002
+[6144:0727/230656.800505:ERROR:content/browser/gpu/gpu_process_host.cc:998] GPU process launch failed: error_code=1002
+[6144:0727/230656.800528:FATAL:content/browser/gpu/gpu_data_manager_impl_private.cc:415] GPU process isn't usable. Goodbye.

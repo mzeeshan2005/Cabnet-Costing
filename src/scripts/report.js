@@ -32,10 +32,14 @@ document.getElementById('form').addEventListener('submit', (event) => {
 function populate_table(){
   document.getElementById('table-body-div').innerHTML = ''
   let table_body = ``
+  let totalNet = 0
+  let totalDefined = 0
   const typee = document.getElementById('filter-pricing').value;
   items.forEach((item, ind) => {
     const check_type = item['pinfo'].is_quotation ? 'qou' : 'inv'
-    if(check_type.includes(typee))
+    if(check_type.includes(typee)){
+      totalNet += parseInt(item['pinfo'].net) || 0
+      if(item['pinfo'].defined_cost != null) totalDefined += parseInt(item['pinfo'].defined_cost) || 0
     table_body += `
      <tr >
      <td style="width: 40px; color: black; border: 1px solid black;">${ind+1}</td>
@@ -45,17 +49,23 @@ function populate_table(){
      <td style="width: 90px; color: black; border: 1px solid black;">${item['pinfo'].is_quotation ? 'Quotation' : 'Invoice' }</td>
      <td style="width: 90px; color: black; border: 1px solid black;">${item['pinfo'].entry_date.split('T')[0] }</td>
      <td style="width: 80px; color: black; border: 1px solid black;">${Intl.NumberFormat('en-US').format(item['pinfo'].net)}</td>
-</tr>
-    `
+     <td style="width: 80px; color: black; border: 1px solid black;">${item['pinfo'].defined_cost != null ? Intl.NumberFormat('en-US').format(item['pinfo'].defined_cost) : '-'}</td>
+    </tr>
+     `
+    }
   })
   if(table_body === ``)
   {
-    table_body = '<tr><td colspan="6">No Data To Show...</td></tr>'
+    table_body = '<tr><td colspan="8">No Data To Show...</td></tr>'
     document.getElementById('print').classList.add('d-none')
+    document.getElementById('report-totals').classList.add('d-none')
   }
   else
   {
     document.getElementById('print').classList.remove('d-none')
+    document.getElementById('report-totals').classList.remove('d-none')
+    document.getElementById('total-net-val').textContent = Intl.NumberFormat('en-US').format(totalNet)
+    document.getElementById('total-defined-val').textContent = Intl.NumberFormat('en-US').format(totalDefined)
   }
   document.getElementById('table-body-div').innerHTML = table_body;
 }
@@ -97,7 +107,7 @@ document.getElementById('clear').addEventListener('click', (event) => {
   document.getElementById('create').classList.remove('d-none');
   document.getElementById('print').classList.add('d-none')
   document.getElementById('clear').classList.add('d-none')
-  document.getElementById('table-body-div').innerHTML = '<tr><td colspan="6">No Data To Show...</td></tr>'
+  document.getElementById('table-body-div').innerHTML = '<tr><td colspan="7">No Data To Show...</td></tr>'
   document.getElementById('filter-pricing').value = '';
   document.getElementById('from').value = '';
   document.getElementById('to').value = '';
@@ -139,7 +149,7 @@ document.getElementById('print').addEventListener('click', (event) => {
         }
         if (!logoSrc) {
           try {
-            const defaultLogoPath = path.join(__dirname, '../images/logo.png');
+            const defaultLogoPath = path.join(__dirname, '../../images/logo.png');
             const logoBuffer = fs.readFileSync(defaultLogoPath);
             logoSrc = `data:image/png;base64,${logoBuffer.toString('base64')}`;
           } catch (e) {
@@ -148,12 +158,14 @@ document.getElementById('print').addEventListener('click', (event) => {
         }
         let table_body = ``
         let total_amount = 0
+        let total_defined = 0
         const typee = document.getElementById('filter-pricing').value;
         items.forEach((item, ind) => {
           const check_type = item['pinfo'].is_quotation ? 'qou' : 'inv'
           if(check_type.includes(typee))
           {
-            total_amount += parseInt(item['pinfo'].net);
+            total_amount += parseInt(item['pinfo'].net) || 0;
+            if(item['pinfo'].defined_cost != null) total_defined += parseInt(item['pinfo'].defined_cost) || 0;
             table_body += `
                <tr >
                    <td style="width: 39px; color: black; ">${ind+1}</td>
@@ -162,8 +174,8 @@ document.getElementById('print').addEventListener('click', (event) => {
                    <td style="width: 170px; color: black; ">${item['pinfo'].client_name}</td>
                    <td style="width: 90px; color: black; ">${item['pinfo'].is_quotation ? 'Quotation' : 'Invoice' }</td>
                    <td style="width: 90px; color: black; ">${item['pinfo'].entry_date.split('T')[0] }</td>
-                   <td style="width: 80px; color: black; ">${Intl.NumberFormat('en-US').format(item['pinfo'].net)}</td>
-                   <td style="width:200px;"></td>
+                    <td style="width: 80px; color: black; ">${Intl.NumberFormat('en-US').format(item['pinfo'].net)}</td>
+                    <td style="width: 80px; color: black; ">${item['pinfo'].defined_cost != null ? Intl.NumberFormat('en-US').format(item['pinfo'].defined_cost) : '-'}</td>
           </tr>
               `
           }
@@ -199,7 +211,7 @@ document.getElementById('print').addEventListener('click', (event) => {
                                              <th class="p-1" style="width: 70px; border-left: 0.5px solid black; color: black; border-right: 0.5px solid black;font-size: 10px">Type</th>
                                              <th class="p-1" style="width: 70px; border-left: 0.5px solid black; color: black; border-right: 0.5px solid black;font-size: 10px">Date</th>
                                              <th class="" style="width: 80px; border-left: 0.5px solid black; color: black; border-right: 0.5px solid black; font-size: 10px">Net Amount</th>
-                                             <th class="p-1" style="width:200px; color: black; border-left: 0.5px solid black; border-right: 1px solid black;  font-size: 10px">Remarks</th>
+                                             <th class="" style="width: 80px; border-left: 0.5px solid black; color: black; border-right: 0.5px solid black; font-size: 10px">Defined Cost</th>
                                         </tr>
                                         </thead>
                                         <tbody id="table-body-div" style="font-size: 10px; text-align: center">
@@ -207,9 +219,16 @@ document.getElementById('print').addEventListener('click', (event) => {
                                         </tbody>
                                     </table>
   `
+        let totals = `
+            <div style="display: flex; justify-content: flex-end; gap: 40px; padding: 8px 20px; background-color: darkgrey; border: 1px solid black; border-top: 2px solid black; margin-top: 0;">
+                <div><b style="color: black; font-size: 11px;">Total Net Amount: ${Intl.NumberFormat('en-US').format(total_amount)}</b></div>
+                <div><b style="color: black; font-size: 11px;">Total Defined Cost: ${Intl.NumberFormat('en-US').format(total_defined)}</b></div>
+            </div>
+        `
         let html = `
                     ${header}
                     ${table}
+                    ${totals}
                     `
         html2pdf().set(opt).from(html).to('pdf').save(`report-${document.getElementById('from').value}-to-${document.getElementById('to').value}.pdf`);
         alert("PDF Report is generated successfully!")

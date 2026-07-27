@@ -171,7 +171,9 @@
     showModal: function (modalId) {
       cleanupBootstrapArtifacts();
       if (window.jQuery && window.jQuery(modalId).length) {
-        clearError(modalId === '#staticModal-2' ? 'pass2' : 'pass');
+        if (modalId === '#staticModal-3') clearError('pass3');
+        else if (modalId === '#staticModal-2') clearError('pass2');
+        else clearError('pass');
         window.jQuery(modalId).modal('show');
       }
     },
@@ -197,6 +199,7 @@
     bindGlobalModalCleanup();
     setupModal('#staticModal', 'pass');
     setupModal('#staticModal-2', 'pass2');
+    setupModal('#staticModal-3', 'pass3');
     forceReleaseUiLocks();
   });
 

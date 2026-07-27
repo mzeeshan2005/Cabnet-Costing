@@ -736,12 +736,13 @@
                                         </div>
                                         <div class="form-group px-1" style="width: 46px;">
                                             <label for="apply-profit-margin"
+                                                id="pm-label"
                                                 class="form-control-label text-center d-block">PM</label>
                                             <div class="d-flex justify-content-center align-items-center"
                                                 style="height: 33.5px;">
                                                 <label class="au-checkbox"
                                                     style="margin-bottom: 0px; width: 33.5px; height: 33.5px; position: relative;">
-                                                    <input type="checkbox" id="apply-profit-margin" checked
+                                                    <input type="checkbox" id="apply-profit-margin"
                                                         style="border: 1px solid green" />
                                                     <span class="au-checkmark" id="apply-profit-margin-box"
                                                         style="border: 1px solid green; width: 33.5px; height: 33.5px; position: absolute; top: 0; left: 0;"></span>
@@ -766,6 +767,14 @@
                                                 top: 3px;
                                                 width: 10px;
                                                 height: 19px;
+                                            }
+                                            #apply-profit-margin:disabled ~ #apply-profit-margin-box {
+                                                border-color: #aaa;
+                                                background-color: #f0f0f0;
+                                            }
+                                            #apply-profit-margin:disabled + #apply-profit-margin-box {
+                                                border-color: #aaa;
+                                                background-color: #f0f0f0;
                                             }
                                         </style>
                                         <div class="form-group px-1" style="display: flex; flex-direction: column">
@@ -848,7 +857,7 @@
                                     </table>
                                 </div>
                                 <div class="row d-flex justify-content-lg-between"
-                                    style="border-top: 1px solid grey; padding-top: 10px; margin-right: 0px; margin-left: 0px">
+                                    style="border-top: 1px solid grey; padding-top: 5px; padding-bottom: 10px; margin-right: 0px; margin-left: 0px">
                                     <div class="col-lg-4 d-flex justify-content-sm-around mt-2"
                                         style="height: 80px; max-height: 60px; padding-top: 20px">
                                         <button type="submit" class="btn btn-sm btn-primary" id="save"
@@ -873,66 +882,62 @@
                                             onclick="all_clear()">Clear</button>
                                     </div>
                                     <div class="col-lg-8">
-                                        <div class="row" style="font-size: small">
-                                            <div class="form-group col mx-1">
+                                        <div class="row" style="font-size: small; gap: 2px; align-items: flex-end">
+                                            <div class="form-group col mx-0 px-1 mb-0">
+                                                <div class="d-flex align-items-center"
+                                                    style="gap: 6px; margin-top: 4px;">
+                                                    <input type="checkbox" id="show-cost">
+                                                    <label for="show-cost" class="form-control-label mb-0">Defined Cost</label>
+                                                </div>
+                                                <div id="cost-wrapper">
+                                                    <input type="text" id="cost" class="form-control"
+                                                        style="width: 80%; pointer-events: none; background-color: #e9ecef; cursor: not-allowed;" value="Restricted" tabindex="-1">
+                                                </div>
+                                            </div>
+                                            <div class="form-group col mx-0 px-1 mb-0">
+                                                <label for="gross-amount" class="pr-1 form-control-label mb-0"
+                                                    style="white-space: nowrap">Gross Amount</label>
+                                                <input type="text" id="gross-amount" class="form-control"
+                                                    style="width: 80%; pointer-events: none; background-color: #e9ecef; cursor: not-allowed;" tabindex="-1">
+                                            </div>
+                                            <div class="form-group col mx-0 px-1 mb-0">
+                                                <div class="d-flex align-items-center"
+                                                    style="gap: 6px; margin-top: 4px;">
+                                                    <input type="checkbox" id="show-discount">
+                                                    <label for="show-discount" class="form-control-label mb-0">Show
+                                                        Discount</label>
+                                                </div>
+                                                <div id="discount-wrapper">
+                                                    <input type="number" id="discount" required
+                                                        class="form-control mt-1" min="0"
+                                                        oninput="this.value = !!this.value && Math.abs(this.value) >= 0 ? Math.abs(this.value) : null"
+                                                        style="width: 60%">
+                                                </div>
+                                            </div>
+                                            <div class="form-group col mx-0 px-1 mb-0">
+                                                <label for="tax" class="px-1 form-control-label mb-0">Duties &
+                                                    Taxes</label>
                                                 <div class="row">
-                                                    <label for="gross-amount" class="pr-1 form-control-label"
-                                                        style="white-space: nowrap">Gross Amount</label>
-                                                    <input type="number" id="gross-amount" class="form-control"
-                                                        style="width: 80%" min="0"
+                                                    <input type="number" id="tax" required class="form-control col-lg-4"
+                                                        min="0"
+                                                        oninput="this.value = !!this.value && Math.abs(this.value) >= 0 ? Math.abs(this.value) : null">
+                                                    <input type="number" id="calculated-tax" readonly
+                                                        class="form-control col-lg-6" value="" min="0"
                                                         oninput="this.value = !!this.value && Math.abs(this.value) >= 0 ? Math.abs(this.value) : 0">
                                                 </div>
                                             </div>
-                                            <div class="form-group col mx-1">
-                                                <div class="row">
-                                                    <div class="d-flex align-items-center px-1" style="gap: 6px; margin-top: 4px;">
-                                                        <input type="checkbox" id="show-discount">
-                                                        <label for="show-discount" class="form-control-label mb-0">Show
-                                                            Discount</label>
-                                                    </div>
-                                                    <div id="discount-wrapper">
-                                                        <input type="number" id="discount" required
-                                                            class="form-control mt-1" min="0"
-                                                            oninput="this.value = !!this.value && Math.abs(this.value) >= 0 ? Math.abs(this.value) : null"
-                                                            style="width: 80%">
-                                                    </div>
-                                                </div>
-
+                                            <div class="form-group col mx-0 px-1 mb-0">
+                                                <label for="delivery-charges"
+                                                    class="px-1 form-control-label mb-0">Delivery Charges</label>
+                                                <input type="number" id="delivery-charges" required class="form-control"
+                                                    style="width: 100%" value="0" min="0"
+                                                    oninput="this.value = !!this.value && Math.abs(this.value) >= 0 ? Math.abs(this.value) : 0">
                                             </div>
-                                            <div class="form-group col mx-1">
-                                                <div class="row">
-                                                    <label for="tax" class="px-1  form-control-label ">Duties &
-                                                        Taxes</label>
-                                                    <div class="row">
-                                                        <input type="number" id="tax" required
-                                                            class="form-control col-lg-4" min="0"
-                                                            oninput="this.value = !!this.value && Math.abs(this.value) >= 0 ? Math.abs(this.value) : null">
-                                                        <input type="number" id="calculated-tax"
-                                                            class="form-control col-lg-6" value="" min="0"
-                                                            oninput="this.value = !!this.value && Math.abs(this.value) >= 0 ? Math.abs(this.value) : 0">
-                                                    </div>
-                                                </div>
-
+                                            <div class="form-group col mx-0 px-1 mb-0">
+                                                <label for="net" class="px-1 form-control-label mb-0">Net Value</label>
+                                                <input type="text" id="net" class="form-control"
+                                                    style="width: 100%; pointer-events: none; background-color: #e9ecef; cursor: not-allowed;" tabindex="-1">
                                             </div>
-                                            <div class="form-group col mx-1">
-                                                <div class="row">
-                                                    <label for="delivery-charges" class="px-1  form-control-label">Delivery Charges</label>
-                                                    <input type="number" id="delivery-charges" required class="form-control"
-                                                        style="width: 100%" value="0" min="0"
-                                                        oninput="this.value = !!this.value && Math.abs(this.value) >= 0 ? Math.abs(this.value) : 0">
-                                                </div>
-
-                                            </div>
-                                            <div class="form-group col mx-1">
-                                                <div class="row">
-                                                    <label for="net" class="px-1  form-control-label">Net Value</label>
-                                                    <input type="number" id="net" required class="form-control"
-                                                        style="width: 100%" value="" min="0"
-                                                        oninput="this.value = !!this.value && Math.abs(this.value) >= 0 ? Math.abs(this.value) : 0">
-                                                </div>
-
-                                            </div>
-
                                         </div>
                                     </div>
                                 </div>
@@ -1059,8 +1064,38 @@
                 </div>
             </div>
 
-            <button class="d-none" data-toggle="modal" data-target="#ref-confirm-modal" id="show-ref-confirm-modal"></button>
-            <div class="modal fade" id="ref-confirm-modal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static">
+            <div class="modal fade" id="staticModal-3" tabindex="-1" role="dialog" aria-labelledby="staticModalLabel-3"
+                aria-hidden="true" data-backdrop="static">
+                <div class="modal-dialog modal-sm" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="staticModalLabel-3">Enter Password</h5>
+                            <button type="button" class="close" data-dismiss="modal"
+                                onclick="document.getElementById('pass3').value=''" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row form-group">
+                                <div class="col-10 mr-auto ml-auto">
+                                    <input type="password" id="pass3" placeholder="Password..." class="form-control"
+                                        required />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal" id="cancel3"
+                                onclick="document.getElementById('pass3').value=''">Cancel</button>
+                            <button type="button" class="btn btn-primary" id="confirm3">Confirm</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="d-none" data-toggle="modal" data-target="#ref-confirm-modal"
+                id="show-ref-confirm-modal"></button>
+            <div class="modal fade" id="ref-confirm-modal" tabindex="-1" role="dialog" aria-hidden="true"
+                data-backdrop="static">
                 <div class="modal-dialog modal-dialog-centered modal-sm" role="document">
                     <div class="modal-content">
                         <div class="modal-header">
@@ -1073,7 +1108,8 @@
                             <p id="ref-confirm-message" style="color: black; font-size: 13px;"></p>
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-dismiss="modal" id="ref-confirm-cancel">Cancel</button>
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal"
+                                id="ref-confirm-cancel">Cancel</button>
                             <button type="button" class="btn btn-primary" id="ref-confirm-save">Save Anyway</button>
                         </div>
                     </div>

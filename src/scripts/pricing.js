@@ -82,6 +82,7 @@ function recalcGrossFromItems() {
   }
   baseGrossAmount = total;
   refreshGrossAmount();
+  refreshCostAmount();
   discount_and_tax();
 }
 
@@ -108,6 +109,7 @@ function recomputeQuotationPricesFromBase() {
     it.unit = unitNum;
     it.total = Math.round(unitNum * qtyNum);
   }
+  refreshCostAmount();
 }
 
 function setProfitMarginLabel() {
@@ -125,9 +127,35 @@ function refreshGrossAmount() {
   setProfitMarginLabel();
 }
 
+function refreshCostAmount() {
+  const costEl = document.getElementById('cost');
+  if (!costEl) return;
+  const showEl = document.getElementById('show-cost');
+  if (!showEl || !showEl.checked) {
+    costEl.value = `Restricted`;
+    return;
+  }
+  let cost = 0;
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i];
+    if (!it || !it.profit_margin_applied) continue;
+    const rawBase = numValue(it.raw_base_cost);
+    const qty = numValue(it.qty);
+    cost += Math.round(rawBase * qty);
+  }
+  costEl.value = Math.round(cost);
+}
+
 function numValue(v) {
   const n = parseFloat(v);
   return isNaN(n) ? 0 : n;
+}
+
+function setPmDisabled(disabled) {
+  const cb = document.getElementById('apply-profit-margin');
+  const lbl = document.getElementById('pm-label');
+  cb.disabled = disabled;
+  if (lbl) lbl.style.color = disabled ? '#aaa' : '';
 }
 
 function shouldShowDiscountOnOutput() {
@@ -166,13 +194,24 @@ function setDiscountVisibilityToggle(value) {
 }
 
 function ensurePricingTotalsEnabled() {
-  ['gross-amount', 'tax', 'calculated-tax', 'delivery-charges', 'net'].forEach((id) => {
+  ['tax', 'delivery-charges'].forEach((id) => {
     const el = document.getElementById(id);
     if (!el) return;
     el.disabled = false;
     el.readOnly = false;
     el.removeAttribute('readonly');
   });
+  ['gross-amount', 'net'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.disabled = false;
+  });
+  const calcTaxEl = document.getElementById('calculated-tax');
+  if (calcTaxEl) {
+    calcTaxEl.disabled = false;
+    calcTaxEl.readOnly = true;
+    calcTaxEl.setAttribute('readonly', 'readonly');
+  }
   syncDiscountFieldVisibility();
 }
 
@@ -459,10 +498,8 @@ function toggle(event) {
 
 document.getElementById('delete').addEventListener('click', (event) => {
   event.preventDefault();
-  check_list.forEach(i => {
-    const ind = items.indexOf(i);
-    items.splice(ind, 1);
-  })
+  const idsToRemove = new Set(check_list.map(i => i.item_id));
+  items = items.filter(i => !idsToRemove.has(i.item_id));
   const pinfo = pricing['pinfo']
   pricing = {}
   items.forEach(i => {
@@ -480,9 +517,47 @@ document.getElementById('delete').addEventListener('click', (event) => {
   document.getElementById('edit').disabled = true
   if (document.getElementById('checkbox-all').checked)
     document.getElementById('checkbox-all').click()
-  populate_table();
+  try { populate_table(); } catch(e) { console.error('populate_table error', e); }
   recalcGrossFromItems();
+  forceRefreshBottomFields();
 })
+
+function forceRefreshBottomFields() {
+  const grossEl = document.getElementById('gross-amount');
+  const netEl = document.getElementById('net');
+  const costEl = document.getElementById('cost');
+  if (grossEl) {
+    grossEl.value = String(Math.round(baseGrossAmount || 0));
+  }
+  if (netEl) {
+    const g = Math.round(baseGrossAmount || 0);
+    const showDiscount = shouldShowDiscountOnOutput();
+    const disc = showDiscount ? Math.round(Number(document.getElementById('discount').value) || 0) : 0;
+    const taxPct = Math.round(Number(document.getElementById('tax').value) || 0);
+    const delivery = Math.round(Number(document.getElementById('delivery-charges').value) || 0);
+    if (g === 0) {
+      netEl.value = String(delivery);
+    } else {
+      const discounted = g - disc;
+      const taxAmt = Math.round((discounted * taxPct) / 100);
+      netEl.value = String(Math.max(0, discounted) + taxAmt + delivery);
+    }
+  }
+  if (costEl) {
+    const showEl = document.getElementById('show-cost');
+    if (!showEl || !showEl.checked) {
+      costEl.value = 'Restricted';
+    } else {
+      let cost = 0;
+      for (let i = 0; i < items.length; i++) {
+        const it = items[i];
+        if (!it || !it.profit_margin_applied) continue;
+        cost += Math.round(numValue(it.raw_base_cost) * numValue(it.qty));
+      }
+      costEl.value = String(Math.round(cost));
+    }
+  }
+}
 
 
 function change_code_rate(event) {
@@ -714,7 +789,7 @@ document.getElementById('edit').addEventListener('click', (event) => {
                     document.getElementById('code-new-rate').value = item.code_rate;
                     code_rate = computeCodeContribution(i, rates, item.code_rate_type, item.code_rate);
                   }
-                    catch (e) {
+                  catch (e) {
                     code_rate = numValue(i.rate)
                   }
                 }
@@ -747,6 +822,7 @@ document.getElementById('edit').addEventListener('click', (event) => {
         }
       })
       document.getElementById('door-panel').value = item.door_panel;
+      setPmDisabled(true);
       file_manager.loadFile(path.join(__dirname, `../db/.doors.json`))
         .then(res => {
           file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
@@ -764,6 +840,8 @@ document.getElementById('edit').addEventListener('click', (event) => {
                   catch (e) {
                     door = i.rate
                   }
+                  const hasRate = numValue(i.rate) !== 0;
+                  setPmDisabled(!hasRate);
 
                 }
               })
@@ -850,7 +928,7 @@ document.getElementById('edit').addEventListener('click', (event) => {
                     document.getElementById('harware-new-rate').value = item.hardware_rate
                     hardware = computeHardwareContribution(i, rates, item.hardware_rate_type, item.hardware_rate);
                   }
-                    catch (e) {
+                  catch (e) {
                     hardware = numValue(i.rate)
                   }
 
@@ -1006,7 +1084,8 @@ function clear_dropdowns() {
   document.getElementById("code-price").selectedIndex = 0;
   document.getElementById('handle-new-rate').value = 0;
   document.getElementById('shelve-new-rate').value = 0;
-  document.getElementById('apply-profit-margin').checked = true;
+  document.getElementById('apply-profit-margin').checked = false;
+  setPmDisabled(true);
   updateCurrentItemUnitAndTotal();
   document.getElementById('unit').readOnly = true;
   refreshNewCostBreakdown();
@@ -1087,7 +1166,16 @@ function all_clear() {
       document.getElementById('shelves').innerHTML = "";
       document.getElementById('is_shelve').value = "yes";
       document.getElementById('additional').value = "0";
-      document.getElementById('apply-profit-margin').checked = true;
+      document.getElementById('apply-profit-margin').checked = false;
+      setPmDisabled(true);
+      code_rate = 0;
+      door = 0;
+      handler = 0;
+      hardware = 0;
+      shelve = 0;
+      custom_val = 0;
+      editSavedRawBaseCost = null;
+      editSavedAdditional = null;
       updateCurrentItemUnitAndTotal();
       document.getElementById('table-body-div').innerHTML = "";
       document.getElementById('save').disabled = true;
@@ -1103,17 +1191,13 @@ function all_clear() {
       document.getElementById('calculated-tax').value = 0;
       document.getElementById('delivery-charges').value = 0;
       document.getElementById('net').value = 0;
+      document.getElementById('cost').value = 'Restricted';
+      document.getElementById('show-cost').checked = false;
       document.getElementById('is_quotation').checked = true;
       ensurePricingTotalsEnabled();
       pricing = {}
       item = null
       items = []
-      code_rate = 0
-      door = 0
-      handler = 0
-      hardware = 0
-      shelve = 0
-      custom_val = 0
       check_list = []
       check_list2 = []
       refreshNewCostBreakdown();
@@ -1440,7 +1524,9 @@ function utility_change(event) {
   handler = 0
   hardware = 0
   shelve = 0
-      updateCurrentItemUnitAndTotal()
+  document.getElementById('apply-profit-margin').checked = false;
+  setPmDisabled(true);
+  updateCurrentItemUnitAndTotal()
   if (utility !== "") {
     file_manager.loadFile(path.join(__dirname, `../db/.types.json`))
       .then(res => {
@@ -1486,6 +1572,8 @@ function type_change(event) {
   handler = 0
   hardware = 0
   shelve = 0
+  document.getElementById('apply-profit-margin').checked = false;
+  setPmDisabled(true);
   updateCurrentItemUnitAndTotal()
   if (type !== "") {
     file_manager.loadFile(path.join(__dirname, `../db/.codes.json`))
@@ -1569,6 +1657,8 @@ function code_change(event) {
     hardware = 0
     shelve = 0
     document.getElementById('door-panel').value = ''
+    document.getElementById('apply-profit-margin').checked = false;
+    setPmDisabled(true);
     document.getElementById('handler').value = ''
     document.getElementById('hardware').value = ''
     document.getElementById('shelves').value = ''
@@ -1903,16 +1993,14 @@ document.getElementById('form-pricing').addEventListener('submit', (event) => {
   document.getElementById('delete').disabled = true;
   document.getElementById('save').disabled = false;
   document.getElementById('unit').readOnly = true;
-  try {
-    populate_table()
-    recalcGrossFromItems()
-  } finally {
-    check_list = [];
-    item = null;
-    editingItem = false;
-    clear_dropdowns();
-    document.getElementById('edit').disabled = true;
-  }
+  try { populate_table(); } catch(e) { console.error('populate_table error', e); }
+  recalcGrossFromItems();
+  forceRefreshBottomFields();
+  check_list = [];
+  item = null;
+  editingItem = false;
+  clear_dropdowns();
+  document.getElementById('edit').disabled = true;
 })
 
 document.getElementById('additional').addEventListener('input', () => {
@@ -1972,6 +2060,8 @@ document.getElementById('door-panel').addEventListener('change', (event) => {
   custom_val = 0;
   if (val === '') {
     door = 0
+    document.getElementById('apply-profit-margin').checked = false;
+    setPmDisabled(true);
     updateCurrentItemUnitAndTotal();
   }
   else {
@@ -1992,6 +2082,9 @@ document.getElementById('door-panel').addEventListener('change', (event) => {
                 catch (e) {
                   door = i.rate
                 }
+                const hasRate = numValue(i.rate) !== 0;
+                setPmDisabled(!hasRate);
+                document.getElementById('apply-profit-margin').checked = hasRate;
                 updateCurrentItemUnitAndTotal();
               }
             })
@@ -2152,6 +2245,34 @@ document.getElementById('apply-profit-margin').addEventListener('change', (event
   if (editingItem) return;
   editSavedRawBaseCost = null;
   updateCurrentItemUnitAndTotal();
+})
+
+document.getElementById('show-cost').addEventListener('change', (e) => {
+  e.preventDefault();
+  const showEl = document.getElementById('show-cost');
+  const desiredState = showEl.checked;
+  if (!desiredState) {
+    showEl.checked = false;
+    refreshCostAmount();
+    return;
+  }
+  showEl.checked = false;
+  window.modalInputFix.showModal('#staticModal-3');
+})
+
+document.getElementById('confirm3').addEventListener('click', (event) => {
+  event.preventDefault();
+  file_manager
+    .loadFile(path.join(__dirname, "../db/.credentials.json"))
+    .then((res) => {
+      if (res[1].pass === document.getElementById("pass3").value) {
+        document.getElementById('show-cost').checked = true;
+        document.getElementById('cancel3').click();
+        refreshCostAmount();
+      } else {
+        window.modalInputFix.showInvalid('pass3', 'Invalid Password, Try Again!');
+      }
+    })
 })
 
 document.getElementById('confirm').addEventListener('click', (event) => {
@@ -2348,6 +2469,7 @@ document.getElementById('confirm-1').addEventListener('click', (event) => {
           if (i["pinfo"].profit_margin_applied != null) {
             document.getElementById('apply-profit-margin').checked = !!i["pinfo"].profit_margin_applied;
           }
+          setPmDisabled(true);
 
           document.getElementById('gross-amount').value = i["pinfo"].gross_amount;
           document.getElementById('discount').value = i["pinfo"].discount;
@@ -2357,6 +2479,8 @@ document.getElementById('confirm-1').addEventListener('click', (event) => {
           document.getElementById('delivery-charges').value = i["pinfo"].delivery_charges || 0;
           document.getElementById('net').value = i["pinfo"].net;
           document.getElementById('category-input').value = i["pinfo"].category;
+          document.getElementById('show-cost').checked = false;
+          document.getElementById('cost').value = 'Restricted';
           document.getElementById('open').disabled = true
           document.getElementById('confirm-1').disabled = true;
           document.getElementById('print').disabled = false;
@@ -2382,8 +2506,9 @@ document.getElementById('confirm-1').addEventListener('click', (event) => {
             }
           })
           ensurePricingTotalsEnabled();
-          populate_table();
+          try { populate_table(); } catch(e) { console.error('populate_table error', e); }
           recalcGrossFromItems();
+          forceRefreshBottomFields();
         }
       })
     })
@@ -2447,123 +2572,123 @@ document.getElementById('print').addEventListener('click', async function (event
     jsPDF: { unit: 'in', format: 'A4', orientation: 'portrait' }
   };
   file_manager.loadFile(path.join(__dirname, '../db/.firm.json'))
-      .then(res => {
-        // #region debug-point B:print-firm-loaded
-        reportPrintDebug('B', 'pricing.js:firm-loaded', '[DEBUG] Firm data loaded for print', {
-          firmCount: Array.isArray(res) ? res.length : -1,
-          firmName: res && res[0] && res[0].name != null ? String(res[0].name) : '',
-          hasLogo: !!(res && res[0] && res[0].logo)
-        });
-        // #endregion
+    .then(res => {
+      // #region debug-point B:print-firm-loaded
+      reportPrintDebug('B', 'pricing.js:firm-loaded', '[DEBUG] Firm data loaded for print', {
+        firmCount: Array.isArray(res) ? res.length : -1,
+        firmName: res && res[0] && res[0].name != null ? String(res[0].name) : '',
+        hasLogo: !!(res && res[0] && res[0].logo)
+      });
+      // #endregion
 
-        if (!res || !Array.isArray(res) || res.length === 0) {
-          res = [{ name: "", logo: "", address: "", contact: "" }];
+      if (!res || !Array.isArray(res) || res.length === 0) {
+        res = [{ name: "", logo: "", address: "", contact: "" }];
+      }
+      let logoSrc = "";
+      if (res[0].logo) {
+        try {
+          const logoBuffer = fs.readFileSync(res[0].logo);
+          const ext = path.extname(res[0].logo).toLowerCase();
+          const mime = ext === '.png' ? 'image/png' : ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : ext === '.gif' ? 'image/gif' : ext === '.webp' ? 'image/webp' : ext === '.bmp' ? 'image/bmp' : 'image/png';
+          logoSrc = `data:${mime};base64,${logoBuffer.toString('base64')}`;
+        } catch (e) {
+          logoSrc = "";
         }
-        let logoSrc = "";
-        if (res[0].logo) {
-          try {
-            const logoBuffer = fs.readFileSync(res[0].logo);
-            const ext = path.extname(res[0].logo).toLowerCase();
-            const mime = ext === '.png' ? 'image/png' : ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : ext === '.gif' ? 'image/gif' : ext === '.webp' ? 'image/webp' : ext === '.bmp' ? 'image/bmp' : 'image/png';
-            logoSrc = `data:${mime};base64,${logoBuffer.toString('base64')}`;
-          } catch (e) {
-            logoSrc = "";
-          }
+      }
+      if (!logoSrc) {
+        try {
+          const defaultLogoPath = path.join(__dirname, '../images/logo.png');
+          const logoBuffer = fs.readFileSync(defaultLogoPath);
+          logoSrc = `data:image/png;base64,${logoBuffer.toString('base64')}`;
+        } catch (e) {
+          logoSrc = "";
         }
-        if (!logoSrc) {
-          try {
-            const defaultLogoPath = path.join(__dirname, '../images/logo.png');
-            const logoBuffer = fs.readFileSync(defaultLogoPath);
-            logoSrc = `data:image/png;base64,${logoBuffer.toString('base64')}`;
-          } catch (e) {
-            logoSrc = "";
-          }
-        }
+      }
 
-        // const header = element.rows[0]
-        // for (var i = 0; i < element.rows[0].cells.length; i++) {
-        //
-        //   // Getting the text of columnName
-        //   var str = element.rows[0].cells[i].innerHTML;
-        //
-        //   // If 'Geek_id' matches with the columnName 
-        //   if (str.search("All") != -1) {
-        //     for (var j = 0; j < element.rows.length; j++) {
-        //       if(element.rows[j].classList[0] !== "elevation-row-pricing")
-        //         element.rows[j].deleteCell(i);
-        //     }
-        //   }
-        // }
-        file_manager.loadFile(path.join(__dirname, '../db/.clients.json'))
-          .then(ress => {
-            // #region debug-point B:print-clients-loaded
-            reportPrintDebug('B', 'pricing.js:clients-loaded', '[DEBUG] Clients loaded for print lookup', {
-              clientsCount: Array.isArray(ress) ? ress.length : -1,
-              selectedClientId: String(document.getElementById('client-input').value || '')
-            });
-            // #endregion
-            const selectedClientId = String(document.getElementById('client-input').value || '');
-            const selectedClientName = getSelectedClientDisplayName();
-            const savedClientName = pricing && pricing.pinfo && pricing.pinfo.client_name != null ? String(pricing.pinfo.client_name) : '';
-            let matchedClient = false;
-            ress.forEach(k => {
-              let qout = ""
-              let total = ""
-              let name = ""
-              let days_notice = ``;
-              const showDiscountInOutput = shouldShowDiscountOnOutput();
-              const totalRows = [
-                {
-                  label: 'Total:',
-                  value: Math.round(numValue(document.getElementById('gross-amount').value)),
-                }
-              ];
-
-              if (showDiscountInOutput) {
-                totalRows.push({
-                  label: 'Discount:',
-                  value: Math.round(numValue(document.getElementById('discount').value)),
-                });
+      // const header = element.rows[0]
+      // for (var i = 0; i < element.rows[0].cells.length; i++) {
+      //
+      //   // Getting the text of columnName
+      //   var str = element.rows[0].cells[i].innerHTML;
+      //
+      //   // If 'Geek_id' matches with the columnName 
+      //   if (str.search("All") != -1) {
+      //     for (var j = 0; j < element.rows.length; j++) {
+      //       if(element.rows[j].classList[0] !== "elevation-row-pricing")
+      //         element.rows[j].deleteCell(i);
+      //     }
+      //   }
+      // }
+      file_manager.loadFile(path.join(__dirname, '../db/.clients.json'))
+        .then(ress => {
+          // #region debug-point B:print-clients-loaded
+          reportPrintDebug('B', 'pricing.js:clients-loaded', '[DEBUG] Clients loaded for print lookup', {
+            clientsCount: Array.isArray(ress) ? ress.length : -1,
+            selectedClientId: String(document.getElementById('client-input').value || '')
+          });
+          // #endregion
+          const selectedClientId = String(document.getElementById('client-input').value || '');
+          const selectedClientName = getSelectedClientDisplayName();
+          const savedClientName = pricing && pricing.pinfo && pricing.pinfo.client_name != null ? String(pricing.pinfo.client_name) : '';
+          let matchedClient = false;
+          ress.forEach(k => {
+            let qout = ""
+            let total = ""
+            let name = ""
+            let days_notice = ``;
+            const showDiscountInOutput = shouldShowDiscountOnOutput();
+            const totalRows = [
+              {
+                label: 'Total:',
+                value: Math.round(numValue(document.getElementById('gross-amount').value)),
               }
+            ];
 
+            if (showDiscountInOutput) {
               totalRows.push({
-                label: 'Taxes:',
-                value: Math.round(numValue(document.getElementById('calculated-tax').value)),
+                label: 'Discount:',
+                value: Math.round(numValue(document.getElementById('discount').value)),
               });
+            }
 
-              const deliveryVal = Math.round(numValue(document.getElementById('delivery-charges').value));
-              totalRows.push({
-                label: 'Delivery Charges:',
-                value: deliveryVal,
-              });
+            totalRows.push({
+              label: 'Taxes:',
+              value: Math.round(numValue(document.getElementById('calculated-tax').value)),
+            });
 
-              totalRows.push({
-                label: 'Net Value:',
-                value: Math.round(numValue(document.getElementById('net').value)),
-                isNet: true,
-              });
+            const deliveryVal = Math.round(numValue(document.getElementById('delivery-charges').value));
+            totalRows.push({
+              label: 'Delivery Charges:',
+              value: deliveryVal,
+            });
 
-              total = `
+            totalRows.push({
+              label: 'Net Value:',
+              value: Math.round(numValue(document.getElementById('net').value)),
+              isNet: true,
+            });
+
+            total = `
                             <div style="color: black; width: 180px;">
                               ${totalRows.map((row, index) => {
-                                const isBeforeNet = !row.isNet && totalRows[index + 1] && totalRows[index + 1].isNet;
-                                const labelBorder = row.isNet ? 'border-top: 1px solid black;' : '';
-                                const valueBorder = row.isNet
-                                  ? 'border-top: 1px solid black; border-bottom: 1px double black; font-weight: 700;'
-                                  : (isBeforeNet ? 'border-bottom: 1px solid black;' : '');
-                                return `
+              const isBeforeNet = !row.isNet && totalRows[index + 1] && totalRows[index + 1].isNet;
+              const labelBorder = row.isNet ? 'border-top: 1px solid black;' : '';
+              const valueBorder = row.isNet
+                ? 'border-top: 1px solid black; border-bottom: 1px double black; font-weight: 700;'
+                : (isBeforeNet ? 'border-bottom: 1px solid black;' : '');
+              return `
                                   <div style="font-size: 0; white-space: nowrap; margin: 0; padding: 0;">
                                     <span style="display: inline-block; width: 100px; font-size: 10px; font-weight: 700; text-align: right; padding: 2px 10px 2px 0; box-sizing: border-box; ${labelBorder}">${row.label}</span>
                                     <span style="display: inline-block; width: 80px; font-size: 10px; font-weight: 500; text-align: right; padding: 2px 0; box-sizing: border-box; ${valueBorder}">${formatBreakdownNumber(row.value)}</span>
                                   </div>
                                 `;
-                              }).join('')}
+            }).join('')}
                             </div>
                         `;
 
-              if (document.getElementById('is_quotation').checked) {
-                days_notice = `<div style="position: absolute; right: 0;"><p style="color: red; font-size: 9px;"><b>Notice: </b>This Quotation is valid for 7 days only.</p></div>`
-                qout = `
+            if (document.getElementById('is_quotation').checked) {
+              days_notice = `<div style="position: absolute; right: 0;"><p style="color: red; font-size: 9px;"><b>Notice: </b>This Quotation is valid for 7 days only.</p></div>`
+              qout = `
                           <div style="display: flex; flex-direction: row; justify-content: space-between">
                                 <h3 style="color: black">${res[0].name}</h3>
                                 <div style="background-color: black; height: 30px; width: 100px; text-align: center; align-items: center; position: absolute; right: 0; border-radius: 20px">
@@ -2571,54 +2696,54 @@ document.getElementById('print').addEventListener('click', async function (event
                                 </div>
                             </div>
                         `
-                name = " Quotation.pdf"
-              }
-              else {
-                qout = `<h3 style="color: black">${res[0].name}</h3>`
-                name = " Invoice.pdf"
-              }
-              if (
-                String(k.id) === selectedClientId ||
-                normalizeClientLookupValue(k.name) === normalizeClientLookupValue(selectedClientName) ||
-                normalizeClientLookupValue(k.name) === normalizeClientLookupValue(savedClientName)
-              ) {
-                matchedClient = true;
-                // #region debug-point C:print-client-match
-                reportPrintDebug('C', 'pricing.js:client-match', '[DEBUG] Matched client for print', {
-                  clientId: String(k.id || ''),
-                  clientName: String(k.name || ''),
-                  quotation: !!document.getElementById('is_quotation').checked
-                });
-                // #endregion
-                file_manager.loadFile(path.join(__dirname, '../db/terms.json'))
-                  .then(obj => {
-                    // #region debug-point C:print-terms-loaded
-                    reportPrintDebug('C', 'pricing.js:terms-loaded', '[DEBUG] Terms loaded for print', {
-                      termSections: obj && typeof obj === 'object' ? Object.keys(obj).length : -1
-                    });
-                    // #endregion
-                    if (!obj || typeof obj !== 'object') obj = {};
-                    let terms = ``;
-                    for (const key in obj) {
-                      terms += `
+              name = " Quotation.pdf"
+            }
+            else {
+              qout = `<h3 style="color: black">${res[0].name}</h3>`
+              name = " Invoice.pdf"
+            }
+            if (
+              String(k.id) === selectedClientId ||
+              normalizeClientLookupValue(k.name) === normalizeClientLookupValue(selectedClientName) ||
+              normalizeClientLookupValue(k.name) === normalizeClientLookupValue(savedClientName)
+            ) {
+              matchedClient = true;
+              // #region debug-point C:print-client-match
+              reportPrintDebug('C', 'pricing.js:client-match', '[DEBUG] Matched client for print', {
+                clientId: String(k.id || ''),
+                clientName: String(k.name || ''),
+                quotation: !!document.getElementById('is_quotation').checked
+              });
+              // #endregion
+              file_manager.loadFile(path.join(__dirname, '../db/terms.json'))
+                .then(obj => {
+                  // #region debug-point C:print-terms-loaded
+                  reportPrintDebug('C', 'pricing.js:terms-loaded', '[DEBUG] Terms loaded for print', {
+                    termSections: obj && typeof obj === 'object' ? Object.keys(obj).length : -1
+                  });
+                  // #endregion
+                  if (!obj || typeof obj !== 'object') obj = {};
+                  let terms = ``;
+                  for (const key in obj) {
+                    terms += `
                             <p style="color: black; font-size: 10px"><b>${key}</b></p>
                           `
-                      obj[key].forEach(term => {
-                        terms += `
+                    obj[key].forEach(term => {
+                      terms += `
                               <ul>
                                 <li style="font-size: 8px; color: black">&#8226; ${term}</li>
                               </ul>
                             `
-                      })
-                    }
-                    let body = ``
-                    const keys = Object.keys(pricing)
-                    let count = 1
-                    keys.forEach(i => {
-                      if (pricing[i].length > 0 && i !== "pinfo") {
-                        body += `<tr style="page-break-after: avoid;"><td style="font-size: 11px; text-align: center; padding: 0px; color: black; font-weight: bold;" colspan="11">${i}</td></tr>`;
-                        pricing[i].forEach((j, ind) => {
-                          body += `
+                    })
+                  }
+                  let body = ``
+                  const keys = Object.keys(pricing)
+                  let count = 1
+                  keys.forEach(i => {
+                    if (pricing[i].length > 0 && i !== "pinfo") {
+                      body += `<tr style="page-break-after: avoid;"><td style="font-size: 11px; text-align: center; padding: 0px; color: black; font-weight: bold;" colspan="11">${i}</td></tr>`;
+                      pricing[i].forEach((j, ind) => {
+                        body += `
                                  <tr style="page-break-inside: avoid; padding-top: 3px; padding-bottom: 3px; font-weight: 500">
                                   <td style="text-align: center;  color: black; font-size: 9px; padding: 2.5px 2px; border: 0.5px solid rgba(23, 23, 22, 0.7);">${count}</td>
                                   <td style="text-align: center;  font-size: 9px; color: black; padding: 2.5px 2px; border: 0.5px solid rgba(23, 23, 22, 0.7);">${j.utility_text}</td>
@@ -2632,11 +2757,11 @@ document.getElementById('print').addEventListener('click', async function (event
                                   <td style="text-align: center;  font-size: 9px; color: black; padding: 2.5px 2px; border: 0.5px solid rgba(23, 23, 22, 0.7);">${Intl.NumberFormat('en-US').format(j.unit)}</td>
 <td style="text-align: right; color: black; font-size: 9px; padding: 2.5px 3.5px 2.5px 2px; border: 0.5px solid rgba(23, 23, 22, 0.7);">${Intl.NumberFormat('en-US').format(j.total)}</td>
                                 </tr>`;
-                          count += 1
-                        });
-                      }
-                    })
-                    let table = `
+                        count += 1
+                      });
+                    }
+                  })
+                  let table = `
                                     <table style="width: 100%; font-size: 12px; color: black; border-collapse: collapse;">
                                         <thead style="background-color: #C0C0C0;">
                                             <tr>
@@ -2657,7 +2782,7 @@ document.getElementById('print').addEventListener('click', async function (event
                                     </table>
                                     `
 
-                    let html = `
+                  let html = `
                    <div style="display: flex; flex-direction: row; margin-bottom: 5px">
                         <img alt="img" src="${logoSrc}" style="height: 100px; width: 80px; margin-right: 10px" />
                         <div style="display: flex; flex-direction: column;">
@@ -2719,57 +2844,57 @@ document.getElementById('print').addEventListener('click', async function (event
                             </div>
                     </div>
                     `
-                    // #region debug-point E:print-before-html2pdf
-                    const generatedFilename = `${k.name}'s${name}`;
-                    const safeFilename = sanitizePdfFilename(generatedFilename, document.getElementById('is_quotation').checked ? 'Quotation.pdf' : 'Invoice.pdf');
-                    opt.filename = safeFilename;
-                    reportPrintDebug('E', 'pricing.js:before-html2pdf', '[DEBUG] Invoking html2pdf save', {
-                      clientName: String(k.name || ''),
-                      generatedName: generatedFilename,
-                      safeGeneratedName: safeFilename,
-                      containsWindowsInvalidChars: /[<>:"/\\|?*]/.test(generatedFilename),
-                      htmlLength: html.length,
-                      hasHtml2Pdf: typeof html2pdf !== 'undefined',
-                      entryDateRaw: String(document.getElementById('entry-date').value || ''),
-                      hasValueAsDate: !!document.getElementById('entry-date').valueAsDate,
-                      pricingNo: String(document.getElementById('pricing-no').value || ''),
-                      referenceNo: String(document.getElementById('manual-input').value || '')
-                    });
-                    // #endregion
-                    // #region debug-point E:print-save-promise
-                    Promise.resolve(html2pdf().set(opt).from(html).to('pdf').save(safeFilename))
-                      .then(() => {
-                        reportPrintDebug('E', 'pricing.js:html2pdf-save-resolved', '[DEBUG] html2pdf save resolved', {
-                          generatedName: generatedFilename,
-                          safeGeneratedName: safeFilename
-                        });
-                      })
-                      .catch((err) => {
-                        reportPrintDebug('D', 'pricing.js:html2pdf-save-rejected', '[DEBUG] html2pdf save rejected', {
-                          generatedName: generatedFilename,
-                          safeGeneratedName: safeFilename,
-                          message: err && err.message ? String(err.message) : String(err)
-                        });
-                        window.appUi.notify("PDF generation failed. Check client name / filename and try again.");
+                  // #region debug-point E:print-before-html2pdf
+                  const generatedFilename = `${k.name}'s${name}`;
+                  const safeFilename = sanitizePdfFilename(generatedFilename, document.getElementById('is_quotation').checked ? 'Quotation.pdf' : 'Invoice.pdf');
+                  opt.filename = safeFilename;
+                  reportPrintDebug('E', 'pricing.js:before-html2pdf', '[DEBUG] Invoking html2pdf save', {
+                    clientName: String(k.name || ''),
+                    generatedName: generatedFilename,
+                    safeGeneratedName: safeFilename,
+                    containsWindowsInvalidChars: /[<>:"/\\|?*]/.test(generatedFilename),
+                    htmlLength: html.length,
+                    hasHtml2Pdf: typeof html2pdf !== 'undefined',
+                    entryDateRaw: String(document.getElementById('entry-date').value || ''),
+                    hasValueAsDate: !!document.getElementById('entry-date').valueAsDate,
+                    pricingNo: String(document.getElementById('pricing-no').value || ''),
+                    referenceNo: String(document.getElementById('manual-input').value || '')
+                  });
+                  // #endregion
+                  // #region debug-point E:print-save-promise
+                  Promise.resolve(html2pdf().set(opt).from(html).to('pdf').save(safeFilename))
+                    .then(() => {
+                      reportPrintDebug('E', 'pricing.js:html2pdf-save-resolved', '[DEBUG] html2pdf save resolved', {
+                        generatedName: generatedFilename,
+                        safeGeneratedName: safeFilename
                       });
-                    // #endregion
+                    })
+                    .catch((err) => {
+                      reportPrintDebug('D', 'pricing.js:html2pdf-save-rejected', '[DEBUG] html2pdf save rejected', {
+                        generatedName: generatedFilename,
+                        safeGeneratedName: safeFilename,
+                        message: err && err.message ? String(err.message) : String(err)
+                      });
+                      window.appUi.notify("PDF generation failed. Check client name / filename and try again.");
+                    });
+                  // #endregion
 
-                  })
-              }
-            })
-            if (!matchedClient) {
-              // #region debug-point C:print-client-not-found
-              reportPrintDebug('C', 'pricing.js:client-not-found', '[DEBUG] No matched client found for print', {
-                selectedClientId: String(document.getElementById('client-input').value || ''),
-                selectedClientName: selectedClientName,
-                savedClientName: savedClientName,
-                clientsCount: Array.isArray(ress) ? ress.length : -1
-              });
-              // #endregion
-              window.appUi.notify("Client record not found for this pricing. Re-select client and try print again.");
+                })
             }
           })
-      })
+          if (!matchedClient) {
+            // #region debug-point C:print-client-not-found
+            reportPrintDebug('C', 'pricing.js:client-not-found', '[DEBUG] No matched client found for print', {
+              selectedClientId: String(document.getElementById('client-input').value || ''),
+              selectedClientName: selectedClientName,
+              savedClientName: savedClientName,
+              clientsCount: Array.isArray(ress) ? ress.length : -1
+            });
+            // #endregion
+            window.appUi.notify("Client record not found for this pricing. Re-select client and try print again.");
+          }
+        })
+    })
   window.setTimeout(function () {
     if (window.modalInputFix && typeof window.modalInputFix.forceReleaseUiLocks === 'function') {
       window.modalInputFix.forceReleaseUiLocks();
@@ -2860,7 +2985,7 @@ const printDebugConfig = (() => {
         if (key === "DEBUG_SESSION_ID" && value) defaults.sessionId = value;
       });
       break;
-    } catch (_) {}
+    } catch (_) { }
   }
   return defaults;
 })();
@@ -2877,7 +3002,7 @@ function reportPrintDebug(hypothesisId, location, msg, data) {
       data: data || {},
       ts: Date.now()
     })
-  }).catch(() => {});
+  }).catch(() => { });
 }
 // #endregion
 

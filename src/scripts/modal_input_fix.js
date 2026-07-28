@@ -147,6 +147,21 @@
       resetInput(inputId, true);
       cleanupBootstrapArtifacts();
     });
+
+    var input = getInput(inputId);
+    if (input && !input.dataset.enterBound) {
+      input.dataset.enterBound = '1';
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          var modal = input.closest('.modal');
+          if (modal) {
+            var btn = modal.querySelector('.modal-footer .btn-primary');
+            if (btn) btn.click();
+          }
+        }
+      });
+    }
   }
 
   function bindGlobalModalCleanup() {

@@ -84,6 +84,7 @@ function recalcGrossFromItems() {
   baseGrossAmount = total;
   refreshGrossAmount();
   refreshCostAmount();
+  refreshAddItemCost();
   discount_and_tax();
 }
 
@@ -111,6 +112,7 @@ function recomputeQuotationPricesFromBase() {
     it.total = Math.round(unitNum * qtyNum);
   }
   refreshCostAmount();
+  refreshAddItemCost();
 }
 
 function setProfitMarginLabel() {
@@ -157,6 +159,25 @@ function refreshCostAmount() {
     cost += Math.round(rawBase * qty);
   }
   costEl.value = Math.round(cost);
+}
+
+function computeAddItemCost() {
+  let cost = 0;
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i];
+    if (!it) continue;
+    if (it.door_panel && doorPanelsWithRate.has(it.door_panel)) continue;
+    const rawBase = numValue(it.raw_base_cost);
+    const qty = numValue(it.qty);
+    cost += Math.round(rawBase * qty);
+  }
+  return Math.round(cost);
+}
+
+function refreshAddItemCost() {
+  const el = document.getElementById('add-item-cost');
+  if (!el) return;
+  el.value = String(Math.round(computeAddItemCost()));
 }
 
 function numValue(v) {
@@ -577,6 +598,10 @@ function forceRefreshBottomFields() {
       }
       costEl.value = String(Math.round(cost));
     }
+  }
+  const addItemCostEl = document.getElementById('add-item-cost');
+  if (addItemCostEl) {
+    addItemCostEl.value = String(Math.round(computeAddItemCost()));
   }
 }
 
@@ -1302,6 +1327,7 @@ function buildPricingPinfo(idValue) {
     "profit_margin_percentage": profitMarginPercentage,
     "profit_margin_applied": isProfitMarginApplied(),
     "defined_cost": computeDefinedCost(),
+    "add_item_cost": computeAddItemCost(),
     "category": document.getElementById('category-input').value,
   };
 }
@@ -2281,6 +2307,7 @@ document.getElementById('show-cost').addEventListener('change', (e) => {
   if (!desiredState) {
     showEl.checked = false;
     refreshCostAmount();
+    refreshAddItemCost();
     return;
   }
   showEl.checked = false;
@@ -2296,6 +2323,7 @@ document.getElementById('confirm3').addEventListener('click', (event) => {
         document.getElementById('show-cost').checked = true;
         document.getElementById('cancel3').click();
         refreshCostAmount();
+        refreshAddItemCost();
       } else {
         window.modalInputFix.showInvalid('pass3', 'Invalid Password, Try Again!');
       }
@@ -2511,6 +2539,7 @@ document.getElementById('confirm-1').addEventListener('click', (event) => {
           document.getElementById('category-input').value = i["pinfo"].category;
           document.getElementById('show-cost').checked = false;
           document.getElementById('cost').value = i["pinfo"].defined_cost != null ? i["pinfo"].defined_cost : 'Restricted';
+          document.getElementById('add-item-cost').value = i["pinfo"].add_item_cost != null ? i["pinfo"].add_item_cost : '0';
           document.getElementById('open').disabled = true
           document.getElementById('confirm-1').disabled = true;
           document.getElementById('print').disabled = false;
@@ -2536,12 +2565,17 @@ document.getElementById('confirm-1').addEventListener('click', (event) => {
             }
           })
           ensurePricingTotalsEnabled();
-          file_manager.loadFile(path.join(__dirname, '../db/.doors.json'))
-            .then(doorsRes => { populateDoorPanelsWithRate(doorsRes); })
-            .catch(() => {});
           try { populate_table(); } catch(e) { console.error('populate_table error', e); }
-          recalcGrossFromItems();
-          forceRefreshBottomFields();
+          file_manager.loadFile(path.join(__dirname, '../db/.doors.json'))
+            .then(doorsRes => {
+              populateDoorPanelsWithRate(doorsRes);
+              recalcGrossFromItems();
+              forceRefreshBottomFields();
+            })
+            .catch(() => {
+              recalcGrossFromItems();
+              forceRefreshBottomFields();
+            });
         }
       })
     })

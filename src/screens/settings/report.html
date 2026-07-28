@@ -443,18 +443,20 @@
                                             <th class="p-1" style="width: 70px; border: 1px solid black; color: black;">Reference No.</th>
                                             <th class="p-1" style="width: 170px; border: 1px solid black; color: black;">Client Name</th>
                                             <th class="p-1" style="width: 90px; border: 1px solid black; color: black;">Type</th>
-                                            <th class="p-1" style="width: 90px; border: 1px solid black; color: black;">Date</th>
-                                             <th class="p-1" style="width: 70px; border: 1px solid black; color: black; ">Net Amount</th>
-                                             <th class="p-1" style="width: 70px; border: 1px solid black; color: black; ">Defined Cost</th>
+                                             <th class="p-1" style="width: 90px; border: 1px solid black; color: black;">Date</th>
+                                              <th class="p-1" style="width: 70px; border: 1px solid black; color: black; ">Defined Cost</th>
+                                              <th class="p-1" style="width: 70px; border: 1px solid black; color: black; ">Add Item Cost</th>
+                                              <th class="p-1" style="width: 70px; border: 1px solid black; color: black; ">Net Amount</th>
                                         </tr>
                                         </thead>
                                         <tbody id="table-body-div" >
-                                            <tr><td colspan="8">No Data To Show ...</td></tr>
+                                            <tr><td colspan="9">No Data To Show ...</td></tr>
                                         </tbody>
                                     </table>
                                     <div id="report-totals" class="d-none" style="display: flex; justify-content: flex-end; gap: 40px; padding: 10px 20px; background-color: darkgrey; border: 1px solid black; border-top: 2px solid black;">
-                                        <div><b style="color: black; font-size: 13px;">Total Net Amount: <span id="total-net-val"></span></b></div>
                                         <div><b style="color: black; font-size: 13px;">Total Defined Cost: <span id="total-defined-val"></span></b></div>
+                                        <div><b style="color: black; font-size: 13px;">Total Add Item Cost: <span id="total-additem-val"></span></b></div>
+                                        <div><b style="color: black; font-size: 13px;">Total Net Amount: <span id="total-net-val"></span></b></div>
                                     </div>
                                 </div>
                             </div>
@@ -645,6 +647,7 @@
 </script>
 <script src="../../vendor/html2pdf.bundle.min.js"></script>
 <!--<script src="../vendor/datatable/datatable.min.js"></script>-->
+<script src="../../scripts/modal_input_fix.js"></script>
 <script src="../../scripts/report.js"></script>
 
 <!-- Main JS-->

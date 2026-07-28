@@ -34,12 +34,14 @@ function populate_table(){
   let table_body = ``
   let totalNet = 0
   let totalDefined = 0
+  let totalAddItem = 0
   const typee = document.getElementById('filter-pricing').value;
   items.forEach((item, ind) => {
     const check_type = item['pinfo'].is_quotation ? 'qou' : 'inv'
     if(check_type.includes(typee)){
       totalNet += parseInt(item['pinfo'].net) || 0
       if(item['pinfo'].defined_cost != null) totalDefined += parseInt(item['pinfo'].defined_cost) || 0
+      if(item['pinfo'].add_item_cost != null) totalAddItem += parseInt(item['pinfo'].add_item_cost) || 0
     table_body += `
      <tr >
      <td style="width: 40px; color: black; border: 1px solid black;">${ind+1}</td>
@@ -48,15 +50,16 @@ function populate_table(){
      <td style="width: 170px; color: black; border: 1px solid black;">${item['pinfo'].client_name}</td>
      <td style="width: 90px; color: black; border: 1px solid black;">${item['pinfo'].is_quotation ? 'Quotation' : 'Invoice' }</td>
      <td style="width: 90px; color: black; border: 1px solid black;">${item['pinfo'].entry_date.split('T')[0] }</td>
-     <td style="width: 80px; color: black; border: 1px solid black;">${Intl.NumberFormat('en-US').format(item['pinfo'].net)}</td>
      <td style="width: 80px; color: black; border: 1px solid black;">${item['pinfo'].defined_cost != null ? Intl.NumberFormat('en-US').format(item['pinfo'].defined_cost) : '-'}</td>
+     <td style="width: 80px; color: black; border: 1px solid black;">${item['pinfo'].add_item_cost != null ? Intl.NumberFormat('en-US').format(item['pinfo'].add_item_cost) : '-'}</td>
+     <td style="width: 80px; color: black; border: 1px solid black;">${Intl.NumberFormat('en-US').format(item['pinfo'].net)}</td>
     </tr>
      `
     }
   })
   if(table_body === ``)
   {
-    table_body = '<tr><td colspan="8">No Data To Show...</td></tr>'
+    table_body = '<tr><td colspan="9">No Data To Show...</td></tr>'
     document.getElementById('print').classList.add('d-none')
     document.getElementById('report-totals').classList.add('d-none')
   }
@@ -66,6 +69,7 @@ function populate_table(){
     document.getElementById('report-totals').classList.remove('d-none')
     document.getElementById('total-net-val').textContent = Intl.NumberFormat('en-US').format(totalNet)
     document.getElementById('total-defined-val').textContent = Intl.NumberFormat('en-US').format(totalDefined)
+    document.getElementById('total-additem-val').textContent = Intl.NumberFormat('en-US').format(totalAddItem)
   }
   document.getElementById('table-body-div').innerHTML = table_body;
 }
@@ -159,6 +163,7 @@ document.getElementById('print').addEventListener('click', (event) => {
         let table_body = ``
         let total_amount = 0
         let total_defined = 0
+        let total_additem = 0
         const typee = document.getElementById('filter-pricing').value;
         items.forEach((item, ind) => {
           const check_type = item['pinfo'].is_quotation ? 'qou' : 'inv'
@@ -166,6 +171,7 @@ document.getElementById('print').addEventListener('click', (event) => {
           {
             total_amount += parseInt(item['pinfo'].net) || 0;
             if(item['pinfo'].defined_cost != null) total_defined += parseInt(item['pinfo'].defined_cost) || 0;
+            if(item['pinfo'].add_item_cost != null) total_additem += parseInt(item['pinfo'].add_item_cost) || 0;
             table_body += `
                <tr >
                    <td style="width: 39px; color: black; ">${ind+1}</td>
@@ -174,8 +180,9 @@ document.getElementById('print').addEventListener('click', (event) => {
                    <td style="width: 170px; color: black; ">${item['pinfo'].client_name}</td>
                    <td style="width: 90px; color: black; ">${item['pinfo'].is_quotation ? 'Quotation' : 'Invoice' }</td>
                    <td style="width: 90px; color: black; ">${item['pinfo'].entry_date.split('T')[0] }</td>
-                    <td style="width: 80px; color: black; ">${Intl.NumberFormat('en-US').format(item['pinfo'].net)}</td>
                     <td style="width: 80px; color: black; ">${item['pinfo'].defined_cost != null ? Intl.NumberFormat('en-US').format(item['pinfo'].defined_cost) : '-'}</td>
+                    <td style="width: 80px; color: black; ">${item['pinfo'].add_item_cost != null ? Intl.NumberFormat('en-US').format(item['pinfo'].add_item_cost) : '-'}</td>
+                    <td style="width: 80px; color: black; ">${Intl.NumberFormat('en-US').format(item['pinfo'].net)}</td>
           </tr>
               `
           }
@@ -210,8 +217,9 @@ document.getElementById('print').addEventListener('click', (event) => {
                                              <th class="p-1" style="width: 170px; border-left: 0.5px solid black; color: black; border-right: 0.5px solid black;font-size: 10px">Client Name</th>
                                              <th class="p-1" style="width: 70px; border-left: 0.5px solid black; color: black; border-right: 0.5px solid black;font-size: 10px">Type</th>
                                              <th class="p-1" style="width: 70px; border-left: 0.5px solid black; color: black; border-right: 0.5px solid black;font-size: 10px">Date</th>
-                                             <th class="" style="width: 80px; border-left: 0.5px solid black; color: black; border-right: 0.5px solid black; font-size: 10px">Net Amount</th>
                                              <th class="" style="width: 80px; border-left: 0.5px solid black; color: black; border-right: 0.5px solid black; font-size: 10px">Defined Cost</th>
+                                             <th class="" style="width: 80px; border-left: 0.5px solid black; color: black; border-right: 0.5px solid black; font-size: 10px">Add Item Cost</th>
+                                             <th class="" style="width: 80px; border-left: 0.5px solid black; color: black; border-right: 0.5px solid black; font-size: 10px">Net Amount</th>
                                         </tr>
                                         </thead>
                                         <tbody id="table-body-div" style="font-size: 10px; text-align: center">
@@ -221,8 +229,9 @@ document.getElementById('print').addEventListener('click', (event) => {
   `
         let totals = `
             <div style="display: flex; justify-content: flex-end; gap: 40px; padding: 8px 20px; background-color: darkgrey; border: 1px solid black; border-top: 2px solid black; margin-top: 0;">
-                <div><b style="color: black; font-size: 11px;">Total Net Amount: ${Intl.NumberFormat('en-US').format(total_amount)}</b></div>
                 <div><b style="color: black; font-size: 11px;">Total Defined Cost: ${Intl.NumberFormat('en-US').format(total_defined)}</b></div>
+                <div><b style="color: black; font-size: 11px;">Total Add Item Cost: ${Intl.NumberFormat('en-US').format(total_additem)}</b></div>
+                <div><b style="color: black; font-size: 11px;">Total Net Amount: ${Intl.NumberFormat('en-US').format(total_amount)}</b></div>
             </div>
         `
         let html = `

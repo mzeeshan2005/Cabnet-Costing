@@ -22,7 +22,7 @@ let editSavedRawBaseCost = null;
 let editSavedAdditional = null;
 const savedRates = {};
 let formGeneration = 0;
-const pmAppliedItems = new Set();
+const doorPanelsWithRate = new Set();
 
 function isProfitMarginApplied() {
   const el = document.getElementById('apply-profit-margin');
@@ -132,7 +132,7 @@ function computeDefinedCost() {
   let cost = 0;
   for (let i = 0; i < items.length; i++) {
     const it = items[i];
-    if (!it || !pmAppliedItems.has(it.item_id)) continue;
+    if (!it || !it.door_panel || !doorPanelsWithRate.has(it.door_panel)) continue;
     const rawBase = numValue(it.raw_base_cost);
     const qty = numValue(it.qty);
     cost += Math.round(rawBase * qty);
@@ -151,7 +151,7 @@ function refreshCostAmount() {
   let cost = 0;
   for (let i = 0; i < items.length; i++) {
     const it = items[i];
-    if (!it || !pmAppliedItems.has(it.item_id)) continue;
+    if (!it || !it.door_panel || !doorPanelsWithRate.has(it.door_panel)) continue;
     const rawBase = numValue(it.raw_base_cost);
     const qty = numValue(it.qty);
     cost += Math.round(rawBase * qty);
@@ -169,6 +169,14 @@ function setPmDisabled(disabled) {
   const lbl = document.getElementById('pm-label');
   cb.disabled = disabled;
   if (lbl) lbl.style.color = disabled ? '#aaa' : '';
+}
+
+function populateDoorPanelsWithRate(doorsData) {
+  doorPanelsWithRate.clear();
+  if (!Array.isArray(doorsData)) return;
+  for (let i = 0; i < doorsData.length; i++) {
+    if (numValue(doorsData[i].rate) !== 0) doorPanelsWithRate.add(doorsData[i].id);
+  }
 }
 
 function shouldShowDiscountOnOutput() {
@@ -564,7 +572,7 @@ function forceRefreshBottomFields() {
       let cost = 0;
       for (let i = 0; i < items.length; i++) {
         const it = items[i];
-        if (!it || !pmAppliedItems.has(it.item_id)) continue;
+        if (!it || !it.door_panel || !doorPanelsWithRate.has(it.door_panel)) continue;
         cost += Math.round(numValue(it.raw_base_cost) * numValue(it.qty));
       }
       costEl.value = String(Math.round(cost));
@@ -616,6 +624,7 @@ function change_finishing_rate(event) {
     event.preventDefault();
     file_manager.loadFile(path.join(__dirname, `../db/.doors.json`))
       .then(res => {
+        populateDoorPanelsWithRate(res);
         file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
           .then(rates => {
             res.forEach(i => {
@@ -819,6 +828,7 @@ document.getElementById('edit').addEventListener('click', (event) => {
 
   file_manager.loadFile(path.join(__dirname, `../db/.doors.json`))
     .then(res => {
+      populateDoorPanelsWithRate(res);
       const doors = document.getElementById('door-panel')
       doors.innerHTML = ""
       const opt = document.createElement('option')
@@ -1211,7 +1221,7 @@ function all_clear() {
       pricing = {}
       item = null
       items = []
-      pmAppliedItems.clear();
+      doorPanelsWithRate.clear();
       check_list = []
       check_list2 = []
       refreshNewCostBreakdown();
@@ -1679,6 +1689,7 @@ function code_change(event) {
     document.getElementById('shelves').value = ''
     file_manager.loadFile(path.join(__dirname, `../db/.doors.json`))
       .then(res => {
+        populateDoorPanelsWithRate(res);
         const doors = document.getElementById('door-panel')
         doors.innerHTML = ""
         const opt = document.createElement('option')
@@ -1989,7 +2000,6 @@ document.getElementById('form-pricing').addEventListener('submit', (event) => {
         items[ind] = item
     })
   }
-  if (isProfitMarginApplied()) pmAppliedItems.add(item.item_id);
 
   let pinfo = ""
   if ("pinfo" in pricing) {
@@ -2083,6 +2093,7 @@ document.getElementById('door-panel').addEventListener('change', (event) => {
   else {
     file_manager.loadFile(path.join(__dirname, `../db/.doors.json`))
       .then(res => {
+        populateDoorPanelsWithRate(res);
         file_manager.loadFile(path.join(__dirname, `../db/.rates.json`))
           .then(rates => {
             res.forEach(i => {
@@ -2524,9 +2535,10 @@ document.getElementById('confirm-1').addEventListener('click', (event) => {
               });
             }
           })
-          pmAppliedItems.clear();
-          items.forEach(it => { if (it && it.profit_margin_applied) pmAppliedItems.add(it.item_id); });
           ensurePricingTotalsEnabled();
+          file_manager.loadFile(path.join(__dirname, '../db/.doors.json'))
+            .then(doorsRes => { populateDoorPanelsWithRate(doorsRes); })
+            .catch(() => {});
           try { populate_table(); } catch(e) { console.error('populate_table error', e); }
           recalcGrossFromItems();
           forceRefreshBottomFields();

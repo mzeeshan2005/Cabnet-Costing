@@ -221,7 +221,7 @@ CREATE TABLE system_config (
 | `.hardwares.json` | `hardwares` | Full sync |
 | `.handlers.json` | `handlers` | Full sync |
 | `.shelves.json` | `shelves` | Full sync |
-| Other `.json` files | `json_store` / direct file | Generic JSON |
+| Other `.json` files | `json_store` / direct file | Generic JSON — `.firm.json` stores logo as base64 data URI |
 
 ---
 

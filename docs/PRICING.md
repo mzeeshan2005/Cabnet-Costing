@@ -1,6 +1,6 @@
 # Pricing Engine — Full Reference
 
-**File:** `src/scripts/pricing.js` (~2968 lines)
+**File:** `src/scripts/pricing.js` (~3171 lines)
 
 ---
 
@@ -191,6 +191,11 @@ Columns printed: Sr#, Item, Code, Qty, Rate, Unit, Total, Category Header merges
 3. Build `pinfo` + items by elevation
 4. Load existing pricings → append/update by `pinfo.id`
 5. Write back via `file_manager.writeFile`
+6. `all_clear()` resets all summary fields including `add-item-cost` to `0`
+
+### Delivery Charges
+
+The `delivery-charges` field allows clearing to empty (backspace works). Calculation code uses `Number(el.value) || 0` to safely treat empty as zero.
 
 ---
 
@@ -201,3 +206,14 @@ Columns printed: Sr#, Item, Code, Qty, Rate, Unit, Total, Category Header merges
 3. Populate dropdown selections, quantities, totals
 4. Restore `savedRates` for sub-type overrides
 5. Set `editSavedRawBaseCost` and `editSavedAdditional`
+
+## Dirty Detection (Update Button)
+
+When a saved pricing is loaded, the Save button reads "Update". Any edit to any field enables it:
+
+| Scope | Event type | Elements |
+|---|---|---|
+| `#form-pricing` (item area) | `input`, `change` | All form controls inside the form |
+| Bottom summary fields | `input`, `change` | `discount`, `tax`, `delivery-charges`, `show-discount` |
+
+Checkboxes (`is_quotation`, `show-discount`) fire `change` events — these are caught by the `change` listener, unlike an `input`-only handler.

@@ -1,8 +1,8 @@
 const fs = require("fs");
-const { event } = require('jquery');
 const path = require('path')
-const { pathToFileURL } = require('url');
 const file_manager = require(path.join(__dirname, "../scripts/file_manager.js"));
+
+
 
 let pricing = {}
 let item = null
@@ -1239,6 +1239,7 @@ function all_clear() {
       document.getElementById('calculated-tax').value = 0;
       document.getElementById('delivery-charges').value = 0;
       document.getElementById('net').value = 0;
+      document.getElementById('add-item-cost').value = '0';
       document.getElementById('cost').value = 'Restricted';
       document.getElementById('show-cost').checked = false;
       document.getElementById('is_quotation').checked = true;
@@ -2491,10 +2492,21 @@ document.getElementById('open').addEventListener('click', (event) => {
     })
 })
 
-document.getElementById('form-pricing').addEventListener('input', (event) => {
+function enableSaveOnEdit() {
   if (items.length > 0) {
     document.getElementById('save').disabled = false;
     document.getElementById('print').classList.add('d-none')
+  }
+}
+
+document.getElementById('form-pricing').addEventListener('input', enableSaveOnEdit);
+document.getElementById('form-pricing').addEventListener('change', enableSaveOnEdit);
+
+;['discount', 'tax', 'delivery-charges', 'show-discount'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) {
+    el.addEventListener('input', enableSaveOnEdit);
+    el.addEventListener('change', enableSaveOnEdit);
   }
 })
 
@@ -2652,12 +2664,19 @@ document.getElementById('print').addEventListener('click', async function (event
         res = [{ name: "", logo: "", address: "", contact: "" }];
       }
       let logoSrc = "";
-      if (res[0].logo) {
+      if (res[0].logo && res[0].logo.startsWith('data:')) {
+        logoSrc = res[0].logo;
+      } else if (res[0].logo && typeof res[0].logo === 'string') {
         try {
-          const logoBuffer = fs.readFileSync(res[0].logo);
+          const buf = fs.readFileSync(res[0].logo);
           const ext = path.extname(res[0].logo).toLowerCase();
-          const mime = ext === '.png' ? 'image/png' : ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : ext === '.gif' ? 'image/gif' : ext === '.webp' ? 'image/webp' : ext === '.bmp' ? 'image/bmp' : 'image/png';
-          logoSrc = `data:${mime};base64,${logoBuffer.toString('base64')}`;
+          const mime = ext === '.png' ? 'image/png'
+            : ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg'
+            : ext === '.gif' ? 'image/gif'
+            : ext === '.webp' ? 'image/webp'
+            : ext === '.bmp' ? 'image/bmp'
+            : 'image/png';
+          logoSrc = `data:${mime};base64,${buf.toString('base64')}`;
         } catch (e) {
           logoSrc = "";
         }

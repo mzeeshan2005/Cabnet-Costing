@@ -116,6 +116,8 @@ app.on("ready", async () => {
     return;
   }
 
+  createWindow("screens/login.html");
+
   const excelPath = getExcelPath(app);
 
   if (fs.existsSync(excelPath) && !storage.isValidExcelFile(excelPath)) {
@@ -140,8 +142,6 @@ app.on("ready", async () => {
   } else {
     console.log(`Tools_Data.xlsx found at ${excelPath}.`);
   }
-
-  createWindow("screens/login.html");
 });
 
 app.on("will-quit", () => {

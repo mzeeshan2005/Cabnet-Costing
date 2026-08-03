@@ -1,8 +1,9 @@
-Tools_Data.xlsx found at /home/ackerman/Documents/VisualWork/Work/Buisnesss/Muneeb Project/app/Tools_Data.xlsx.
 MESA-INTEL: warning: Ivy Bridge Vulkan support is incomplete
+Tools_Data.xlsx found at /home/ackerman/Documents/VisualWork/Work/Buisnesss/Muneeb Project/app/Tools_Data.xlsx.
+[45377:0728/210132.137667:ERROR:dbus/object_proxy.cc:573] Failed to call method: org.freedesktop.systemd1.Manager.StartTransientUnit: object_path= /org/freedesktop/systemd1: org.freedesktop.systemd1.UnitExists: Unit app-org.chromium.Chromium-45377.scope was already loaded or has a fragment file.
 libva error: /usr/lib/x86_64-linux-gnu/dri/iHD_drv_video.so init failed
-[22236:0728/160336.144069:ERROR:dbus/object_proxy.cc:573] Failed to call method: org.freedesktop.systemd1.Manager.StartTransientUnit: object_path= /org/freedesktop/systemd1: org.freedesktop.systemd1.UnitExists: Unit app-org.chromium.Chromium-22236.scope was already loaded or has a fragment file.
 window:open index.html
-[22264:0728/160339.653962:ERROR:ui/gl/gl_surface_presentation_helper.cc:260] GetVSyncParametersIfAvailable() failed for 1 times!
-[22264:0728/160353.483196:ERROR:ui/gl/gl_surface_presentation_helper.cc:260] GetVSyncParametersIfAvailable() failed for 2 times!
-[22264:0728/160357.531746:ERROR:ui/gl/gl_surface_presentation_helper.cc:260] GetVSyncParametersIfAvailable() failed for 3 times!
+[45405:0728/210142.159900:ERROR:ui/gl/gl_surface_presentation_helper.cc:260] GetVSyncParametersIfAvailable() failed for 1 times!
+[45405:0728/210148.181209:ERROR:ui/gl/gl_surface_presentation_helper.cc:260] GetVSyncParametersIfAvailable() failed for 2 times!
+[45405:0728/210151.449638:ERROR:ui/gl/gl_surface_presentation_helper.cc:260] GetVSyncParametersIfAvailable() failed for 3 times!
+[45377:0728/210216.722260:ERROR:ui/gfx/x/atom_cache.cc:232] Add chromium/from-privileged to kAtomsToCache
